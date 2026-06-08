@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { baseApi } from "./services/base-api";
 import categoryRouteReducer from "./slices/categoryRouteSlice";
 
 import ceilingFanDataReducer from "./slices/globalstore/cellingfanDataSlice";
@@ -22,13 +23,14 @@ import troubleshootRouteReducer from "./slices/troubleshootRouteSlice";
 
 export const store = configureStore({
   reducer: {
+    [baseApi.reducerPath]: baseApi.reducer,
+
     partners: partnersReducer,
     partnerDetails: partnerDetailsReducer,
     troubleshootRoute: troubleshootRouteReducer,
     categoryRoute: categoryRouteReducer,
     safetyMaintenance: safetyMaintenanceReducer,
     serviceForm: serviceFormReducer,
-
     starlinkRoute: starlinkRouteReducer,
     otherCategoryRoute: otherCategoryRouteSlice,
     quoteDetails: quoteDetailsReducer,
@@ -43,6 +45,8 @@ export const store = configureStore({
     dedicatedCircuitData: dedicatedCircuitDataReducer,
     outletsData: outletsDataReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(baseApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;
