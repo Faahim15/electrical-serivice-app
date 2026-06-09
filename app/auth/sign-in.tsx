@@ -13,15 +13,48 @@ import SocialButton from "@/src/components/auth/SocialButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import CustomInput from "@/src/components/shared/CustomInput";
 import CustomSvg from "@/src/components/shared/CustomSvg";
+import { useSigninMutation } from "@/src/redux/api-slices/auth/auth-api";
+import {
+  signInSchema,
+  type SignInFormData,
+} from "@/src/schemas/auth/signInSchema";
 import { scale, verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { toast } from "sonner-native";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [signin, { isLoading }] = useSigninMutation();
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignInFormData>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onTouched",
+  });
+
+  const onSubmit = async (formData: SignInFormData) => {
+    try {
+      await signin({
+        email: formData.email,
+        password: formData.password,
+      }).unwrap();
+
+      toast.success("Welcome back!");
+      router.push("/(tabs)/home");
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } };
+      toast.error(
+        error?.data?.message ?? "Something went wrong. Please try again.",
+      );
+    }
+  };
 
   return (
     <LinearGradient
@@ -62,28 +95,44 @@ export default function LoginScreen() {
             />
 
             {/* Email Input */}
-            <CustomInput
-              label="Email Address"
-              leftIcon="mail-outline"
-              textInputConfig={{
-                placeholder: "Enter your email",
-                keyboardType: "email-address",
-                autoCapitalize: "none",
-                value: email,
-                onChangeText: setEmail,
-              }}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <CustomInput
+                  label="Email Address"
+                  leftIcon="mail-outline"
+                  error={errors.email?.message}
+                  textInputConfig={{
+                    placeholder: "Enter your email",
+                    keyboardType: "email-address",
+                    autoCapitalize: "none",
+                    value,
+                    onChangeText: onChange,
+                    onBlur,
+                  }}
+                />
+              )}
             />
 
             {/* Password Input */}
-            <CustomInput
-              label="Password"
-              leftIcon="lock-closed-outline"
-              textInputConfig={{
-                placeholder: "Enter your password",
-                secureTextEntry: true,
-                value: password,
-                onChangeText: setPassword,
-              }}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <CustomInput
+                  label="Password"
+                  leftIcon="lock-closed-outline"
+                  error={errors.password?.message}
+                  textInputConfig={{
+                    placeholder: "Enter your password",
+                    secureTextEntry: true,
+                    value,
+                    onChangeText: onChange,
+                    onBlur,
+                  }}
+                />
+              )}
             />
 
             {/* Remember Me + Forgot Password */}
@@ -95,8 +144,9 @@ export default function LoginScreen() {
 
             {/* Sign In Button */}
             <GradientButton
-              onPress={() => router.push("/(tabs)/home")}
               label="Sign In"
+              onPress={handleSubmit(onSubmit)}
+              isLoading={isLoading}
             />
 
             {/* Divider */}
@@ -119,7 +169,7 @@ export default function LoginScreen() {
             {/* Sign Up Link */}
             <SignUpLink
               onPress={() => router.push("/auth/sign-up")}
-              title=" Don't have an account?"
+              title="Don't have an account?"
               subtitle="Sign Up"
             />
 

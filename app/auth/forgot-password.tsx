@@ -6,16 +6,54 @@ import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import CustomInput from "@/src/components/shared/CustomInput";
 import CustomSvg from "@/src/components/shared/CustomSvg";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import { useForgotPasswordMutation } from "@/src/redux/api-slices/auth/auth-api";
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordFormData,
+} from "@/src/schemas/auth/forgotPasswordSchema";
 import { scale, verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
+import { Controller, useForm } from "react-hook-form";
 import { View } from "react-native";
+import { toast } from "sonner-native";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+    mode: "onTouched",
+  });
+
+  const onSubmit = async (formData: ForgotPasswordFormData) => {
+    try {
+      const res = await forgotPassword({ email: formData.email }).unwrap();
+      toast.success("Verification code sent! Please check your email.");
+      router.replace({
+        pathname: "/auth/verify-forgot-password",
+        params: {
+          email: formData.email,
+          token: res.data.token,
+        },
+      });
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } };
+      toast.error(
+        error?.data?.message ?? "Something went wrong. Please try again.",
+      );
+    }
+  };
+
   return (
     <ScreenWrapper>
-      <View className="flex-1 ">
+      <View className="flex-1">
         <View className="justify-center items-center mt-[20%]">
           <CustomSvg
             xml={forgotPasswordIcon}
@@ -23,34 +61,47 @@ const ForgotPassword = () => {
             width={scale(128)}
           />
         </View>
-        <View className="">
+
+        <View>
           <AuthHeading
             title="Forgot your password?"
             subtitle="Enter your email address and we'll send you a verification code to reset your password."
           />
         </View>
-        <CustomInput
-          label="Email Address"
-          labelColor="#0F172A"
-          leftIcon="mail-outline"
-          textInputConfig={{
-            placeholder: "Enter your email",
-            keyboardType: "email-address",
-            autoCapitalize: "none",
-            value: email,
-            onChangeText: setEmail,
-          }}
+
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput
+              label="Email Address"
+              labelColor="#0F172A"
+              leftIcon="mail-outline"
+              error={errors.email?.message}
+              textInputConfig={{
+                placeholder: "Enter your email",
+                keyboardType: "email-address",
+                autoCapitalize: "none",
+                value,
+                onChangeText: onChange,
+                onBlur,
+              }}
+            />
+          )}
         />
 
         <View>
           <AuthFooter />
         </View>
+
         <View className="mt-[4%]">
           <GradientButton
             label="Send Code"
-            onPress={() => router.push("/auth/verify-account")}
+            onPress={handleSubmit(onSubmit)}
+            isLoading={isLoading}
           />
         </View>
+
         <BackToSignIn />
       </View>
     </ScreenWrapper>

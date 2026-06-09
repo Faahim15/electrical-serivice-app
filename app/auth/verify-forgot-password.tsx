@@ -8,8 +8,8 @@ import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import CustomSvg from "@/src/components/shared/CustomSvg";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import {
-  useResendOtpMutation,
-  useVerifyOtpMutation,
+  useResendForgotPasswordOtpMutation,
+  useVerifyForgotPasswordOtpMutation,
 } from "@/src/redux/api-slices/auth/auth-api";
 import { scale, verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
@@ -17,12 +17,17 @@ import React, { useState } from "react";
 import { View } from "react-native";
 import { toast } from "sonner-native";
 
-const VerifyAccount = () => {
-  const { email } = useLocalSearchParams<{ email: string }>();
+const VerifyForgotPassword = () => {
+  const { email, token } = useLocalSearchParams<{
+    email: string;
+    token: string;
+  }>();
   const [otpValue, setOtpValue] = useState<string[]>(Array(6).fill(""));
 
-  const [verifyOtp, { isLoading: isVerifying }] = useVerifyOtpMutation();
-  const [resendOtp, { isLoading: isResending }] = useResendOtpMutation();
+  const [verifyForgotPasswordOtp, { isLoading: isVerifying }] =
+    useVerifyForgotPasswordOtpMutation();
+  const [resendForgotPasswordOtp, { isLoading: isResending }] =
+    useResendForgotPasswordOtpMutation();
 
   const maskedEmail = email
     ? email.replace(
@@ -38,9 +43,12 @@ const VerifyAccount = () => {
       return;
     }
     try {
-      await verifyOtp({ userEmail: email, otp }).unwrap();
-      toast.success("Account verified successfully!");
-      router.push("/(tabs)/home");
+      const response = await verifyForgotPasswordOtp({ token, otp }).unwrap();
+      toast.success("OTP verified!");
+      router.replace({
+        pathname: "/auth/reset-password",
+        params: { token: response.data.resetPasswordToken },
+      });
     } catch (err: unknown) {
       const error = err as { data?: { message?: string } };
       toast.error(
@@ -52,12 +60,12 @@ const VerifyAccount = () => {
   const handleResend = async () => {
     if (isResending) return;
     try {
-      await resendOtp({ userEmail: email }).unwrap();
-      toast.success("A new OTP has been sent to your email.");
+      await resendForgotPasswordOtp({ token }).unwrap();
+      toast.success("A new code has been sent to your email.");
     } catch (err: unknown) {
       const error = err as { data?: { message?: string } };
       toast.error(
-        error?.data?.message ?? "Failed to resend OTP. Please try again.",
+        error?.data?.message ?? "Failed to resend. Please try again.",
       );
     }
   };
@@ -74,8 +82,8 @@ const VerifyAccount = () => {
         </View>
         <View className="items-center ml-[5%]">
           <AuthHeading
-            title="Verify your account"
-            subtitle="Enter the 6-digit code sent to your email to continue."
+            title="Forgot your password?"
+            subtitle="Enter your email address and we'll send you a verification code to reset your password."
           />
           <AuthFooter
             iconXml={verifyAccountIcon}
@@ -109,4 +117,4 @@ const VerifyAccount = () => {
   );
 };
 
-export default VerifyAccount;
+export default VerifyForgotPassword;

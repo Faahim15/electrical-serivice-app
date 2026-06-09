@@ -12,10 +12,18 @@ import TermsAndPolicy from "@/src/components/auth/TermsAndPolicy";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import CustomInput from "@/src/components/shared/CustomInput";
 import CustomSvg from "@/src/components/shared/CustomSvg";
+import PhoneInput from "@/src/components/shared/PhoneInput";
+import { useSignupMutation } from "@/src/redux/api-slices/auth/auth-api";
+import {
+  signUpSchema,
+  type SignUpFormData,
+} from "@/src/schemas/auth/signUpSchema";
 import { scale, verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +31,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { toast } from "sonner-native";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const CRITERIA = [
@@ -62,15 +71,73 @@ function getLevel(score: number) {
 
 // ── component ─────────────────────────────────────────────────────────────────
 export default function SignUpScreen() {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [signup, { isLoading }] = useSignupMutation();
 
-  const metCount = CRITERIA.filter((c) => c.test(password)).length;
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    },
+    mode: "onTouched",
+  });
+
+  const passwordValue = watch("password");
+  const metCount = CRITERIA.filter((c) => c.test(passwordValue)).length;
   const level = getLevel(metCount);
-  const showMeter = password.length > 0;
+  const allCriteriaMet = metCount === CRITERIA.length;
+  const showMeter = passwordValue.length > 0 && !allCriteriaMet;
+
+  const onSubmit = async (formData: SignUpFormData) => {
+    try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+      };
+
+      await signup(payload).unwrap();
+
+      toast.success(
+        "Account created successfully. Please check your email and enter the OTP to verify your account",
+      );
+
+      router.replace({
+        pathname: "/auth/verify-account",
+        params: { email: formData.email.trim() },
+      });
+    } catch (err: unknown) {
+      const error = err as {
+        status?: number;
+        data?: {
+          message?: string;
+          isVerified?: boolean;
+        };
+      };
+
+      const isVerified = error?.data?.isVerified;
+      const message =
+        error?.data?.message ?? "Something went wrong. Please try again.";
+      toast.error(message);
+      if (error.status === 400 && !isVerified) {
+        router.replace({
+          pathname: "/auth/verify-account",
+          params: { email: formData.email.trim() },
+        });
+        return;
+      }
+    }
+  };
 
   return (
     <LinearGradient
@@ -105,58 +172,84 @@ export default function SignUpScreen() {
             />
 
             {/* Full Name Input */}
-            <CustomInput
-              label="Full Name"
-              leftIcon="person-outline"
-              textInputConfig={{
-                placeholder: "Enter your full name",
-                autoCapitalize: "words",
-                value: fullName,
-                onChangeText: setFullName,
-              }}
+            <Controller
+              control={control}
+              name="name"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <CustomInput
+                  label="Full Name"
+                  leftIcon="person-outline"
+                  error={errors.name?.message}
+                  textInputConfig={{
+                    placeholder: "Enter your full name",
+                    autoCapitalize: "words",
+                    value,
+                    onChangeText: onChange,
+                    onBlur,
+                  }}
+                />
+              )}
             />
 
             {/* Email Input */}
-            <CustomInput
-              label="Email Address"
-              leftIcon="mail-outline"
-              textInputConfig={{
-                placeholder: "Enter your email",
-                keyboardType: "email-address",
-                autoCapitalize: "none",
-                value: email,
-                onChangeText: setEmail,
-              }}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <CustomInput
+                  label="Email Address"
+                  leftIcon="mail-outline"
+                  error={errors.email?.message}
+                  textInputConfig={{
+                    placeholder: "Enter your email",
+                    keyboardType: "email-address",
+                    autoCapitalize: "none",
+                    value,
+                    onChangeText: onChange,
+                    onBlur,
+                  }}
+                />
+              )}
             />
 
             {/* Phone Number Input */}
-            <CustomInput
-              label="Phone Number"
-              leftIcon="call-outline"
-              textInputConfig={{
-                placeholder: "Enter your phone number",
-                keyboardType: "phone-pad",
-                value: phone,
-                onChangeText: setPhone,
-              }}
+            <Controller
+              control={control}
+              name="phone"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <PhoneInput
+                  label="Phone Number"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.phone?.message}
+                />
+              )}
             />
 
             {/* Password Input */}
-            <CustomInput
-              label="Password"
-              leftIcon="lock-closed-outline"
-              textInputConfig={{
-                placeholder: "Create a password",
-                secureTextEntry: true,
-                value: password,
-                onChangeText: setPassword,
-              }}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <CustomInput
+                  label="Password"
+                  leftIcon="lock-closed-outline"
+                  error={errors.password?.message}
+                  textInputConfig={{
+                    placeholder: "Create a password",
+                    secureTextEntry: true,
+                    value,
+                    onChangeText: onChange,
+                    onBlur,
+                  }}
+                />
+              )}
             />
 
-            {/* ── Strength meter (password only) ── */}
+            {/* ── Strength meter ── */}
             {showMeter && (
               <View className="px-1 mb-3 -mt-2">
-                {/* 4-segment bar */}
                 <View className="flex-row mt-[2%] gap-x-1.5 mb-1.5">
                   {[1, 2, 3, 4].map((seg) => (
                     <View
@@ -170,7 +263,6 @@ export default function SignUpScreen() {
                   ))}
                 </View>
 
-                {/* Strength label */}
                 <Text
                   className="text-xs font-Inter_SemiBold mb-2"
                   style={{ color: level.color }}
@@ -178,9 +270,8 @@ export default function SignUpScreen() {
                   {level.label}
                 </Text>
 
-                {/* Criteria checklist */}
                 {CRITERIA.map((c) => {
-                  const met = c.test(password);
+                  const met = c.test(passwordValue);
                   return (
                     <View
                       key={c.id}
@@ -207,28 +298,40 @@ export default function SignUpScreen() {
             )}
 
             {/* Confirm Password Input */}
-            <CustomInput
-              label="Confirm Password"
-              leftIcon="lock-closed-outline"
-              textInputConfig={{
-                placeholder: "Confirm your password",
-                secureTextEntry: true,
-                value: confirmPassword,
-                onChangeText: setConfirmPassword,
-              }}
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <CustomInput
+                  label="Confirm Password"
+                  leftIcon="lock-closed-outline"
+                  error={errors.confirmPassword?.message}
+                  textInputConfig={{
+                    placeholder: "Confirm your password",
+                    secureTextEntry: true,
+                    value,
+                    onChangeText: onChange,
+                    onBlur,
+                  }}
+                />
+              )}
             />
 
             {/* Terms & Privacy Policy */}
             <TermsAndPolicy
+              value={termsAccepted}
+              onToggle={() => setTermsAccepted((prev) => !prev)}
               onPressTerms={() =>
-                router.push("/(page)/(profile)/(setting)/terms")
+                router.push("/shared/termsAndCondition" as any)
               }
             />
 
             {/* Create Account Button */}
             <GradientButton
-              onPress={() => router.push("/(tabs)/home")}
+              onPress={handleSubmit(onSubmit)}
               label="Create Account"
+              isLoading={isLoading}
+              disabled={!termsAccepted}
             />
 
             {/* Divider */}
