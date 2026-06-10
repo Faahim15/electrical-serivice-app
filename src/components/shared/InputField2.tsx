@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Text, TextInput, View } from "react-native";
+
 interface InputFieldProps {
   label: string;
   value: string;
@@ -8,7 +9,9 @@ interface InputFieldProps {
   secureTextEntry?: boolean;
   keyboardType?: "default" | "email-address" | "phone-pad";
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  error?: string;
 }
+
 const InputField2: React.FC<InputFieldProps> = ({
   label,
   value,
@@ -17,6 +20,7 @@ const InputField2: React.FC<InputFieldProps> = ({
   secureTextEntry = false,
   keyboardType = "default",
   autoCapitalize = "sentences",
+  error,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -28,7 +32,11 @@ const InputField2: React.FC<InputFieldProps> = ({
 
       <TextInput
         className={`h-[50px] font-Inter_Regular rounded-xl border px-4 text-sm text-[#111827] bg-[#FFFFFF] ${
-          isFocused ? "border-cyan-500 bg-[#FFFFFF]" : "border-[#E2E8F0]"
+          error
+            ? "border-red-400"
+            : isFocused
+              ? "border-cyan-500 bg-[#FFFFFF]"
+              : "border-[#E2E8F0]"
         }`}
         value={value}
         onChangeText={onChangeText}
@@ -40,6 +48,12 @@ const InputField2: React.FC<InputFieldProps> = ({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       />
+
+      {error && (
+        <Text className="text-red-500 text-xs font-Inter_Regular mt-1 ml-1">
+          {error}
+        </Text>
+      )}
     </View>
   );
 };

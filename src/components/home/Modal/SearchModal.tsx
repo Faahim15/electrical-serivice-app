@@ -77,11 +77,11 @@ export default function SearchModal({
     setQuery("");
     const isOther = OTHER_IDS.includes(item.id);
     if (isOther) {
-      router.push("/(page)/(quote)/(othercustom)/other-form-progress");
+      router.push("/(page)/(quote)/(othercustom)/other-form-progress" as any);
     } else if (item.title === "Solar Installation") {
-      router.push("/sollar-installation");
+      router.push("/sollar-installation" as any);
     } else {
-      router.push("/quote/service-details");
+      router.push("/quote/service-details" as any);
     }
   };
 

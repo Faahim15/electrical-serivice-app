@@ -22,6 +22,11 @@ export interface VerifyOtpRequest {
 export interface VerifyOtpResponse {
   success: boolean;
   message: string;
+  data: {
+    accessToken: string;
+    refreshToken: string;
+    user: AuthUser;
+  };
 }
 
 export interface ResendOtpRequest {

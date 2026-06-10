@@ -1,100 +1,159 @@
+import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
+import { useUpdateProfileMutation } from "@/src/redux/api-slices/profile/profile-api";
 import EvilIcons from "@expo/vector-icons/build/EvilIcons";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { Pressable, Text, View } from "react-native";
-import InputField2 from "../../shared/InputField2";
+import { toast } from "sonner-native";
+import { z } from "zod";
+import { GradientButton } from "../../onboarding/GradientButton";
+import CustomInput from "../../shared/CustomInput";
 import LinearButton from "../../shared/LinearButton";
 
-interface ServiceAddress {
-  id: number;
-  locationnickname: string;
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
-}
+// ── schema ────────────────────────────────────────────────
+const addressSchema = z.object({
+  addressName: z.string().min(1, "Location nickname is required"),
+  streetAddress: z.string().min(1, "Street address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  zipCode: z.string().min(1, "ZIP code is required"),
+  isDefault: z.boolean(),
+});
 
+const profileSchema = z.object({
+  name: z.string().min(1, "Full name is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  addresses: z.array(addressSchema),
+});
+
+type ProfileFormData = z.infer<typeof profileSchema>;
+
+// ── component ─────────────────────────────────────────────
 const ProfileEditForm: React.FC = () => {
-  const [fullName, setFullName] = useState("Ashley Martinez");
-  const [email, setEmail] = useState("ashley.m@email.com");
-  const [phone, setPhone] = useState("(555) 987-6543");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const { data } = useGetProfileQuery();
+  const [updateProfile, { isLoading }] = useUpdateProfileMutation();
 
-  const [serviceAddresses, setServiceAddresses] = useState<ServiceAddress[]>([
-    { id: 1, locationnickname: "", street: "", city: "", state: "", zip: "" },
-  ]);
+  const profile = data?.data;
 
-  const handleNewLocation = () => {
-    setServiceAddresses((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        locationnickname: "",
-        street: "",
-        city: "",
-        state: "",
-        zip: "",
-      },
-    ]);
-  };
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      addresses: [
+        {
+          addressName: "",
+          streetAddress: "",
+          city: "",
+          state: "",
+          zipCode: "",
+          isDefault: true,
+        },
+      ],
+    },
+  });
 
-  const handleRemoveLocation = (id: number) => {
-    setServiceAddresses((prev) => prev.filter((addr) => addr.id !== id));
-  };
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "addresses",
+  });
 
-  const handleAddressChange = (
-    id: number,
-    field: keyof Omit<ServiceAddress, "id">,
-    value: string,
-  ) => {
-    setServiceAddresses((prev) =>
-      prev.map((addr) => (addr.id === id ? { ...addr, [field]: value } : addr)),
-    );
-  };
+  // populate form with existing profile data
+  useEffect(() => {
+    if (profile) {
+      reset({
+        name: profile.name ?? "",
+        phone: profile.phone ?? "",
+        addresses:
+          profile.addresses?.length > 0
+            ? profile.addresses.map((addr) => ({
+                addressName: addr.addressName ?? "",
+                streetAddress: addr.streetAddress ?? "",
+                city: addr.city ?? "",
+                state: addr.state ?? "",
+                zipCode: addr.zipCode ?? "",
+                isDefault: addr.isDefault ?? false,
+              }))
+            : [
+                {
+                  addressName: "",
+                  streetAddress: "",
+                  city: "",
+                  state: "",
+                  zipCode: "",
+                  isDefault: true,
+                },
+              ],
+      });
+    }
+  }, [profile]);
 
-  const handleSave = () => {
-    router.back();
-  };
-
-  const handleCancel = () => {
-    router.back();
+  const onSubmit = async (formData: ProfileFormData) => {
+    try {
+      await updateProfile({
+        name: formData.name,
+        phone: formData.phone,
+        addresses: formData.addresses,
+      }).unwrap();
+      toast.success("Profile updated successfully!");
+      // router.back();
+    } catch (err: any) {
+      const message =
+        err?.data?.message || "Something went wrong. Please try again.";
+      toast.error(message);
+    }
   };
 
   return (
     <View className="flex-1 flex-col gap-4">
       {/* Profile Info Card */}
       <View className="bg-white rounded-[20px] px-5 py-5 gap-1 shadow-md">
-        <InputField2
-          label="Full Name"
-          value={fullName}
-          onChangeText={setFullName}
-          placeholder="Enter your full name"
-          autoCapitalize="words"
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { value, onChange } }) => (
+            <CustomInput
+              label="Full Name"
+              error={errors.name?.message}
+              textInputConfig={{
+                value,
+                onChangeText: onChange,
+                placeholder: "Enter your full name",
+                autoCapitalize: "words",
+              }}
+            />
+          )}
         />
-        <InputField2
-          label="Email Address"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Enter your email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <InputField2
-          label="Phone Number"
-          value={phone}
-          onChangeText={setPhone}
-          placeholder="Enter your phone number"
-          keyboardType="phone-pad"
-          autoCapitalize="none"
+        <Controller
+          control={control}
+          name="phone"
+          render={({ field: { value, onChange } }) => (
+            <CustomInput
+              label="Phone Number"
+              error={errors.phone?.message}
+              textInputConfig={{
+                value,
+                onChangeText: onChange,
+                placeholder: "Enter your phone number",
+                keyboardType: "phone-pad",
+                autoCapitalize: "none",
+              }}
+            />
+          )}
         />
       </View>
 
-      {/* Service Address — dynamic list */}
-      {serviceAddresses.map((addr, index) => (
+      {/* Service Addresses */}
+      {fields.map((field, index) => (
         <View
-          key={addr.id}
+          key={field.id}
           className="bg-white rounded-[20px] px-5 py-5 gap-1 shadow-md"
         >
           <View className="flex-row items-center justify-between mb-2">
@@ -107,10 +166,9 @@ const ProfileEditForm: React.FC = () => {
               </Text>
             </View>
 
-            {/* Remove button — only show on extra addresses */}
             {index > 0 && (
               <Pressable
-                onPress={() => handleRemoveLocation(addr.id)}
+                onPress={() => remove(index)}
                 className="bg-red-50 px-3 py-1 rounded-full border border-red-200"
               >
                 <Text className="text-red-500 text-xs font-semibold">
@@ -119,166 +177,130 @@ const ProfileEditForm: React.FC = () => {
               </Pressable>
             )}
           </View>
-          <InputField2
-            label="Location NickName"
-            value={addr.locationnickname}
-            onChangeText={(val) =>
-              handleAddressChange(addr.id, "locationnickname", val)
-            }
-            placeholder="Home/Office"
-            autoCapitalize="none"
+
+          <Controller
+            control={control}
+            name={`addresses.${index}.addressName`}
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="Location NickName"
+                error={errors.addresses?.[index]?.addressName?.message}
+                textInputConfig={{
+                  value,
+                  onChangeText: onChange,
+                  placeholder: "Home/Office",
+                  autoCapitalize: "none",
+                }}
+              />
+            )}
           />
 
-          <InputField2
-            label="Street Address"
-            value={addr.street}
-            onChangeText={(val) => handleAddressChange(addr.id, "street", val)}
-            placeholder="123 Main Street"
-            autoCapitalize="none"
+          <Controller
+            control={control}
+            name={`addresses.${index}.streetAddress`}
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="Street Address"
+                error={errors.addresses?.[index]?.streetAddress?.message}
+                textInputConfig={{
+                  value,
+                  onChangeText: onChange,
+                  placeholder: "123 Main Street",
+                  autoCapitalize: "none",
+                }}
+              />
+            )}
           />
-          <InputField2
-            label="City"
-            value={addr.city}
-            onChangeText={(val) => handleAddressChange(addr.id, "city", val)}
-            placeholder="San Francisco"
-            autoCapitalize="none"
+
+          <Controller
+            control={control}
+            name={`addresses.${index}.city`}
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="City"
+                error={errors.addresses?.[index]?.city?.message}
+                textInputConfig={{
+                  value,
+                  onChangeText: onChange,
+                  placeholder: "San Francisco",
+                  autoCapitalize: "none",
+                }}
+              />
+            )}
           />
 
           <View className="flex-row gap-2 items-center justify-between">
             <View className="w-[45%]">
-              <InputField2
-                label="State"
-                value={addr.state}
-                onChangeText={(val) =>
-                  handleAddressChange(addr.id, "state", val)
-                }
-                placeholder="CA"
-                autoCapitalize="none"
+              <Controller
+                control={control}
+                name={`addresses.${index}.state`}
+                render={({ field: { value, onChange } }) => (
+                  <CustomInput
+                    label="State"
+                    error={errors.addresses?.[index]?.state?.message}
+                    textInputConfig={{
+                      value,
+                      onChangeText: onChange,
+                      placeholder: "CA",
+                      autoCapitalize: "none",
+                    }}
+                  />
+                )}
               />
             </View>
             <View className="w-[45%]">
-              <InputField2
-                label="ZIP Code"
-                value={addr.zip}
-                onChangeText={(val) => handleAddressChange(addr.id, "zip", val)}
-                placeholder="255852"
-                autoCapitalize="none"
+              <Controller
+                control={control}
+                name={`addresses.${index}.zipCode`}
+                render={({ field: { value, onChange } }) => (
+                  <CustomInput
+                    label="ZIP Code"
+                    error={errors.addresses?.[index]?.zipCode?.message}
+                    textInputConfig={{
+                      value,
+                      onChangeText: onChange,
+                      placeholder: "255852",
+                      autoCapitalize: "none",
+                    }}
+                  />
+                )}
               />
             </View>
           </View>
 
           {/* Add button only on last card */}
-          {index === serviceAddresses.length - 1 && (
+          {index === fields.length - 1 && (
             <Pressable
-              className="border border-[#E2E8F0] bg-[#F6F6F6] h-[54px] justify-center items-center rounded-2xl "
-              onPress={handleNewLocation}
+              className="border border-[#E2E8F0] bg-[#F6F6F6] h-[54px] justify-center items-center rounded-2xl"
+              onPress={() =>
+                append({
+                  addressName: "",
+                  streetAddress: "",
+                  city: "",
+                  state: "",
+                  zipCode: "",
+                  isDefault: false,
+                })
+              }
             >
-              <Text
-                className={`text-[16px] tracking-[0.2px] text-[#6B7280] font-Inter_Medium`}
-              >
+              <Text className="text-[16px] tracking-[0.2px] text-[#6B7280] font-Inter_Medium">
                 Add Other Location
               </Text>
             </Pressable>
-            // <LinearButton
-            //   title="Add Other Location"
-            //   onPress={handleNewLocation}
-            //   variant="secondary"
-            // />
           )}
         </View>
       ))}
 
-      {/* Billing Address */}
-      <View className="bg-white rounded-[20px] px-5 py-5 gap-1 shadow-md">
-        <View className="flex-row items-center gap-[6px] mb-2">
-          <EvilIcons name="location" size={24} color="#6B7280" />
-          <Text className="text-[16px] font-Inter_SemiBold text-[#111827] tracking-[-0.3px]">
-            Billing Address
-          </Text>
-        </View>
-
-        <InputField2
-          label="Street Address"
-          value={""}
-          onChangeText={setCurrentPassword}
-          placeholder="123 Main Street"
-          autoCapitalize="none"
-        />
-        <InputField2
-          label="City"
-          value={""}
-          onChangeText={setNewPassword}
-          placeholder="San Francisco"
-          autoCapitalize="none"
-        />
-
-        <View className="flex-row gap-2 items-center justify-between">
-          <View className="w-[45%]">
-            <InputField2
-              label="State"
-              value={""}
-              onChangeText={setNewPassword}
-              placeholder="CA"
-              autoCapitalize="none"
-            />
-          </View>
-          <View className="w-[45%]">
-            <InputField2
-              label="ZIP Code"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="255852"
-              autoCapitalize="none"
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* Change Password Card */}
-      <View className="bg-white rounded-[20px] px-5 py-5 gap-1 shadow-md">
-        <View className="flex-row items-center gap-[6px] mb-2">
-          <EvilIcons name="lock" size={24} color="#6B7280" />
-          <Text className="text-[16px] font-Inter_SemiBold text-[#111827] tracking-[-0.3px]">
-            Change Password
-          </Text>
-        </View>
-
-        <InputField2
-          label="Current Password"
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          placeholder="Enter current password"
-          secureTextEntry
-          autoCapitalize="none"
-        />
-        <InputField2
-          label="New Password"
-          value={newPassword}
-          onChangeText={setNewPassword}
-          placeholder="Enter new password"
-          secureTextEntry
-          autoCapitalize="none"
-        />
-        <InputField2
-          label="Confirm New Password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Confirm new password"
-          secureTextEntry
-          autoCapitalize="none"
-        />
-      </View>
-
       {/* Actions */}
       <View className="gap-3 mt-1">
-        <LinearButton
-          title="Save Changes"
-          onPress={handleSave}
-          variant="primary"
+        <GradientButton
+          label="Save Changes"
+          onPress={handleSubmit(onSubmit)}
+          isLoading={isLoading}
         />
         <LinearButton
           title="Cancel"
-          onPress={handleCancel}
+          onPress={() => router.back()}
           variant="secondary"
         />
       </View>

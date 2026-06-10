@@ -22,10 +22,10 @@ import { scale, verticalScale } from "@/src/utils/Scaling";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { toast } from "sonner-native";
-
 export default function LoginScreen() {
   const [signin, { isLoading }] = useSigninMutation();
 
@@ -41,13 +41,16 @@ export default function LoginScreen() {
 
   const onSubmit = async (formData: SignInFormData) => {
     try {
-      await signin({
+      const res = await signin({
         email: formData.email,
         password: formData.password,
       }).unwrap();
 
+      await SecureStore.setItemAsync("token", res.data.accessToken);
+      await SecureStore.setItemAsync("refreshToken", res.data.refreshToken);
+
       toast.success("Welcome back!");
-      router.push("/(tabs)/home");
+      router.replace("/(tabs)/home");
     } catch (err: unknown) {
       const error = err as { data?: { message?: string } };
       toast.error(

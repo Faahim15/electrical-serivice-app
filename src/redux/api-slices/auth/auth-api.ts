@@ -19,8 +19,6 @@ import {
 } from "@/src/types/auth.api.types";
 import * as SecureStore from "expo-secure-store";
 
-const FORGOT_PASSWORD_TOKEN_KEY = "forgotPasswordToken";
-
 const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     signup: builder.mutation<SignupResponse, SignupRequest>({
@@ -99,6 +97,7 @@ const authApi = baseApi.injectEndpoints({
         body,
       }),
     }),
+
     resetPassword: builder.mutation<
       ResetPasswordResponse,
       ResetPasswordRequest

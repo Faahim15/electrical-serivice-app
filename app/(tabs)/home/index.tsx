@@ -4,19 +4,51 @@ import QuickActionCard from "@/src/components/home/QuickActionCard";
 import QuickActionFullCard from "@/src/components/home/QuickActionFullCard";
 import ElectricalHelpCard from "@/src/components/profile/ElectricalHelpCard";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import HomeScreenSkeleton from "@/src/components/skeleton/HomeScreenSkeleton";
 import {
   quickActions,
   recentActivity,
 } from "@/src/constants/tabs.home.constant";
+import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-// ─── Main Screen ──────────────────────────────────────────
+// ── Greeting helpers ──────────────────────────────────────
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning,";
+  if (hour < 17) return "Good afternoon,";
+  return "Good evening,";
+}
 
+function getInitials(name: string) {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+// ─── Main Screen ──────────────────────────────────────────
 export default function HomeScreen() {
   const [searchVisible, setSearchVisible] = useState(false);
+  const { data, isLoading } = useGetProfileQuery();
+
+  const profile = data?.data; // was: data?.data
+  const firstName = profile?.name?.split(" ")[0] ?? "";
+  const initials = profile?.name ? getInitials(profile.name) : "";
+
+  if (isLoading) {
+    return (
+      <ScreenWrapper>
+        <HomeScreenSkeleton />
+      </ScreenWrapper>
+    );
+  }
 
   return (
     <ScreenWrapper>
@@ -29,10 +61,10 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between mb-1">
             <View>
               <Text className="font-Inter_Bold text-2xl text-gray-900">
-                Good morning,
+                {getGreeting()}
               </Text>
               <Text className="font-Inter_Bold text-2xl text-gray-900">
-                Ashley
+                {firstName}
               </Text>
             </View>
             <View className="flex-row items-center gap-3">
@@ -57,7 +89,9 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(tabs)/profile/editprofile")}
               >
                 <View className="w-10 h-10 rounded-full bg-[#00ABB0] items-center justify-center">
-                  <Text className="font-Inter_Bold text-sm text-white">AM</Text>
+                  <Text className="font-Inter_Bold text-sm text-white">
+                    {initials}
+                  </Text>
                 </View>
               </Pressable>
             </View>

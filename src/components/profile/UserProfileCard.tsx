@@ -1,12 +1,27 @@
+import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 
+function getInitials(name: string) {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 const UserProfileCard = () => {
   const cardScale = useRef(new Animated.Value(0.88)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
+
+  const { data } = useGetProfileQuery();
+  const profile = data?.data;
+  const initials = profile?.name ? getInitials(profile.name) : "";
 
   useEffect(() => {
     Animated.parallel([
@@ -58,19 +73,31 @@ const UserProfileCard = () => {
           <View className="flex-row items-center mb-[18px]">
             <View className="w-[66px] h-[66px] bg-white rounded-[18px] items-center justify-center mr-4 shadow-md elevation-6">
               <Text className="text-[22px] font-extrabold text-[#0EA5E9] tracking-[1px]">
-                AM
+                {initials}
               </Text>
             </View>
 
-            <View className="gap-[2px]">
-              <Text className="text-white text-[20px] font-Inter_Bold leading-[24px]">
-                Ashley Martinez
+            <View className="gap-[2px] flex-1 mr-2">
+              <Text
+                className="text-white text-[20px] font-Inter_Bold leading-[24px]"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {profile?.name ?? ""}
               </Text>
-              <Text className="text-[#FFFFFFE5] text-[13.5px] font-Inter_Medium">
-                ashley.m@email.com
+              <Text
+                className="text-[#FFFFFFE5] text-[13.5px] font-Inter_Medium"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {profile?.email ?? ""}
               </Text>
-              <Text className="text-[#FFFFFFE5] text-[13.5px] font-Inter_Medium">
-                (555) 987-6543
+              <Text
+                className="text-[#FFFFFFE5] text-[13.5px] font-Inter_Medium"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {profile?.phone ?? ""}
               </Text>
             </View>
           </View>

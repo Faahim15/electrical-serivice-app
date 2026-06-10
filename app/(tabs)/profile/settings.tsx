@@ -44,6 +44,13 @@ const settingsItems: SettingsItem[] = [
     subtitle: "English",
   },
   {
+    id: "8",
+    route: "/(tabs)/profile/(setting)/change-password",
+    icon: "key",
+    title: "Change Password",
+    subtitle: "Update your password",
+  },
+  {
     id: "4",
     route: "/(tabs)/profile/(setting)/faqs",
     icon: "help-circle",
@@ -72,7 +79,6 @@ const settingsItems: SettingsItem[] = [
     subtitle: "App information",
   },
 ];
-
 const SettingsRow = ({
   item,
   index,

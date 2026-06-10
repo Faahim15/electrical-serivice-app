@@ -1,18 +1,7 @@
 const TagTypes = {
-  categories: "Categories",
-  driverProfile: "DriverProfile",
-  carInfo: "CarInfo",
-  publishedRides: "PublishedRides",
-  passengerRequests: "PassengerRequests",
-  upcomingRides: "UpcomingRides",
-  ongoingRides: "OngoingRides",
-  completedRides: "CompletedRides",
-  passengerProfile: "PassengerProfile",
-  subscription: "Subscription",
-  passengerUpcomingRides: "PassengerUpcomingRides",
-  cancelledRides: "CancelledRides",
-  shortProfileInfo: "ShortProfileInfo",
-  notifications: "Notifications",
+  Profile: "Profile",
+  Auth: "Auth",
+  User: "User",
 } as const;
 
 export default TagTypes;

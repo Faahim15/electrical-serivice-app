@@ -13,6 +13,7 @@ import {
 } from "@/src/redux/api-slices/auth/auth-api";
 import { scale, verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import React, { useState } from "react";
 import { View } from "react-native";
 import { toast } from "sonner-native";
@@ -38,7 +39,11 @@ const VerifyAccount = () => {
       return;
     }
     try {
-      await verifyOtp({ userEmail: email, otp }).unwrap();
+      const res = await verifyOtp({ userEmail: email, otp }).unwrap();
+
+      await SecureStore.setItemAsync("token", res.data.accessToken);
+      await SecureStore.setItemAsync("refreshToken", res.data.refreshToken);
+
       toast.success("Account verified successfully!");
       router.push("/(tabs)/home");
     } catch (err: unknown) {
