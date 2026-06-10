@@ -5,7 +5,7 @@ import { ScrollView, View } from "react-native";
 // ── Top Bar ──────────────────────────────────────────────
 function TopBarSkeleton() {
   return (
-    <View className="flex-row items-center justify-between mb-1">
+    <View className="flex-row  items-center justify-between mb-1">
       <View className="gap-y-2">
         <SkeletonElement width={160} height={28} style={{ borderRadius: 6 }} />
         <SkeletonElement width={120} height={28} style={{ borderRadius: 6 }} />
@@ -21,22 +21,21 @@ function TopBarSkeleton() {
 // ── Search Bar ───────────────────────────────────────────
 function SearchBarSkeleton() {
   return (
-    <SkeletonElement
-      width="100%"
-      height={46}
-      style={{ borderRadius: 16, marginBottom: 24 }}
-    />
+    <View className="bg-white rounded-2xl mb-6" style={{ elevation: 1 }}>
+      <SkeletonElement width="100%" height={46} style={{ borderRadius: 16 }} />
+    </View>
   );
 }
 
 // ── Hero Banner ──────────────────────────────────────────
 function HeroBannerSkeleton() {
   return (
-    <SkeletonElement
-      width="100%"
-      height={160}
-      style={{ borderRadius: 24, marginBottom: 16 }}
-    />
+    <View
+      className="bg-white rounded-3xl mb-4"
+      style={{ elevation: 1, borderRadius: 24, overflow: "hidden" }}
+    >
+      <SkeletonElement width="100%" height={160} style={{ borderRadius: 24 }} />
+    </View>
   );
 }
 
@@ -56,7 +55,17 @@ function QuickActionGridSkeleton() {
   return (
     <View className="flex-row flex-wrap justify-between">
       {[1, 2, 3, 4].map((i) => (
-        <View key={i} style={{ width: "48%", marginBottom: 12 }}>
+        <View
+          key={i}
+          className="bg-white"
+          style={{
+            width: "48%",
+            marginBottom: 12,
+            borderRadius: 16,
+            elevation: 1,
+            overflow: "hidden",
+          }}
+        >
           <SkeletonElement
             width="100%"
             height={110}
@@ -71,11 +80,17 @@ function QuickActionGridSkeleton() {
 // ── Quick Action Full Card ────────────────────────────────
 function QuickActionFullCardSkeleton() {
   return (
-    <SkeletonElement
-      width="100%"
-      height={70}
-      style={{ borderRadius: 16, marginBottom: 12 }}
-    />
+    <View
+      className="bg-white"
+      style={{
+        borderRadius: 16,
+        marginBottom: 12,
+        elevation: 1,
+        overflow: "hidden",
+      }}
+    >
+      <SkeletonElement width="100%" height={70} style={{ borderRadius: 16 }} />
+    </View>
   );
 }
 
@@ -113,11 +128,17 @@ function ActivityCardSkeleton() {
 // ── Emergency Banner ──────────────────────────────────────
 function EmergencyBannerSkeleton() {
   return (
-    <SkeletonElement
-      width="100%"
-      height={140}
-      style={{ borderRadius: 16, marginTop: 8 }}
-    />
+    <View
+      className="bg-white"
+      style={{
+        borderRadius: 16,
+        marginTop: 8,
+        elevation: 1,
+        overflow: "hidden",
+      }}
+    >
+      <SkeletonElement width="100%" height={140} style={{ borderRadius: 16 }} />
+    </View>
   );
 }
 

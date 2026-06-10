@@ -1,5 +1,6 @@
 import AuthHeading from "@/src/components/auth/AuthHeading";
 import TermsAndPolicy from "@/src/components/auth/TermsAndPolicy";
+import AddressDropdownSelector from "@/src/components/common/AddressDropdownSelector";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import InfoBanner from "@/src/components/quote/InfoBanner";
@@ -10,11 +11,12 @@ import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import { updateServiceAddress } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import { Address } from "@/src/types/home.api.types";
 import { CATEGORY_TOTAL_STEPS } from "@/src/utils/CategorySteps";
 import { verticalScale } from "@/src/utils/Scaling";
 import { router } from "expo-router";
 import React from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function ServiceAddress() {
@@ -25,13 +27,30 @@ export default function ServiceAddress() {
     (state: RootState) => state.categoryRoute.selectedCategory,
   );
   const totalSteps = CATEGORY_TOTAL_STEPS[selectedCategory?.id ?? ""] ?? 8;
+
+  const handleAddressSelect = (address: Address) => {
+    dispatch(
+      updateServiceAddress({
+        streetAddress: address.streetAddress ?? "",
+        apartment: address.apartmentUnit ?? "",
+        city: address.city ?? "",
+        state: address.state ?? "",
+        zipCode: address.zipCode ?? "",
+      }),
+    );
+  };
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        {/* Top row: back button + address dropdown */}
+        <View className="flex-row items-center justify-between">
+          <BackButton />
+          <AddressDropdownSelector onSelect={handleAddressSelect} />
+        </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}

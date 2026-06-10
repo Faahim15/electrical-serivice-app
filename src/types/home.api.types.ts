@@ -2,6 +2,7 @@ export interface Address {
   _id: string;
   addressName: string;
   streetAddress: string;
+  apartmentUnit?: string;
   city: string;
   state: string;
   zipCode: string;

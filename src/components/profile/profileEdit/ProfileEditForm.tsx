@@ -3,7 +3,7 @@ import { useUpdateProfileMutation } from "@/src/redux/api-slices/profile/profile
 import EvilIcons from "@expo/vector-icons/build/EvilIcons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { Pressable, Text, View } from "react-native";
 import { toast } from "sonner-native";
@@ -16,6 +16,7 @@ import LinearButton from "../../shared/LinearButton";
 const addressSchema = z.object({
   addressName: z.string().min(1, "Location nickname is required"),
   streetAddress: z.string().min(1, "Street address is required"),
+  apartmentUnit: z.string().optional(),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
   zipCode: z.string().min(1, "ZIP code is required"),
@@ -36,7 +37,7 @@ const ProfileEditForm: React.FC = () => {
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
 
   const profile = data?.data;
-
+  const initialDataRef = useRef<ProfileFormData | null>(null);
   const {
     control,
     handleSubmit,
@@ -51,6 +52,7 @@ const ProfileEditForm: React.FC = () => {
         {
           addressName: "",
           streetAddress: "",
+          apartmentUnit: "",
           city: "",
           state: "",
           zipCode: "",
@@ -68,7 +70,7 @@ const ProfileEditForm: React.FC = () => {
   // populate form with existing profile data
   useEffect(() => {
     if (profile) {
-      reset({
+      const initialData: ProfileFormData = {
         name: profile.name ?? "",
         phone: profile.phone ?? "",
         addresses:
@@ -76,6 +78,7 @@ const ProfileEditForm: React.FC = () => {
             ? profile.addresses.map((addr) => ({
                 addressName: addr.addressName ?? "",
                 streetAddress: addr.streetAddress ?? "",
+                apartmentUnit: addr.apartmentUnit ?? "",
                 city: addr.city ?? "",
                 state: addr.state ?? "",
                 zipCode: addr.zipCode ?? "",
@@ -85,28 +88,44 @@ const ProfileEditForm: React.FC = () => {
                 {
                   addressName: "",
                   streetAddress: "",
+                  apartmentUnit: "",
                   city: "",
                   state: "",
                   zipCode: "",
                   isDefault: true,
                 },
               ],
-      });
+      };
+
+      initialDataRef.current = initialData;
+      reset(initialData);
     }
-  }, [profile]);
+  }, [profile, reset]);
 
   const onSubmit = async (formData: ProfileFormData) => {
     try {
+      const hasChanges =
+        JSON.stringify(formData) !== JSON.stringify(initialDataRef.current);
+
+      if (!hasChanges) {
+        toast.info("No changes detected");
+        return;
+      }
+
       await updateProfile({
         name: formData.name,
         phone: formData.phone,
         addresses: formData.addresses,
       }).unwrap();
+
       toast.success("Profile updated successfully!");
-      // router.back();
+
+      // Update reference data after successful save
+      initialDataRef.current = formData;
     } catch (err: any) {
       const message =
         err?.data?.message || "Something went wrong. Please try again.";
+
       toast.error(message);
     }
   };
@@ -214,6 +233,22 @@ const ProfileEditForm: React.FC = () => {
 
           <Controller
             control={control}
+            name={`addresses.${index}.apartmentUnit`}
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="Apartment / Unit (Optional)"
+                textInputConfig={{
+                  value: value ?? "",
+                  onChangeText: onChange,
+                  placeholder: "Apt 4B",
+                  autoCapitalize: "none",
+                }}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
             name={`addresses.${index}.city`}
             render={({ field: { value, onChange } }) => (
               <CustomInput
@@ -276,6 +311,7 @@ const ProfileEditForm: React.FC = () => {
                 append({
                   addressName: "",
                   streetAddress: "",
+                  apartmentUnit: "",
                   city: "",
                   state: "",
                   zipCode: "",

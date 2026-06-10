@@ -38,6 +38,12 @@ export default function PhoneInput({
     }
   };
 
+  // Split label into text and optional trailing "*"
+  const hasRequired = label?.trimEnd().endsWith("*");
+  const labelText = hasRequired
+    ? label.trimEnd().slice(0, -1).trimEnd()
+    : label;
+
   return (
     <View className="mb-2">
       {label ? (
@@ -45,7 +51,8 @@ export default function PhoneInput({
           style={{ color: labelColor }}
           className="font-Inter_Medium text-sm mb-1"
         >
-          {label}
+          {labelText}
+          {hasRequired && <Text style={{ color: "#EF4444" }}> *</Text>}
         </Text>
       ) : null}
 

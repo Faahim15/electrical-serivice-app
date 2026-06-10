@@ -1,6 +1,7 @@
 export interface UpdateAddressRequest {
   addressName: string;
   streetAddress: string;
+  apartmentUnit?: string;
   city: string;
   state: string;
   zipCode: string;
