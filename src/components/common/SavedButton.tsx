@@ -9,7 +9,7 @@ interface SavedEditActionProps {
 
 export default function SavedEditAction({
   onPress = () => {
-    router.push("/(page)/(home)/saved-draft");
+    router.push("/(tabs)/home/saved-draft");
   },
   title = "Save for Later",
 }: SavedEditActionProps) {

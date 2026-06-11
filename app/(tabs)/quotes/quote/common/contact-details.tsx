@@ -11,53 +11,137 @@ import PhoneInput from "@/src/components/shared/PhoneInput";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
+import { useCreateServiceCallMutation } from "@/src/redux/api-slices/quote/quote-api";
 import { updateContactDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  ContactFormValues,
+  contactSchema,
+} from "@/src/schemas/quotes/common/contactDetailsSchema";
 import { Address } from "@/src/types/home.api.types";
 import { CATEGORY_TOTAL_STEPS } from "@/src/utils/CategorySteps";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
+
+const CURRENT_STEP = 1;
 
 export default function ContactDetails() {
   const dispatch = useDispatch();
   const { data: profileData } = useGetProfileQuery();
   const [agreed, setAgreed] = useState(false);
+  const [createServiceCall, { isLoading: isSaving }] =
+    useCreateServiceCallMutation();
 
-  const { fullName, email, phone } = useSelector(
+  const { fullName, email, phone, preferredContact } = useSelector(
     (state: RootState) => state.serviceForm.contactDetails,
   );
   const selectedCategory = useSelector(
     (state: RootState) => state.categoryRoute.selectedCategory,
   );
   const totalSteps = CATEGORY_TOTAL_STEPS[selectedCategory?.id ?? ""] ?? 8;
-
   const profile = profileData?.data;
+
+  // Same formula as StepProgressBar
+  const completionPercentage = Math.round((CURRENT_STEP / totalSteps) * 100);
+
+  // ─── RHF Setup ──────────────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<ContactFormValues>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      fullName: fullName || "",
+      email: email || "",
+      phone: phone || "",
+      preferredContact:
+        (preferredContact as "Call" | "Text" | "Email") || "Call",
+    },
+  });
 
   // Auto-fill with profile data on mount
   useEffect(() => {
     if (profile) {
+      const name = profile.name ?? "";
+      const mail = profile.email ?? "";
+      const tel = profile.phone ?? "";
+
+      setValue("fullName", name);
+      setValue("email", mail);
+      setValue("phone", tel);
+
       dispatch(
-        updateContactDetails({
-          fullName: profile.name ?? "",
-          email: profile.email ?? "",
-          phone: profile.phone ?? "",
-        }),
+        updateContactDetails({ fullName: name, email: mail, phone: tel }),
       );
     }
   }, [profile]);
 
-  const handleAddressSelect = (address: Address) => {
-    dispatch(
-      updateContactDetails({
-        fullName: profile?.name ?? "",
-        email: profile?.email ?? "",
-        phone: profile?.phone ?? "",
-      }),
-    );
+  // ─── Address select handler ──────────────────────────────────────────────────
+  const handleAddressSelect = (_address: Address) => {
+    const name = profile?.name ?? "";
+    const mail = profile?.email ?? "";
+    const tel = profile?.phone ?? "";
+
+    setValue("fullName", name);
+    setValue("email", mail);
+    setValue("phone", tel);
+
+    dispatch(updateContactDetails({ fullName: name, email: mail, phone: tel }));
   };
 
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const values = getValues();
+
+    try {
+      console.log(values.fullName, values.email);
+      await createServiceCall({
+        serviceType: selectedCategory?.title || "N/A",
+        fullName: values.fullName || "",
+        emailAddress: values.email || "",
+        phoneNumber: values.phone || "",
+        preferredContactMethod: values.preferredContact || "Call",
+        streetAddress: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        propertyType: "",
+        ownershipStatus: "",
+        timelineUrgency: "",
+        status: "draft",
+        completionPercentage,
+      }).unwrap();
+
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch (err: any) {
+      console.log({ err });
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
+
+  // ─── Continue handler ────────────────────────────────────────────────────────
+  const onSubmit = (values: ContactFormValues) => {
+    dispatch(
+      updateContactDetails({
+        fullName: values.fullName,
+        email: values.email,
+        phone: values.phone,
+        preferredContact: values.preferredContact,
+      }),
+    );
+    router.push("/(tabs)/quotes/quote/common/service-address");
+  };
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <ScreenWrapper paddingHorizontal={20}>
       {/* Top row: back button + address dropdown */}
@@ -67,7 +151,7 @@ export default function ContactDetails() {
       </View>
 
       <View>
-        <StepProgressBar currentStep={1} totalSteps={totalSteps} />
+        <StepProgressBar currentStep={CURRENT_STEP} totalSteps={totalSteps} />
 
         {selectedCategory && <CategoryTag title={selectedCategory.title} />}
 
@@ -76,40 +160,71 @@ export default function ContactDetails() {
           subtitle="We'll use this to follow up on your request"
         />
 
-        <CustomInput
-          label="Full Name *"
-          leftIcon="person-outline"
-          textInputConfig={{
-            placeholder: "Enter your full name",
-            autoCapitalize: "words",
-            value: fullName,
-            onChangeText: (text) =>
-              dispatch(updateContactDetails({ fullName: text })),
-          }}
+        {/* Full Name */}
+        <Controller
+          control={control}
+          name="fullName"
+          render={({ field: { value, onChange } }) => (
+            <CustomInput
+              label="Full Name *"
+              leftIcon="person-outline"
+              error={errors.fullName?.message}
+              textInputConfig={{
+                placeholder: "Enter your full name",
+                autoCapitalize: "words",
+                value,
+                onChangeText: onChange,
+              }}
+            />
+          )}
         />
 
-        <CustomInput
-          label="Email Address *"
-          leftIcon="mail-outline"
-          textInputConfig={{
-            placeholder: "Enter your email",
-            keyboardType: "email-address",
-            autoCapitalize: "none",
-            value: email,
-            onChangeText: (text) =>
-              dispatch(updateContactDetails({ email: text })),
-          }}
+        {/* Email */}
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { value, onChange } }) => (
+            <CustomInput
+              label="Email Address *"
+              leftIcon="mail-outline"
+              error={errors.email?.message}
+              textInputConfig={{
+                placeholder: "Enter your email",
+                keyboardType: "email-address",
+                autoCapitalize: "none",
+                value,
+                onChangeText: onChange,
+              }}
+            />
+          )}
         />
 
-        <PhoneInput
-          label="Phone Number *"
-          value={phone}
-          onChangeText={(text) =>
-            dispatch(updateContactDetails({ phone: text }))
-          }
+        {/* Phone */}
+        <Controller
+          control={control}
+          name="phone"
+          render={({ field: { value, onChange } }) => (
+            <PhoneInput
+              label="Phone Number *"
+              value={value}
+              onChangeText={onChange}
+              error={errors.phone?.message}
+            />
+          )}
         />
 
-        <PreferredContactSelector />
+        {/* Preferred Contact */}
+        <Controller
+          control={control}
+          name="preferredContact"
+          render={({ field: { value, onChange } }) => (
+            <PreferredContactSelector
+              value={value}
+              onChange={onChange}
+              error={errors.preferredContact?.message}
+            />
+          )}
+        />
 
         <TermsAndPolicy
           title="I agree to be"
@@ -121,13 +236,14 @@ export default function ContactDetails() {
 
         <GradientButton
           label="Continue"
-          onPress={() =>
-            router.push("/(tabs)/quotes/quote/common/service-address")
-          }
+          onPress={handleSubmit(onSubmit)}
           disabled={!agreed}
         />
 
-        <SavedEditAction />
+        <SavedEditAction
+          onPress={handleSaveForLater}
+          title={isSaving ? "Saving..." : "Save for Later"}
+        />
       </View>
     </ScreenWrapper>
   );

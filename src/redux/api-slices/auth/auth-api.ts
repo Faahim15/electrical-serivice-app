@@ -23,7 +23,7 @@ const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     signup: builder.mutation<SignupResponse, SignupRequest>({
       query: (body) => ({
-        url: "/api/v1/user/signup",
+        url: "/user/signup",
         method: "POST",
         body,
       }),
@@ -31,7 +31,7 @@ const authApi = baseApi.injectEndpoints({
 
     signin: builder.mutation<SigninResponse, SigninRequest>({
       query: (body) => ({
-        url: "/api/v1/user/signin",
+        url: "/user/signin",
         method: "POST",
         body,
       }),
@@ -51,7 +51,7 @@ const authApi = baseApi.injectEndpoints({
 
     verifyOtp: builder.mutation<VerifyOtpResponse, VerifyOtpRequest>({
       query: (body) => ({
-        url: "/api/v1/user/verify-signup-otp",
+        url: "/user/verify-signup-otp",
         method: "POST",
         body,
       }),
@@ -59,7 +59,7 @@ const authApi = baseApi.injectEndpoints({
 
     resendOtp: builder.mutation<ResendOtpResponse, ResendOtpRequest>({
       query: (body) => ({
-        url: "/api/v1/user/send-signup-otp-again",
+        url: "/user/send-signup-otp-again",
         method: "POST",
         body,
       }),
@@ -70,7 +70,7 @@ const authApi = baseApi.injectEndpoints({
       ForgotPasswordRequest
     >({
       query: (body) => ({
-        url: "/api/v1/user/forgot-password",
+        url: "/user/forgot-password",
         method: "POST",
         body,
       }),
@@ -81,7 +81,7 @@ const authApi = baseApi.injectEndpoints({
       ResendForgotPasswordOtpRequest
     >({
       query: (body) => ({
-        url: "/api/v1/user/send-forgot-password-otp-again",
+        url: "/user/send-forgot-password-otp-again",
         method: "POST",
         body,
       }),
@@ -92,7 +92,7 @@ const authApi = baseApi.injectEndpoints({
       VerifyForgotPasswordOtpRequest
     >({
       query: (body) => ({
-        url: "/api/v1/user/verify-forgot-password-otp",
+        url: "/user/verify-forgot-password-otp",
         method: "POST",
         body,
       }),
@@ -103,7 +103,7 @@ const authApi = baseApi.injectEndpoints({
       ResetPasswordRequest
     >({
       query: (body) => ({
-        url: "/api/v1/user/reset-password",
+        url: "/user/reset-password",
         method: "POST",
         body,
       }),

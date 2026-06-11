@@ -21,14 +21,19 @@ interface PhotoUploadSectionProps {
   label: string;
   photos: string[];
   onPhotosChange: (photos: string[]) => void;
+  maxPhotos?: number; // 1 = single mode, >1 = multiple mode
 }
 
 const PhotoUploadSection = ({
   label,
   photos,
   onPhotosChange,
+  maxPhotos = 5,
 }: PhotoUploadSectionProps) => {
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+
+  const isSingle = maxPhotos === 1;
+  const isLimitReached = photos.length >= maxPhotos;
 
   const pickFromGallery = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -38,12 +43,16 @@ const PhotoUploadSection = ({
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsMultipleSelection: true,
+      allowsMultipleSelection: !isSingle,
       quality: 0.8,
     });
     if (!result.canceled) {
       const uris = result.assets.map((a) => a.uri);
-      onPhotosChange([...photos, ...uris]);
+      if (isSingle) {
+        onPhotosChange(uris); // replace existing
+      } else {
+        onPhotosChange([...photos, ...uris].slice(0, maxPhotos));
+      }
     }
   };
 
@@ -55,7 +64,11 @@ const PhotoUploadSection = ({
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (!result.canceled) {
-      onPhotosChange([...photos, result.assets[0].uri]);
+      if (isSingle) {
+        onPhotosChange([result.assets[0].uri]); // replace existing
+      } else {
+        onPhotosChange([...photos, result.assets[0].uri]);
+      }
     }
   };
 
@@ -84,7 +97,7 @@ const PhotoUploadSection = ({
         elevation: 1,
       }}
     >
-      {/* Header — icon + label always visible */}
+      {/* Header */}
       <View className="items-center mb-3">
         <View
           style={{
@@ -103,16 +116,15 @@ const PhotoUploadSection = ({
             height={24}
           />
         </View>
-        {/* ✅ Label always rendered here, not hidden when photos exist */}
         <Text
           className="text-[#1E293B] text-[14px] font-Inter_SemiBold mt-2 text-center"
-          style={{ paddingHorizontal: scale(8) }} // prevents text edge clipping
+          style={{ paddingHorizontal: scale(8) }}
         >
           {label}
         </Text>
       </View>
 
-      {/* Photos — centered wrap layout instead of left-aligned FlatList */}
+      {/* Photo List */}
       {photos.length > 0 && (
         <FlatList
           data={photos}
@@ -155,26 +167,28 @@ const PhotoUploadSection = ({
         />
       )}
 
-      {/* Choose File Button */}
-      <Pressable
-        onPress={showPickerOptions}
-        style={{
-          borderWidth: 1,
-          borderColor: "#EFF6FF",
-          alignSelf: "center",
-          borderRadius: scale(16),
-          paddingVertical: verticalScale(14),
-          alignItems: "center",
-          backgroundColor: "#EFF6FF",
-          justifyContent: "center",
-          height: verticalScale(50),
-          width: scale(130),
-        }}
-      >
-        <Text className="text-[#60A5FA] text-base font-Inter_SemiBold">
-          Choose File
-        </Text>
-      </Pressable>
+      {/* Choose File — hidden when limit reached */}
+      {!isLimitReached && (
+        <Pressable
+          onPress={showPickerOptions}
+          style={{
+            borderWidth: 1,
+            borderColor: "#EFF6FF",
+            alignSelf: "center",
+            borderRadius: scale(16),
+            paddingVertical: verticalScale(14),
+            alignItems: "center",
+            backgroundColor: "#EFF6FF",
+            justifyContent: "center",
+            height: verticalScale(50),
+            width: scale(130),
+          }}
+        >
+          <Text className="text-[#60A5FA] text-base font-Inter_SemiBold">
+            Choose File
+          </Text>
+        </Pressable>
+      )}
 
       {/* Full Screen Preview Modal */}
       <Modal

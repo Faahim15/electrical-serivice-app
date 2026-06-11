@@ -12,7 +12,7 @@ const profileApi = baseApi.injectEndpoints({
       { oldPassword: string; newPassword: string }
     >({
       query: (body) => ({
-        url: "/api/v1/user/change-password",
+        url: "/user/change-password",
         method: "PATCH",
         body,
       }),
@@ -24,7 +24,7 @@ const profileApi = baseApi.injectEndpoints({
       UpdateProfileRequest
     >({
       query: (body) => ({
-        url: "/api/v1/user/update-user-data",
+        url: "/user/update-user-data",
         method: "PATCH",
         body,
       }),

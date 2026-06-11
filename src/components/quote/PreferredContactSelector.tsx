@@ -6,7 +6,16 @@ import { useDispatch, useSelector } from "react-redux";
 
 const OPTIONS = ["Call", "Text", "Email"] as const;
 
-export default function PreferredContactSelector() {
+interface PreferredContactSelectorProps {
+  value: string;
+  onChange: (val: "Call" | "Text" | "Email") => void;
+  error?: string;
+}
+export default function PreferredContactSelector({
+  value,
+  onChange,
+  error,
+}: PreferredContactSelectorProps) {
   const dispatch = useDispatch();
   const selected = useSelector(
     (state: RootState) => state.serviceForm.contactDetails.preferredContact,

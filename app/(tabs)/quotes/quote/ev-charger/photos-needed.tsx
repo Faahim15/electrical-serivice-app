@@ -47,6 +47,7 @@ export default function GeneratorPhotosNeeded() {
           <PhotoUploadSection
             label="Upload photo of area you want EV charger installed"
             photos={chargerAreaPhotos || []}
+            maxPhotos={1}
             onPhotosChange={(p) =>
               dispatch(updateEVChargerDetails({ chargerAreaPhotos: p }))
             }

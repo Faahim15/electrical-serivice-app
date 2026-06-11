@@ -6,7 +6,7 @@ const homeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getProfile: builder.query<GetProfileResponse, void>({
       query: () => ({
-        url: "/api/v1/user/profile",
+        url: "/user/profile",
         method: "GET",
       }),
       providesTags: [TagTypes.Profile],
