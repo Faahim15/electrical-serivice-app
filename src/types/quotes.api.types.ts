@@ -80,3 +80,22 @@ export interface GetServiceCallsResponse {
   message: string;
   data: ServiceCallResponse[];
 }
+
+// ─── Update (PATCH) ───────────────────────────────────────────────────────────
+// Reuses the same payload/response shapes as create, since a PATCH is just a
+// partial update of the same resource and returns the same updated object.
+
+export type UpdateServiceCallPayload = Partial<CreateServiceCallPayload>;
+
+export type UpdateServiceCallResponse = CreateServiceCallResponse;
+export interface DraftGroup {
+  serviceName: string;
+  count: number;
+  data: ServiceCallResponse[];
+}
+
+export interface GetDraftsResponse {
+  success: boolean;
+  message: string;
+  data: DraftGroup[];
+}

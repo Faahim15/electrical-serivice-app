@@ -102,7 +102,6 @@ export default function ContactDetails() {
     const values = getValues();
 
     try {
-      console.log(values.fullName, values.email);
       await createServiceCall({
         serviceType: selectedCategory?.title || "N/A",
         fullName: values.fullName || "",
