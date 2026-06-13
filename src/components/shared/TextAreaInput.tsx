@@ -1,6 +1,6 @@
 import { scale } from "@/src/utils/Scaling";
 import React from "react";
-import { Text, TextInput, TextInputProps, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 
 interface TextAreaInputProps {
   label: string;
@@ -9,8 +9,9 @@ interface TextAreaInputProps {
   onChangeText: (text: string) => void;
   numberOfLines?: number;
   minHeight?: number;
+  error?: string;
   textInputProps?: Omit<
-    TextInputProps,
+    React.ComponentProps<typeof TextInput>,
     "value" | "onChangeText" | "placeholder" | "multiline" | "numberOfLines"
   >;
 }
@@ -22,6 +23,7 @@ const TextAreaInput = ({
   onChangeText,
   numberOfLines = 6,
   minHeight = 140,
+  error,
   textInputProps,
 }: TextAreaInputProps) => {
   return (
@@ -41,7 +43,7 @@ const TextAreaInput = ({
           backgroundColor: "#FFFFFF",
           borderRadius: scale(12),
           borderWidth: 1.5,
-          borderColor: "#E2E8F0",
+          borderColor: error ? "#EF4444" : "#E2E8F0",
           padding: 14,
           minHeight,
           fontFamily: "Inter-Regular",
@@ -55,6 +57,7 @@ const TextAreaInput = ({
         }}
         {...textInputProps}
       />
+      {error && <Text className="text-red-500 text-xs mt-1">{error}</Text>}
     </View>
   );
 };

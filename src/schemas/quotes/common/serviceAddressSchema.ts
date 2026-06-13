@@ -11,10 +11,14 @@ export const serviceAddressSchema = z.object({
     .max(2, "Use 2-letter state code"),
   zipCode: z
     .string()
-    .trim()
-    .min(5, "Zip code must be 5 digits")
-    .max(5, "Zip code must be 5 digits")
-    .regex(/^\d{5}$/, "Zip code must be numeric"),
+    .transform((val) => val.trim()) // 👈 transform add করো
+    .pipe(
+      z
+        .string()
+        .min(5, "Zip code must be 5 digits")
+        .max(5, "Zip code must be 5 digits")
+        .regex(/^\d{5}$/, "Zip code must be numeric"),
+    ),
   isHomeAddress: z.boolean().optional(),
 });
 

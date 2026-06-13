@@ -51,9 +51,7 @@ export default function ServiceAddress() {
       serviceType?: string;
     }>();
 
-  // Prefer serviceType from params (resuming a draft); fall back to redux category
   const serviceType = serviceTypeParam || selectedCategory?.title || "N/A";
-
   const completionPercentage = Math.round((CURRENT_STEP / totalSteps) * 100);
 
   // ─── Fetch existing draft (if resuming) ─────────────────────────────────────
@@ -68,6 +66,7 @@ export default function ServiceAddress() {
     formState: { errors },
   } = useForm<ServiceAddressFormValues>({
     resolver: zodResolver(serviceAddressSchema),
+    mode: "onChange",
     defaultValues: {
       streetAddress: streetAddress || "",
       apartment: apartment || "",
@@ -78,7 +77,7 @@ export default function ServiceAddress() {
     },
   });
 
-  // Prefill form + redux with the fetched draft's saved address values
+  // ─── Prefill from API draft ──────────────────────────────────────────────────
   useEffect(() => {
     if (!draftData) return;
 
@@ -90,11 +89,11 @@ export default function ServiceAddress() {
       zipCode: draftData.zipCode || "",
     };
 
-    setValue("streetAddress", values.streetAddress);
-    setValue("apartment", values.apartment);
-    setValue("city", values.city);
-    setValue("state", values.state);
-    setValue("zipCode", values.zipCode);
+    setValue("streetAddress", values.streetAddress, { shouldValidate: true });
+    setValue("apartment", values.apartment, { shouldValidate: true });
+    setValue("city", values.city, { shouldValidate: true });
+    setValue("state", values.state, { shouldValidate: true });
+    setValue("zipCode", values.zipCode.trim(), { shouldValidate: true });
 
     dispatch(updateServiceAddress(values));
   }, [draftData]);
@@ -106,14 +105,14 @@ export default function ServiceAddress() {
       apartment: address.apartmentUnit ?? "",
       city: address.city ?? "",
       state: address.state ?? "",
-      zipCode: address.zipCode ?? "",
+      zipCode: address.zipCode?.trim() ?? "",
     };
 
-    setValue("streetAddress", values.streetAddress);
-    setValue("apartment", values.apartment);
-    setValue("city", values.city);
-    setValue("state", values.state);
-    setValue("zipCode", values.zipCode);
+    setValue("streetAddress", values.streetAddress, { shouldValidate: true });
+    setValue("apartment", values.apartment, { shouldValidate: true });
+    setValue("city", values.city, { shouldValidate: true });
+    setValue("state", values.state, { shouldValidate: true });
+    setValue("zipCode", values.zipCode, { shouldValidate: true });
 
     dispatch(updateServiceAddress(values));
   };
@@ -122,7 +121,6 @@ export default function ServiceAddress() {
   const handleSaveForLater = async () => {
     const values = getValues();
 
-    // API থেকে আনা email কে priority দাও, না থাকলে redux থেকে নাও
     const resolvedEmail = draftData?.emailAddress || email || "";
     const resolvedFullName = draftData?.fullName || fullName || "";
     const resolvedPhone = draftData?.phoneNumber || phone || "";
@@ -145,7 +143,6 @@ export default function ServiceAddress() {
 
     try {
       if (serviceCallId) {
-        console.log(serviceCallId, serviceType, payload);
         await updateDraft(serviceCallId, serviceType, payload);
       } else {
         await createDraft(serviceType, {
@@ -160,7 +157,6 @@ export default function ServiceAddress() {
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
     } catch (err: any) {
-      console.log({ err });
       toast.error("Failed to save draft. Please try again.");
     }
   };
@@ -170,7 +166,7 @@ export default function ServiceAddress() {
     dispatch(updateServiceAddress(values));
     router.push({
       pathname: "/(tabs)/quotes/quote/common/project-basics",
-      params: { serviceType },
+      params: { serviceType, serviceCallId },
     });
   };
 
@@ -212,7 +208,7 @@ export default function ServiceAddress() {
                   placeholder: "Enter your street address",
                   autoCapitalize: "words",
                   value,
-                  onChangeText: onChange,
+                  onChangeText: (text) => onChange(text.trim()),
                 }}
               />
             )}
@@ -250,7 +246,7 @@ export default function ServiceAddress() {
                   keyboardType: "default",
                   autoCapitalize: "words",
                   value,
-                  onChangeText: onChange,
+                  onChangeText: (text) => onChange(text.trim()),
                 }}
               />
             )}
@@ -270,7 +266,7 @@ export default function ServiceAddress() {
                   autoCapitalize: "characters",
                   maxLength: 2,
                   value,
-                  onChangeText: (text) => onChange(text.toUpperCase()),
+                  onChangeText: (text) => onChange(text.trim().toUpperCase()),
                 }}
               />
             )}
@@ -290,7 +286,7 @@ export default function ServiceAddress() {
                   autoCapitalize: "none",
                   maxLength: 5,
                   value,
-                  onChangeText: onChange,
+                  onChangeText: (text) => onChange(text.trim()),
                 }}
               />
             )}

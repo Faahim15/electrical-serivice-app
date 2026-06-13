@@ -114,7 +114,13 @@ export default function ProjectBasics() {
     const resolvedPreferredContact =
       draftData?.preferredContactMethod || preferredContact || "Call";
 
-    console.log("resolved", resolvedEmail);
+    console.log(
+      "resolved",
+      resolvedEmail,
+      draftData?.emailAddress,
+      completionPercentage,
+      totalSteps,
+    );
 
     const payload = {
       fullName: resolvedFullName,
