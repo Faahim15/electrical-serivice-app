@@ -1,6 +1,13 @@
 import TagTypes from "@/src/constants/tagTypes.constant";
 import { baseApi } from "@/src/redux/services/base-api";
 import {
+  CreateEvChargerInstallationPayload,
+  CreateEvChargerInstallationResponse,
+  GetEvChargerInstallationsResponse,
+  UpdateEvChargerInstallationPayload,
+  UpdateEvChargerInstallationResponse,
+} from "@/src/types/evCharger.api.types";
+import {
   CreateServiceCallPayload,
   CreateServiceCallResponse,
   GetDraftsResponse,
@@ -16,6 +23,14 @@ const quoteApi = baseApi.injectEndpoints({
     getServiceCalls: builder.query<GetServiceCallsResponse, void>({
       query: () => ({
         url: "/service-calls/my",
+        method: "GET",
+      }),
+      providesTags: [TagTypes.User],
+    }),
+
+    getServiceCallById: builder.query<CreateServiceCallResponse, string>({
+      query: (id) => ({
+        url: `/service-calls/${id}`,
         method: "GET",
       }),
       providesTags: [TagTypes.User],
@@ -41,7 +56,7 @@ const quoteApi = baseApi.injectEndpoints({
       invalidatesTags: [TagTypes.User],
     }),
 
-    // ─── Update (PATCH) ─────────────────────────────────────────────────────
+    // ─── Update (PATCH) — Service Call ─────────────────────────────────────
 
     updateServiceCall: builder.mutation<
       UpdateServiceCallResponse,
@@ -49,6 +64,54 @@ const quoteApi = baseApi.injectEndpoints({
     >({
       query: ({ id, body }) => ({
         url: `/service-calls/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: [TagTypes.User],
+    }),
+
+    // ─── EV Charger Installation ────────────────────────────────────────────
+
+    getEvChargerInstallations: builder.query<
+      GetEvChargerInstallationsResponse,
+      void
+    >({
+      query: () => ({
+        url: "/ev-charger-installations/my",
+        method: "GET",
+      }),
+      providesTags: [TagTypes.User],
+    }),
+
+    getEvChargerInstallationById: builder.query<
+      CreateEvChargerInstallationResponse,
+      string
+    >({
+      query: (id) => ({
+        url: `/ev-charger-installations/${id}`,
+        method: "GET",
+      }),
+      providesTags: [TagTypes.User],
+    }),
+
+    createEvChargerInstallation: builder.mutation<
+      CreateEvChargerInstallationResponse,
+      CreateEvChargerInstallationPayload
+    >({
+      query: (body) => ({
+        url: "/ev-charger-installations",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [TagTypes.User],
+    }),
+
+    updateEvChargerInstallation: builder.mutation<
+      UpdateEvChargerInstallationResponse,
+      { id: string; body: UpdateEvChargerInstallationPayload }
+    >({
+      query: ({ id, body }) => ({
+        url: `/ev-charger-installations/${id}`,
         method: "PATCH",
         body,
       }),
@@ -101,9 +164,14 @@ const quoteApi = baseApi.injectEndpoints({
 
 export const {
   useGetServiceCallsQuery,
+  useGetServiceCallByIdQuery,
   useGetDraftsQuery,
   useCreateServiceCallMutation,
   useUpdateServiceCallMutation,
+  useGetEvChargerInstallationsQuery,
+  useGetEvChargerInstallationByIdQuery,
+  useCreateEvChargerInstallationMutation,
+  useUpdateEvChargerInstallationMutation,
   useDeleteServiceCallMutation,
   useDeleteEvChargerInstallationMutation,
   useDeletePanelUpgradeReplacementMutation,

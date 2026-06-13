@@ -164,7 +164,7 @@ const SavedDraft = () => {
         {/* Draft List */}
         {isLoading ? (
           <View className="px-4 gap-y-3">
-            {Array.from({ length: skeletonCount || 3 }).map((_, i) => (
+            {Array.from({ length: skeletonCount }).map((_, i) => (
               <DraftCardSkeleton key={i} />
             ))}
           </View>

@@ -10,8 +10,8 @@ import CustomInput from "@/src/components/shared/CustomInput";
 import PhoneInput from "@/src/components/shared/PhoneInput";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
-import { useCreateServiceCallMutation } from "@/src/redux/api-slices/quote/quote-api";
 import { updateContactDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import {
@@ -21,7 +21,7 @@ import {
 import { Address } from "@/src/types/home.api.types";
 import { CATEGORY_TOTAL_STEPS } from "@/src/utils/CategorySteps";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { View } from "react-native";
@@ -34,8 +34,14 @@ export default function ContactDetails() {
   const dispatch = useDispatch();
   const { data: profileData } = useGetProfileQuery();
   const [agreed, setAgreed] = useState(false);
-  const [createServiceCall, { isLoading: isSaving }] =
-    useCreateServiceCallMutation();
+
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
 
   const { fullName, email, phone, preferredContact } = useSelector(
     (state: RootState) => state.serviceForm.contactDetails,
@@ -45,6 +51,9 @@ export default function ContactDetails() {
   );
   const totalSteps = CATEGORY_TOTAL_STEPS[selectedCategory?.id ?? ""] ?? 8;
   const profile = profileData?.data;
+
+  // Prefer serviceType from params (resuming a draft); fall back to redux category
+  const serviceType = serviceTypeParam || selectedCategory?.title || "N/A";
 
   // Same formula as StepProgressBar
   const completionPercentage = Math.round((CURRENT_STEP / totalSteps) * 100);
@@ -102,27 +111,34 @@ export default function ContactDetails() {
     const values = getValues();
 
     try {
-      await createServiceCall({
-        serviceType: selectedCategory?.title || "N/A",
+      const payload = {
         fullName: values.fullName || "",
         emailAddress: values.email || "",
         phoneNumber: values.phone || "",
         preferredContactMethod: values.preferredContact || "Call",
-        streetAddress: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        propertyType: "",
-        ownershipStatus: "",
-        timelineUrgency: "",
-        status: "draft",
+        status: "draft" as const,
         completionPercentage,
-      }).unwrap();
+      };
+
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, payload);
+      } else {
+        await createDraft(serviceType, {
+          serviceType,
+          ...payload,
+          streetAddress: "",
+          city: "",
+          state: "",
+          zipCode: "",
+          propertyType: "",
+          ownershipStatus: "",
+          timelineUrgency: "",
+        });
+      }
 
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
-    } catch (err: any) {
-      console.log({ err });
+    } catch {
       toast.error("Failed to save draft. Please try again.");
     }
   };
@@ -152,7 +168,7 @@ export default function ContactDetails() {
       <View>
         <StepProgressBar currentStep={CURRENT_STEP} totalSteps={totalSteps} />
 
-        {selectedCategory && <CategoryTag title={selectedCategory.title} />}
+        <CategoryTag title={serviceType} />
 
         <AuthHeading
           title="Your contact details"

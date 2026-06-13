@@ -26,6 +26,18 @@ const DraftCard = ({
   translateY,
   onDelete,
 }: DraftCardProps) => {
+  const handleResume = () => {
+    router.push({
+      pathname: getResumeRoute(serviceType, completionPercentage) as any,
+      params: {
+        serviceCallId: id,
+        serviceType,
+      },
+    });
+  };
+
+  console.log("serive", serviceType);
+
   return (
     <Animated.View
       style={{
@@ -78,12 +90,7 @@ const DraftCard = ({
         />
       </View>
 
-      <GradientButton
-        label="Resume"
-        onPress={() =>
-          router.push(getResumeRoute(serviceType, completionPercentage) as any)
-        }
-      />
+      <GradientButton label="Resume" onPress={handleResume} />
     </Animated.View>
   );
 };

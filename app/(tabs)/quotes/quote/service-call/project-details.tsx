@@ -43,7 +43,7 @@ export default function ProjectDetails() {
           <StepProgressBar currentStep={4} />
 
           {/* Category Tag */}
-          {selectedCategory && <CategoryTag title="Service Call" />}
+          <CategoryTag title="Service Call" />
 
           <AuthHeading title="Project details" />
 

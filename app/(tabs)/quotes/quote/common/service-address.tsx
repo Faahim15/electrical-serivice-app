@@ -9,35 +9,169 @@ import BackButton from "@/src/components/shared/BackButton";
 import CustomInput from "@/src/components/shared/CustomInput";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
+import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { updateServiceAddress } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  ServiceAddressFormValues,
+  serviceAddressSchema,
+} from "@/src/schemas/quotes/common/serviceAddressSchema";
 import { Address } from "@/src/types/home.api.types";
 import { CATEGORY_TOTAL_STEPS } from "@/src/utils/CategorySteps";
 import { verticalScale } from "@/src/utils/Scaling";
-import { router } from "expo-router";
-import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
+
+const CURRENT_STEP = 2;
 
 export default function ServiceAddress() {
   const dispatch = useDispatch();
+
   const { streetAddress, apartment, city, state, zipCode, isHomeAddress } =
     useSelector((state: RootState) => state.serviceForm.serviceAddress);
+  const { fullName, email, phone, preferredContact } = useSelector(
+    (state: RootState) => state.serviceForm.contactDetails,
+  );
   const selectedCategory = useSelector(
     (state: RootState) => state.categoryRoute.selectedCategory,
   );
   const totalSteps = CATEGORY_TOTAL_STEPS[selectedCategory?.id ?? ""] ?? 8;
 
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
+
+  // Prefer serviceType from params (resuming a draft); fall back to redux category
+  const serviceType = serviceTypeParam || selectedCategory?.title || "N/A";
+
+  const completionPercentage = Math.round((CURRENT_STEP / totalSteps) * 100);
+
+  // ─── Fetch existing draft (if resuming) ─────────────────────────────────────
+  const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+
+  // ─── RHF Setup ──────────────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<ServiceAddressFormValues>({
+    resolver: zodResolver(serviceAddressSchema),
+    defaultValues: {
+      streetAddress: streetAddress || "",
+      apartment: apartment || "",
+      city: city || "",
+      state: state || "",
+      zipCode: zipCode || "",
+      isHomeAddress: isHomeAddress || false,
+    },
+  });
+
+  // Prefill form + redux with the fetched draft's saved address values
+  useEffect(() => {
+    if (!draftData) return;
+
+    const values = {
+      streetAddress: draftData.streetAddress || "",
+      apartment: draftData.apartmentUnit || "",
+      city: draftData.city || "",
+      state: draftData.state || "",
+      zipCode: draftData.zipCode || "",
+    };
+
+    setValue("streetAddress", values.streetAddress);
+    setValue("apartment", values.apartment);
+    setValue("city", values.city);
+    setValue("state", values.state);
+    setValue("zipCode", values.zipCode);
+
+    dispatch(updateServiceAddress(values));
+  }, [draftData]);
+
+  // ─── Address select handler ──────────────────────────────────────────────────
   const handleAddressSelect = (address: Address) => {
-    dispatch(
-      updateServiceAddress({
-        streetAddress: address.streetAddress ?? "",
-        apartment: address.apartmentUnit ?? "",
-        city: address.city ?? "",
-        state: address.state ?? "",
-        zipCode: address.zipCode ?? "",
-      }),
-    );
+    const values = {
+      streetAddress: address.streetAddress ?? "",
+      apartment: address.apartmentUnit ?? "",
+      city: address.city ?? "",
+      state: address.state ?? "",
+      zipCode: address.zipCode ?? "",
+    };
+
+    setValue("streetAddress", values.streetAddress);
+    setValue("apartment", values.apartment);
+    setValue("city", values.city);
+    setValue("state", values.state);
+    setValue("zipCode", values.zipCode);
+
+    dispatch(updateServiceAddress(values));
+  };
+
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const values = getValues();
+
+    // API থেকে আনা email কে priority দাও, না থাকলে redux থেকে নাও
+    const resolvedEmail = draftData?.emailAddress || email || "";
+    const resolvedFullName = draftData?.fullName || fullName || "";
+    const resolvedPhone = draftData?.phoneNumber || phone || "";
+    const resolvedPreferredContact =
+      draftData?.preferredContactMethod || preferredContact || "Call";
+
+    const payload = {
+      fullName: resolvedFullName,
+      emailAddress: resolvedEmail,
+      phoneNumber: resolvedPhone,
+      preferredContactMethod: resolvedPreferredContact,
+      streetAddress: values.streetAddress || "",
+      apartmentUnit: values.apartment || "",
+      city: values.city || "",
+      state: values.state || "",
+      zipCode: values.zipCode || "",
+      status: "draft" as const,
+      completionPercentage,
+    };
+
+    try {
+      if (serviceCallId) {
+        console.log(serviceCallId, serviceType, payload);
+        await updateDraft(serviceCallId, serviceType, payload);
+      } else {
+        await createDraft(serviceType, {
+          serviceType,
+          ...payload,
+          propertyType: "",
+          ownershipStatus: "",
+          timelineUrgency: "",
+        });
+      }
+
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch (err: any) {
+      console.log({ err });
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
+
+  // ─── Continue handler ────────────────────────────────────────────────────────
+  const onSubmit = (values: ServiceAddressFormValues) => {
+    dispatch(updateServiceAddress(values));
+    router.push({
+      pathname: "/(tabs)/quotes/quote/common/project-basics",
+      params: { serviceType },
+    });
   };
 
   return (
@@ -57,96 +191,133 @@ export default function ServiceAddress() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: verticalScale(120) }}
         >
-          <StepProgressBar currentStep={2} totalSteps={totalSteps} />
+          <StepProgressBar currentStep={CURRENT_STEP} totalSteps={totalSteps} />
 
-          {selectedCategory && <CategoryTag title={selectedCategory.title} />}
+          <CategoryTag title={serviceType} />
+
           <AuthHeading
             title="Your service address"
             subtitle="Where is the work needed?"
           />
 
-          <CustomInput
-            label="Street Address *"
-            leftIcon="location-outline"
-            textInputConfig={{
-              placeholder: "Enter your street address",
-              autoCapitalize: "words",
-              value: streetAddress,
-              onChangeText: (text) =>
-                dispatch(updateServiceAddress({ streetAddress: text })),
-            }}
+          <Controller
+            control={control}
+            name="streetAddress"
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="Street Address *"
+                leftIcon="location-outline"
+                error={errors.streetAddress?.message}
+                textInputConfig={{
+                  placeholder: "Enter your street address",
+                  autoCapitalize: "words",
+                  value,
+                  onChangeText: onChange,
+                }}
+              />
+            )}
           />
 
-          <CustomInput
-            label="Apartment / Unit"
-            leftIcon="business-outline"
-            textInputConfig={{
-              placeholder: "Apt, suite, unit (optional)",
-              keyboardType: "default",
-              autoCapitalize: "none",
-              value: apartment,
-              onChangeText: (text) =>
-                dispatch(updateServiceAddress({ apartment: text })),
-            }}
+          <Controller
+            control={control}
+            name="apartment"
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="Apartment / Unit"
+                leftIcon="business-outline"
+                error={errors.apartment?.message}
+                textInputConfig={{
+                  placeholder: "Apt, suite, unit (optional)",
+                  keyboardType: "default",
+                  autoCapitalize: "none",
+                  value,
+                  onChangeText: onChange,
+                }}
+              />
+            )}
           />
 
-          <CustomInput
-            label="City *"
-            leftIcon="map-outline"
-            textInputConfig={{
-              placeholder: "Enter your city",
-              keyboardType: "default",
-              autoCapitalize: "words",
-              value: city,
-              onChangeText: (text) =>
-                dispatch(updateServiceAddress({ city: text })),
-            }}
+          <Controller
+            control={control}
+            name="city"
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="City *"
+                leftIcon="map-outline"
+                error={errors.city?.message}
+                textInputConfig={{
+                  placeholder: "Enter your city",
+                  keyboardType: "default",
+                  autoCapitalize: "words",
+                  value,
+                  onChangeText: onChange,
+                }}
+              />
+            )}
           />
 
-          <CustomInput
-            label="State *"
-            leftIcon="flag-outline"
-            textInputConfig={{
-              placeholder: "Enter your state",
-              keyboardType: "default",
-              autoCapitalize: "characters",
-              value: state,
-              onChangeText: (text) =>
-                dispatch(updateServiceAddress({ state: text })),
-            }}
+          <Controller
+            control={control}
+            name="state"
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="State *"
+                leftIcon="flag-outline"
+                error={errors.state?.message}
+                textInputConfig={{
+                  placeholder: "Enter your state",
+                  keyboardType: "default",
+                  autoCapitalize: "characters",
+                  maxLength: 2,
+                  value,
+                  onChangeText: (text) => onChange(text.toUpperCase()),
+                }}
+              />
+            )}
           />
 
-          <CustomInput
-            label="Zip Code *"
-            leftIcon="mail-open-outline"
-            textInputConfig={{
-              placeholder: "Enter your zip code",
-              keyboardType: "number-pad",
-              autoCapitalize: "none",
-              value: zipCode,
-              onChangeText: (text) =>
-                dispatch(updateServiceAddress({ zipCode: text })),
-            }}
+          <Controller
+            control={control}
+            name="zipCode"
+            render={({ field: { value, onChange } }) => (
+              <CustomInput
+                label="Zip Code *"
+                leftIcon="mail-open-outline"
+                error={errors.zipCode?.message}
+                textInputConfig={{
+                  placeholder: "Enter your zip code",
+                  keyboardType: "number-pad",
+                  autoCapitalize: "none",
+                  maxLength: 5,
+                  value,
+                  onChangeText: onChange,
+                }}
+              />
+            )}
           />
 
-          <TermsAndPolicy
-            shouldShowTitle={false}
-            subtitle="This is my home address"
-            subtitleColor="#6b7280"
-            value={isHomeAddress}
-            onToggle={(val) =>
-              dispatch(updateServiceAddress({ isHomeAddress: val }))
-            }
+          <Controller
+            control={control}
+            name="isHomeAddress"
+            render={({ field: { value, onChange } }) => (
+              <TermsAndPolicy
+                shouldShowTitle={false}
+                subtitle="This is my home address"
+                subtitleColor="#6b7280"
+                value={value || false}
+                onToggle={onChange}
+              />
+            )}
           />
+
           <InfoBanner />
 
-          <GradientButton
-            label="Continue"
-            onPress={() =>
-              router.push("/(tabs)/quotes/quote/common/project-basics")
-            }
+          <GradientButton label="Continue" onPress={handleSubmit(onSubmit)} />
+
+          <SavedEditAction
+            onPress={handleSaveForLater}
+            title={isSaving ? "Saving..." : "Save for Later"}
           />
-          <SavedEditAction />
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>

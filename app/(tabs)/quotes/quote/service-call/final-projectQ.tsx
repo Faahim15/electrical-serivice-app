@@ -66,7 +66,7 @@ export default function FinalProjectQuestions() {
         >
           <StepProgressBar currentStep={5} />
 
-          {selectedCategory && <CategoryTag title="Service Call" />}
+          <CategoryTag title="Service Call" />
 
           <AuthHeading title="Final project questions" />
 
