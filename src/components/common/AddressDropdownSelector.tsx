@@ -2,14 +2,7 @@ import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
 import { Address } from "@/src/types/home.api.types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 
 interface Props {
   onSelect: (address: Address) => void;
@@ -55,9 +48,8 @@ export default function AddressDropdownSelector({ onSelect }: Props) {
     <>
       {/* Trigger Button */}
       <View ref={buttonRef}>
-        <TouchableOpacity
+        <Pressable
           onPress={openDropdown}
-          activeOpacity={0.8}
           className="flex-row items-center gap-1 bg-white border border-[#E2E8F0] rounded-xl px-3 py-[7px]"
           style={{
             elevation: 2,
@@ -78,7 +70,7 @@ export default function AddressDropdownSelector({ onSelect }: Props) {
             size={13}
             color="#6B7280"
           />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Dropdown Modal */}
@@ -109,10 +101,9 @@ export default function AddressDropdownSelector({ onSelect }: Props) {
               {addresses.map((address, index) => {
                 const isSelected = selectedAddress?._id === address._id;
                 return (
-                  <TouchableOpacity
+                  <Pressable
                     key={address._id}
                     onPress={() => handleSelect(address)}
-                    activeOpacity={0.7}
                     style={{
                       paddingHorizontal: 14,
                       paddingVertical: 12,
@@ -171,7 +162,7 @@ export default function AddressDropdownSelector({ onSelect }: Props) {
                         />
                       )}
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 );
               })}
             </ScrollView>

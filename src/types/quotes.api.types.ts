@@ -88,6 +88,7 @@ export interface GetServiceCallsResponse {
 export type UpdateServiceCallPayload = Partial<CreateServiceCallPayload>;
 
 export type UpdateServiceCallResponse = CreateServiceCallResponse;
+
 export interface DraftGroup {
   serviceName: string;
   count: number;
@@ -98,4 +99,46 @@ export interface GetDraftsResponse {
   success: boolean;
   message: string;
   data: DraftGroup[];
+}
+
+// ─── Photo Upload Types ───────────────────────────────────────────────────────────
+export interface UpdateProfilePhotoResponse {
+  success: boolean;
+  message: string;
+  data: {
+    accessToken: string;
+    user: {
+      _id: string;
+      address: string;
+      email: string;
+      image: string; // This is the Cloudinary URL
+      name: string;
+      phone: string;
+      role: string;
+    };
+  };
+}
+export interface UpdateProfilePhotoResponse {
+  success: boolean;
+  message: string;
+  data: {
+    accessToken: string;
+    user: {
+      _id: string;
+      address: string;
+      email: string;
+      image: string; // This is the Cloudinary URL
+      name: string;
+      phone: string;
+      role: string;
+    };
+  };
+}
+export interface DeleteImagePayload {
+  imageUrl: string;
+}
+
+export interface DeleteImageResponse {
+  success: boolean;
+  message: string;
 }

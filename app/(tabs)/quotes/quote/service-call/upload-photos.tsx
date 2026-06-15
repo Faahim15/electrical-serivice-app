@@ -6,12 +6,22 @@ import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
-import { updateServiceCallDetails } from "@/src/redux/slices/serviceFormSlice";
+import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftSave } from "@/src/hook/useDraftSave";
+import {
+  useDeleteImageMutation,
+  useUpdateProfilePhotoMutation,
+} from "@/src/redux/api-slices/quote/quote-api";
+import {
+  selectCategory,
+  updateServiceCallDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
-import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
-import React from "react";
+import { createSelector } from "@reduxjs/toolkit";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,35 +30,211 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
+
+const CURRENT_STEP = 6;
+const TOTAL_STEPS = 8;
+
+const selectCategoryData = (state: RootState) => state.serviceForm.categoryData;
+const selectPanelPhotos = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "1") return data?.details?.panelPhotos ?? [];
+  return [] as string[];
+});
+
+const selectWorkAreaPhotos = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "1") return data?.details?.workAreaPhotos ?? [];
+  return [] as string[];
+});
+
+const selectReferencePhotos = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "1") return data?.details?.referencePhotos ?? [];
+  return [] as string[];
+});
 
 export default function UploadPhotos() {
   const dispatch = useDispatch();
-  const panelPhotos = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "1") return data?.details?.panelPhotos;
-    return [];
-  });
+  const [uploadingSection, setUploadingSection] = useState<
+    "panel" | "workArea" | "reference" | null
+  >(null);
 
-  const workAreaPhotos = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "1") return data?.details?.workAreaPhotos;
-    return [];
-  });
+  const panelPhotos = useSelector(selectPanelPhotos);
+  const workAreaPhotos = useSelector(selectWorkAreaPhotos);
+  const referencePhotos = useSelector(selectReferencePhotos);
+  const selectedCategory = useSelector(
+    (state: RootState) => state.categoryRoute.selectedCategory,
+  );
 
-  const referencePhotos = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "1") return data?.details?.referencePhotos;
-    return [];
-  });
-
-  const pickFromCamera = async (
-    setter: (photos: string[]) => void,
-    current: string[],
-  ) => {
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-    if (!result.canceled) {
-      setter([...current, result.assets[0].uri]);
+  useEffect(() => {
+    if (selectedCategory?.id !== "1") {
+      dispatch(selectCategory("1"));
     }
+  }, []);
+
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
+
+  const serviceType =
+    serviceTypeParam || selectedCategory?.title || "Service Call";
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+  const [updateProfilePhoto] = useUpdateProfilePhotoMutation();
+  const [deleteImage] = useDeleteImageMutation();
+  const isLoading = isSaving;
+
+  const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+  const draft = draftData as ServiceCallResponse | undefined;
+
+  useEffect(() => {
+    if (!draft) return;
+    if (draft.panelPhotos?.length) {
+      dispatch(updateServiceCallDetails({ panelPhotos: draft.panelPhotos }));
+    }
+    if (draft.workAreaPhotos?.length) {
+      dispatch(
+        updateServiceCallDetails({ workAreaPhotos: draft.workAreaPhotos }),
+      );
+    }
+    if (draft.extraReferencePhotos?.length) {
+      dispatch(
+        updateServiceCallDetails({
+          referencePhotos: draft.extraReferencePhotos,
+        }),
+      );
+    }
+  }, [draftData]);
+
+  const uploadImage = async (localUri: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append("user", {
+      uri: localUri,
+      name: "photo.jpg",
+      type: "image/jpeg",
+    } as any);
+
+    const res = await updateProfilePhoto(formData).unwrap();
+    const cloudinaryUrl = res.data.user.image;
+    return cloudinaryUrl;
+  };
+
+  const deleteImageHandler = async (imageUrl: string) => {
+    await deleteImage({ imageUrl }).unwrap();
+  };
+
+  const handlePanelPhotosChange = (updated: string[]) => {
+    dispatch(updateServiceCallDetails({ panelPhotos: updated }));
+  };
+
+  const handlePanelUploadSingle = async (localUri: string): Promise<string> => {
+    try {
+      setUploadingSection("panel");
+      const uploadedUrl = await uploadImage(localUri);
+      toast.success("Photo uploaded!");
+      return uploadedUrl;
+    } catch (error) {
+      toast.error("Failed to upload photo. Please try again.");
+      throw error;
+    } finally {
+      setUploadingSection(null);
+    }
+  };
+
+  const handleWorkAreaPhotosChange = (updated: string[]) => {
+    dispatch(updateServiceCallDetails({ workAreaPhotos: updated }));
+  };
+
+  const handleWorkAreaUploadSingle = async (
+    localUri: string,
+  ): Promise<string> => {
+    try {
+      setUploadingSection("workArea");
+      const uploadedUrl = await uploadImage(localUri);
+      toast.success("Photo uploaded!");
+      return uploadedUrl;
+    } catch (error) {
+      toast.error("Failed to upload photo. Please try again.");
+      throw error;
+    } finally {
+      setUploadingSection(null);
+    }
+  };
+
+  const handleReferencePhotosChange = (updated: string[]) => {
+    dispatch(updateServiceCallDetails({ referencePhotos: updated }));
+  };
+
+  const handleReferenceUploadSingle = async (
+    localUri: string,
+  ): Promise<string> => {
+    try {
+      setUploadingSection("reference");
+      const uploadedUrl = await uploadImage(localUri);
+      toast.success("Photo uploaded!");
+      return uploadedUrl;
+    } catch (error) {
+      toast.error("Failed to upload photo. Please try again.");
+      throw error;
+    } finally {
+      setUploadingSection(null);
+    }
+  };
+
+  const validatePhotos = (): boolean => {
+    if (!panelPhotos || panelPhotos.length === 0) {
+      toast.error("Please upload at least one panel photo");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSaveForLater = async () => {
+    if (!validatePhotos()) return;
+
+    const payload = {
+      fullName: draft?.fullName || "",
+      emailAddress: draft?.emailAddress || "",
+      phoneNumber: draft?.phoneNumber || "",
+      preferredContactMethod: draft?.preferredContactMethod || "Call",
+      streetAddress: draft?.streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || "",
+      city: draft?.city || "",
+      state: draft?.state || "",
+      zipCode: draft?.zipCode || "",
+      propertyType: draft?.propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || "",
+      issueDescription: draft?.issueDescription || "",
+      preferredTime: draft?.preferredTime || "",
+      schedulingPreference: draft?.schedulingPreference || [],
+      panelPhotos: panelPhotos,
+      workAreaPhotos: workAreaPhotos,
+      extraReferencePhotos: referencePhotos,
+      notes: draft?.notes || "",
+      quickTags: draft?.quickTags || [],
+      status: "draft" as const,
+      completionPercentage: Math.round((CURRENT_STEP / TOTAL_STEPS) * 100),
+    };
+
+    try {
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, payload);
+      } else {
+        await createDraft(serviceType, { serviceType, ...payload });
+      }
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch {
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
+
+  const handleContinue = async () => {
+    if (!validatePhotos()) return;
+    router.push({
+      pathname: "/(tabs)/quotes/quote/service-call/additional-notes",
+      params: { serviceType, serviceCallId },
+    });
   };
 
   return (
@@ -57,21 +243,32 @@ export default function UploadPhotos() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/quotes/quote/service-call/final-projectQ",
+              params: {
+                serviceType: serviceType,
+                serviceCallId: serviceCallId,
+              },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: verticalScale(120) }}
         >
-          <StepProgressBar currentStep={6} />
-          {/* Category Tag */}
-          <CategoryTag title="Service Call" />
+          <StepProgressBar
+            currentStep={CURRENT_STEP}
+            totalSteps={TOTAL_STEPS}
+          />
+          <CategoryTag title={serviceType} />
           <AuthHeading
             title="Upload photos"
             subtitle="Photos help us understand your request faster"
           />
 
-          {/* Helpful tips card */}
           <View
             className="bg-white rounded-2xl px-4 py-4 mb-5"
             style={{
@@ -103,39 +300,43 @@ export default function UploadPhotos() {
             ))}
           </View>
 
-          {/* Camera / Gallery buttons */}
-
           <PhotoUploadSection
             label="Please upload clear photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
-            photos={panelPhotos || []}
-            onPhotosChange={(p) =>
-              dispatch(updateServiceCallDetails({ panelPhotos: p }))
-            }
+            photos={panelPhotos}
+            onPhotosChange={handlePanelPhotosChange}
+            onUploadSingle={handlePanelUploadSingle}
+            onDeleteSingle={deleteImageHandler}
+            isUploading={uploadingSection === "panel"}
           />
 
           <PhotoUploadSection
             label="Work Area Photos"
-            photos={workAreaPhotos || []}
-            onPhotosChange={(p) =>
-              dispatch(updateServiceCallDetails({ workAreaPhotos: p }))
-            }
+            photos={workAreaPhotos}
+            onPhotosChange={handleWorkAreaPhotosChange}
+            onUploadSingle={handleWorkAreaUploadSingle}
+            onDeleteSingle={deleteImageHandler}
+            isUploading={uploadingSection === "workArea"}
           />
 
           <PhotoUploadSection
             label="Extra Reference Photos"
-            photos={referencePhotos || []}
-            onPhotosChange={(p) =>
-              dispatch(updateServiceCallDetails({ referencePhotos: p }))
-            }
+            photos={referencePhotos}
+            onPhotosChange={handleReferencePhotosChange}
+            onUploadSingle={handleReferenceUploadSingle}
+            onDeleteSingle={deleteImageHandler}
+            isUploading={uploadingSection === "reference"}
           />
 
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push("/(tabs)/quotes/quote/service-call/additional-notes")
-            }
+            onPress={handleContinue}
+            disabled={isLoading || uploadingSection !== null}
           />
-          <SavedEditAction />
+
+          <SavedEditAction
+            onPress={handleSaveForLater}
+            title={isLoading ? "Saving..." : "Save for Later"}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>

@@ -36,7 +36,7 @@ const DraftCard = ({
     });
   };
 
-  console.log("serive", serviceType);
+  // console.log("serive", serviceType);
 
   return (
     <Animated.View

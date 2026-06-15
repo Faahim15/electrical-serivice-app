@@ -136,10 +136,19 @@ const serviceFormSlice = createSlice({
   initialState,
   reducers: {
     // --- Navigation ---
+    // selectCategory: (state, action: PayloadAction<string>) => {
+    //   state.selectedCategoryId = action.payload;
+    //   state.currentStep = 0;
+    //   state.categoryData = getCategoryInitialData(action.payload);
+    // },
+    // serviceFormSlice.ts এ selectCategory reducer update করো
     selectCategory: (state, action: PayloadAction<string>) => {
       state.selectedCategoryId = action.payload;
       state.currentStep = 0;
-      state.categoryData = getCategoryInitialData(action.payload);
+      // শুধু different category হলে reset করো
+      if (state.categoryData?.categoryId !== action.payload) {
+        state.categoryData = getCategoryInitialData(action.payload);
+      }
     },
     setCurrentStep: (state, action: PayloadAction<number>) => {
       state.currentStep = action.payload;
@@ -177,7 +186,16 @@ const serviceFormSlice = createSlice({
       action: PayloadAction<Partial<ServiceCallDetails>>,
     ) => {
       if (state.categoryData && isServiceCall(state.categoryData)) {
-        Object.assign(state.categoryData.details, action.payload);
+        // Validate preferredTime if it's being updated
+        const updates = { ...action.payload };
+        if (updates.preferredTime !== undefined) {
+          const validPreferredTime = updates.preferredTime as
+            | "AM (8-11)"
+            | "PM (12-2)"
+            | "";
+          updates.preferredTime = validPreferredTime;
+        }
+        Object.assign(state.categoryData.details, updates);
       }
     },
     toggleServiceCallTag: (state, action: PayloadAction<string>) => {

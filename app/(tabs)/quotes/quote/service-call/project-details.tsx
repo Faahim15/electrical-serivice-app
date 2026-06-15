@@ -155,7 +155,17 @@ export default function ProjectDetails() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/quotes/quote/common/project-basics",
+              params: {
+                serviceType: serviceType,
+                serviceCallId: serviceCallId,
+              },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

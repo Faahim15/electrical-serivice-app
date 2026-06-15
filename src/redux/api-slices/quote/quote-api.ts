@@ -10,8 +10,11 @@ import {
 import {
   CreateServiceCallPayload,
   CreateServiceCallResponse,
+  DeleteImagePayload,
+  DeleteImageResponse,
   GetDraftsResponse,
   GetServiceCallsResponse,
+  UpdateProfilePhotoResponse,
   UpdateServiceCallPayload,
   UpdateServiceCallResponse,
 } from "@/src/types/quotes.api.types";
@@ -26,6 +29,26 @@ const quoteApi = baseApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: [TagTypes.User],
+    }),
+    // ─── Upload Image (form-data, PUT) ──────────────────────────────────────
+
+    updateProfilePhoto: builder.mutation<UpdateProfilePhotoResponse, FormData>({
+      query: (formData) => ({
+        url: "/user/update-profile-photo",
+        method: "PUT",
+        body: formData,
+        formData: true,
+      }),
+      invalidatesTags: [TagTypes.User],
+    }),
+
+    deleteImage: builder.mutation<DeleteImageResponse, DeleteImagePayload>({
+      query: (body) => ({
+        url: "/user/delete-image",
+        method: "DELETE",
+        body,
+      }),
+      invalidatesTags: [TagTypes.User],
     }),
 
     getServiceCallById: builder.query<CreateServiceCallResponse, string>({
@@ -165,6 +188,7 @@ const quoteApi = baseApi.injectEndpoints({
 export const {
   useGetServiceCallsQuery,
   useGetServiceCallByIdQuery,
+  useUpdateProfilePhotoMutation,
   useGetDraftsQuery,
   useCreateServiceCallMutation,
   useUpdateServiceCallMutation,
@@ -175,6 +199,7 @@ export const {
   useDeleteServiceCallMutation,
   useDeleteEvChargerInstallationMutation,
   useDeletePanelUpgradeReplacementMutation,
+  useDeleteImageMutation,
   useDeleteRemodelingMutation,
   useDeleteAccessoryBuildingPowerMutation,
 } = quoteApi;

@@ -153,7 +153,13 @@ export default function ContactDetails() {
         preferredContact: values.preferredContact,
       }),
     );
-    router.push("/(tabs)/quotes/quote/common/service-address");
+    router.push({
+      pathname: "/(tabs)/quotes/quote/common/service-address",
+      params: {
+        serviceType: serviceType,
+        serviceCallId: serviceCallId,
+      },
+    });
   };
 
   // ─── Render ──────────────────────────────────────────────────────────────────

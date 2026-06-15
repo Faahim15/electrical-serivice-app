@@ -17,6 +17,7 @@ import {
 import { RootState } from "@/src/redux/store";
 import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { createSelector } from "@reduxjs/toolkit";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -37,6 +38,50 @@ const DAYS = ["Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays"];
 const CURRENT_STEP = 5;
 const SERVICE_TYPE = "Service Call";
 
+// ─── Memoized Selectors ───────────────────────────────────────────────────────
+const selectCategoryData = (state: RootState) => state.serviceForm.categoryData;
+const selectSelectedCategory = (state: RootState) =>
+  state.categoryRoute.selectedCategory;
+const selectContactDetails = (state: RootState) =>
+  state.serviceForm.contactDetails;
+const selectServiceAddress = (state: RootState) =>
+  state.serviceForm.serviceAddress;
+const selectProjectBasics = (state: RootState) =>
+  state.serviceForm.projectBasics;
+
+const selectSchedulingDays = createSelector(
+  [selectCategoryData, selectSelectedCategory],
+  (data, selectedCategory) => {
+    if (
+      selectedCategory?.id === "1" &&
+      data?.categoryId === "1" &&
+      data.details
+    ) {
+      return data.details.schedulingDays ?? ([] as string[]);
+    }
+    return [] as string[];
+  },
+);
+
+const selectPreferredTime = createSelector(
+  [selectCategoryData, selectSelectedCategory],
+  (data, selectedCategory) => {
+    if (
+      selectedCategory?.id === "1" &&
+      data?.categoryId === "1" &&
+      data.details
+    ) {
+      return data.details.preferredTime ?? "";
+    }
+    return "";
+  },
+);
+
+const selectIssueDescription = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "1") return data?.details?.projectDetails ?? "";
+  return "";
+});
+
 export default function FinalProjectQuestions() {
   const dispatch = useDispatch();
 
@@ -49,48 +94,16 @@ export default function FinalProjectQuestions() {
   const serviceType = serviceTypeParam || SERVICE_TYPE;
 
   // ─── Redux selectors ──────────────────────────────────────────────────────
-  const selectedCategory = useSelector(
-    (state: RootState) => state.categoryRoute.selectedCategory,
-  );
+  const schedulingDays = useSelector(selectSchedulingDays);
+  const preferredTime = useSelector(selectPreferredTime);
+  const issueDescription = useSelector(selectIssueDescription);
 
-  const schedulingDays = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (
-      selectedCategory?.id === "1" &&
-      data?.categoryId === "1" &&
-      data.details
-    ) {
-      return data.details.schedulingDays;
-    }
-    return [] as string[];
-  });
-
-  const preferredTime = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (
-      selectedCategory?.id === "1" &&
-      data?.categoryId === "1" &&
-      data.details
-    ) {
-      return data.details.preferredTime;
-    }
-    return "";
-  });
-
-  const { fullName, email, phone, preferredContact } = useSelector(
-    (state: RootState) => state.serviceForm.contactDetails,
-  );
-  const { streetAddress, apartment, city, state, zipCode } = useSelector(
-    (state: RootState) => state.serviceForm.serviceAddress,
-  );
-  const { propertyType, ownershipStatus, timeline } = useSelector(
-    (state: RootState) => state.serviceForm.projectBasics,
-  );
-  const issueDescription = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "1") return data?.details?.projectDetails;
-    return "";
-  });
+  const { fullName, email, phone, preferredContact } =
+    useSelector(selectContactDetails);
+  const { streetAddress, apartment, city, state, zipCode } =
+    useSelector(selectServiceAddress);
+  const { propertyType, ownershipStatus, timeline } =
+    useSelector(selectProjectBasics);
 
   const totalSteps = 8;
   const completionPercentage = Math.round((CURRENT_STEP / totalSteps) * 100);
@@ -168,6 +181,7 @@ export default function FinalProjectQuestions() {
 
     try {
       if (serviceCallId) {
+        console.log({ payload });
         await updateDraft(serviceCallId, serviceType, payload);
       } else {
         await createDraft(serviceType, {
@@ -179,6 +193,8 @@ export default function FinalProjectQuestions() {
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
     } catch (err: any) {
+      console.log({ err });
+
       toast.error("Failed to save draft. Please try again.");
     }
   };
@@ -200,7 +216,17 @@ export default function FinalProjectQuestions() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/quotes/quote/service-call/project-details",
+              params: {
+                serviceType: serviceType,
+                serviceCallId: serviceCallId,
+              },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

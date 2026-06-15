@@ -11,6 +11,7 @@ import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import { useDraftDetails } from "@/src/hook/useDraftDetails";
 import { useDraftSave } from "@/src/hook/useDraftSave";
+import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
 import { updateServiceAddress } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import {
@@ -57,6 +58,10 @@ export default function ServiceAddress() {
   // ─── Fetch existing draft (if resuming) ─────────────────────────────────────
   const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
 
+  // ─── Fetch user profile for addresses ───────────────────────────────────────
+  const { data: profileData } = useGetProfileQuery();
+  const addresses = profileData?.data?.addresses ?? [];
+
   // ─── RHF Setup ──────────────────────────────────────────────────────────────
   const {
     control,
@@ -77,28 +82,64 @@ export default function ServiceAddress() {
     },
   });
 
-  // ─── Prefill from API draft ──────────────────────────────────────────────────
+  // ─── Prefill from API draft (first priority) ─────────────────────────────────
   useEffect(() => {
-    if (!draftData) return;
+    if (draftData && (draftData.streetAddress || draftData.city)) {
+      // Draft has address data - use it
+      const values = {
+        streetAddress: draftData.streetAddress || "",
+        apartment: draftData.apartmentUnit || "",
+        city: draftData.city || "",
+        state: draftData.state || "",
+        zipCode: draftData.zipCode || "",
+      };
 
-    const values = {
-      streetAddress: draftData.streetAddress || "",
-      apartment: draftData.apartmentUnit || "",
-      city: draftData.city || "",
-      state: draftData.state || "",
-      zipCode: draftData.zipCode || "",
-    };
+      setValue("streetAddress", values.streetAddress, { shouldValidate: true });
+      setValue("apartment", values.apartment, { shouldValidate: true });
+      setValue("city", values.city, { shouldValidate: true });
+      setValue("state", values.state, { shouldValidate: true });
+      setValue("zipCode", values.zipCode.trim(), { shouldValidate: true });
 
-    setValue("streetAddress", values.streetAddress, { shouldValidate: true });
-    setValue("apartment", values.apartment, { shouldValidate: true });
-    setValue("city", values.city, { shouldValidate: true });
-    setValue("state", values.state, { shouldValidate: true });
-    setValue("zipCode", values.zipCode.trim(), { shouldValidate: true });
-
-    dispatch(updateServiceAddress(values));
+      dispatch(updateServiceAddress(values));
+    }
   }, [draftData]);
 
-  // ─── Address select handler ──────────────────────────────────────────────────
+  // ─── Prefill from profile addresses if no draft data exists ──────────────────
+  useEffect(() => {
+    // Only prefill from profile if:
+    // 1. No draft data exists OR draft has no address
+    // 2. Profile has addresses
+    // 3. Redux doesn't already have values
+    const hasDraftAddress =
+      draftData && (draftData.streetAddress || draftData.city);
+    const hasReduxAddress = streetAddress || city;
+
+    if (!hasDraftAddress && !hasReduxAddress && addresses.length > 0) {
+      const defaultAddress = addresses.find((a) => a.isDefault) ?? addresses[0];
+
+      if (defaultAddress) {
+        const values = {
+          streetAddress: defaultAddress.streetAddress || "",
+          apartment: defaultAddress.apartmentUnit || "",
+          city: defaultAddress.city || "",
+          state: defaultAddress.state || "",
+          zipCode: defaultAddress.zipCode?.trim() || "",
+        };
+
+        setValue("streetAddress", values.streetAddress, {
+          shouldValidate: true,
+        });
+        setValue("apartment", values.apartment, { shouldValidate: true });
+        setValue("city", values.city, { shouldValidate: true });
+        setValue("state", values.state, { shouldValidate: true });
+        setValue("zipCode", values.zipCode, { shouldValidate: true });
+
+        dispatch(updateServiceAddress(values));
+      }
+    }
+  }, [addresses, draftData]);
+
+  // ─── Address select handler from dropdown ────────────────────────────────────
   const handleAddressSelect = (address: Address) => {
     const values = {
       streetAddress: address.streetAddress ?? "",
@@ -178,7 +219,17 @@ export default function ServiceAddress() {
       >
         {/* Top row: back button + address dropdown */}
         <View className="flex-row items-center justify-between">
-          <BackButton />
+          <BackButton
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/quotes/quote/common/contact-details",
+                params: {
+                  serviceType: serviceType,
+                  serviceCallId: serviceCallId,
+                },
+              })
+            }
+          />
           <AddressDropdownSelector onSelect={handleAddressSelect} />
         </View>
 
