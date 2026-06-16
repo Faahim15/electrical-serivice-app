@@ -17,9 +17,8 @@ import {
   UpdateProfilePhotoResponse,
   UpdateServiceCallPayload,
   UpdateServiceCallResponse,
+  UploadImagesResponse,
 } from "@/src/types/quotes.api.types";
-
-// ─── API ──────────────────────────────────────────────────────────────────────
 
 const quoteApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -30,16 +29,24 @@ const quoteApi = baseApi.injectEndpoints({
       }),
       providesTags: [TagTypes.User],
     }),
-    // ─── Upload Image (form-data, PUT) ──────────────────────────────────────
 
+    // ─── Upload Profile Photo (form-data, PUT) ──────────────────────────────
     updateProfilePhoto: builder.mutation<UpdateProfilePhotoResponse, FormData>({
       query: (formData) => ({
         url: "/user/update-profile-photo",
         method: "PUT",
         body: formData,
-        formData: true,
       }),
       invalidatesTags: [TagTypes.User],
+    }),
+
+    // ─── Upload Images (form-data, POST) ────────────────────────────────────
+    uploadImages: builder.mutation<UploadImagesResponse, FormData>({
+      query: (formData) => ({
+        url: "/user/upload-images",
+        method: "POST",
+        body: formData,
+      }),
     }),
 
     deleteImage: builder.mutation<DeleteImageResponse, DeleteImagePayload>({
@@ -80,7 +87,6 @@ const quoteApi = baseApi.injectEndpoints({
     }),
 
     // ─── Update (PATCH) — Service Call ─────────────────────────────────────
-
     updateServiceCall: builder.mutation<
       UpdateServiceCallResponse,
       { id: string; body: UpdateServiceCallPayload }
@@ -94,7 +100,6 @@ const quoteApi = baseApi.injectEndpoints({
     }),
 
     // ─── EV Charger Installation ────────────────────────────────────────────
-
     getEvChargerInstallations: builder.query<
       GetEvChargerInstallationsResponse,
       void
@@ -142,7 +147,6 @@ const quoteApi = baseApi.injectEndpoints({
     }),
 
     // ─── Delete mutations per draft type ───────────────────────────────────
-
     deleteServiceCall: builder.mutation<void, string>({
       query: (id) => ({
         url: `/service-calls/${id}`,
@@ -189,6 +193,7 @@ export const {
   useGetServiceCallsQuery,
   useGetServiceCallByIdQuery,
   useUpdateProfilePhotoMutation,
+  useUploadImagesMutation,
   useGetDraftsQuery,
   useCreateServiceCallMutation,
   useUpdateServiceCallMutation,

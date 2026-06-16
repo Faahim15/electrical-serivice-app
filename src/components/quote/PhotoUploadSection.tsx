@@ -357,11 +357,7 @@ const PhotoUploadSection = ({
                     zIndex: 10,
                   }}
                 >
-                  {isDeleting ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Ionicons name="close" size={12} color="white" />
-                  )}
+                  <Ionicons name="close" size={12} color="white" />
                 </Pressable>
               </View>
             );

@@ -1,4 +1,4 @@
-export interface CreateServiceCallPayload {
+export interface ServiceCallPayloadFields {
   serviceType: string;
   fullName: string;
   phoneNumber: string;
@@ -30,6 +30,10 @@ export interface CreateServiceCallPayload {
     | "completed"
     | "cancelled";
 }
+
+// ─── API payload types (FormData) ─────────────────────────────────────────────
+export type CreateServiceCallPayload = FormData;
+export type UpdateServiceCallPayload = FormData;
 
 export interface ServiceCallResponse {
   _id: string;
@@ -81,12 +85,6 @@ export interface GetServiceCallsResponse {
   data: ServiceCallResponse[];
 }
 
-// ─── Update (PATCH) ───────────────────────────────────────────────────────────
-// Reuses the same payload/response shapes as create, since a PATCH is just a
-// partial update of the same resource and returns the same updated object.
-
-export type UpdateServiceCallPayload = Partial<CreateServiceCallPayload>;
-
 export type UpdateServiceCallResponse = CreateServiceCallResponse;
 
 export interface DraftGroup {
@@ -101,7 +99,7 @@ export interface GetDraftsResponse {
   data: DraftGroup[];
 }
 
-// ─── Photo Upload Types ───────────────────────────────────────────────────────────
+// ─── Photo Upload Types ───────────────────────────────────────────────────────
 export interface UpdateProfilePhotoResponse {
   success: boolean;
   message: string;
@@ -111,29 +109,14 @@ export interface UpdateProfilePhotoResponse {
       _id: string;
       address: string;
       email: string;
-      image: string; // This is the Cloudinary URL
+      image: string;
       name: string;
       phone: string;
       role: string;
     };
   };
 }
-export interface UpdateProfilePhotoResponse {
-  success: boolean;
-  message: string;
-  data: {
-    accessToken: string;
-    user: {
-      _id: string;
-      address: string;
-      email: string;
-      image: string; // This is the Cloudinary URL
-      name: string;
-      phone: string;
-      role: string;
-    };
-  };
-}
+
 export interface DeleteImagePayload {
   imageUrl: string;
 }
@@ -141,4 +124,10 @@ export interface DeleteImagePayload {
 export interface DeleteImageResponse {
   success: boolean;
   message: string;
+}
+
+export interface UploadImagesResponse {
+  success: boolean;
+  message: string;
+  data: string[];
 }

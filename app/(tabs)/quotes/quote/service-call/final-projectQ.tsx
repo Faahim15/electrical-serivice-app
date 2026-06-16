@@ -149,6 +149,13 @@ export default function FinalProjectQuestions() {
     }
   }, [draftData]);
 
+  // ─── Helper to convert payload to FormData ──────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+
   // ─── Save for Later ───────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const values = getValues();
@@ -181,20 +188,21 @@ export default function FinalProjectQuestions() {
 
     try {
       if (serviceCallId) {
-        console.log({ payload });
-        await updateDraft(serviceCallId, serviceType, payload);
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
       } else {
-        await createDraft(serviceType, {
+        await createDraft(
           serviceType,
-          ...payload,
-        });
+          createFormData({
+            serviceType,
+            ...payload,
+          }),
+        );
       }
 
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
     } catch (err: any) {
       console.log({ err });
-
       toast.error("Failed to save draft. Please try again.");
     }
   };

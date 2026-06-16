@@ -85,7 +85,6 @@ export default function ServiceAddress() {
   // ─── Prefill from API draft (first priority) ─────────────────────────────────
   useEffect(() => {
     if (draftData && (draftData.streetAddress || draftData.city)) {
-      // Draft has address data - use it
       const values = {
         streetAddress: draftData.streetAddress || "",
         apartment: draftData.apartmentUnit || "",
@@ -106,10 +105,6 @@ export default function ServiceAddress() {
 
   // ─── Prefill from profile addresses if no draft data exists ──────────────────
   useEffect(() => {
-    // Only prefill from profile if:
-    // 1. No draft data exists OR draft has no address
-    // 2. Profile has addresses
-    // 3. Redux doesn't already have values
     const hasDraftAddress =
       draftData && (draftData.streetAddress || draftData.city);
     const hasReduxAddress = streetAddress || city;
@@ -158,6 +153,13 @@ export default function ServiceAddress() {
     dispatch(updateServiceAddress(values));
   };
 
+  // ─── Helper to convert payload to FormData ──────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const values = getValues();
@@ -182,23 +184,31 @@ export default function ServiceAddress() {
       completionPercentage,
     };
 
+    console.log(payload.zipCode);
+
     try {
       if (serviceCallId) {
-        await updateDraft(serviceCallId, serviceType, payload);
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
       } else {
-        await createDraft(serviceType, {
+        await createDraft(
           serviceType,
-          ...payload,
-          propertyType: "",
-          ownershipStatus: "",
-          timelineUrgency: "",
-        });
+          createFormData({
+            serviceType,
+            ...payload,
+            propertyType: "",
+            ownershipStatus: "",
+            timelineUrgency: "",
+          }),
+        );
       }
 
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
     } catch (err: any) {
-      toast.error("Failed to save draft. Please try again.");
+      console.log({ err });
+      toast.error(
+        err?.data?.message || "Failed to save draft. Please try again.",
+      );
     }
   };
 

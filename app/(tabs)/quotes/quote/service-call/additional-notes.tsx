@@ -224,14 +224,12 @@ export default function AdditionalNotes() {
     if (draft.quickTags && draft.quickTags.length > 0) {
       console.log("Setting quick tags from draft:", draft.quickTags);
       setLocalQuickTags(draft.quickTags);
-      // Clear existing tags first by toggling them off
       const currentTags = [...reduxQuickTags];
       if (currentTags.length > 0) {
         currentTags.forEach((tag: string) => {
           dispatch(toggleServiceCallTag(tag));
         });
       }
-      // Then add all tags from draft
       draft.quickTags.forEach((tag) => {
         console.log("Adding tag to Redux:", tag);
         dispatch(toggleServiceCallTag(tag));
@@ -240,7 +238,6 @@ export default function AdditionalNotes() {
 
     hasLoadedDraft.current = true;
 
-    // Force a re-render after loading
     setTimeout(() => {
       console.log("After load - reduxAdditionalNotes:", reduxAdditionalNotes);
       console.log("After load - reduxQuickTags:", reduxQuickTags);
@@ -253,6 +250,13 @@ export default function AdditionalNotes() {
   const displayNotes = localNotes || reduxAdditionalNotes;
   const displayQuickTags =
     localQuickTags.length > 0 ? localQuickTags : reduxQuickTags;
+
+  // ─── Helper to convert payload to FormData ──────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
 
   const handleSaveForLater = async () => {
     const payload = {
@@ -287,9 +291,9 @@ export default function AdditionalNotes() {
 
     try {
       if (serviceCallId) {
-        await updateDraft(serviceCallId, serviceType, payload);
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
       } else {
-        await createDraft(serviceType, payload);
+        await createDraft(serviceType, createFormData(payload));
       }
 
       toast.success("Draft saved successfully!");

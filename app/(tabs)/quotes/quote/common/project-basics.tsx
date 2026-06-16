@@ -104,23 +104,35 @@ export default function ProjectBasics() {
     );
   }, [draftData]);
 
+  // ─── Helper to convert payload to FormData ──────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const values = getValues();
+
+    // ─── Validate required fields before saving ──────────────────────────────
+    const missing: string[] = [];
+    if (!values.propertyType) missing.push("Property Type");
+    if (!values.ownershipStatus) missing.push("Ownership Status");
+    if (!values.timeline) missing.push("Timeline");
+
+    if (missing.length > 0) {
+      toast.warning(
+        `Please fill in the following before saving: ${missing.join(", ")}`,
+      );
+      return;
+    }
 
     const resolvedEmail = draftData?.emailAddress || email || "";
     const resolvedFullName = draftData?.fullName || fullName || "";
     const resolvedPhone = draftData?.phoneNumber || phone || "";
     const resolvedPreferredContact =
       draftData?.preferredContactMethod || preferredContact || "Call";
-
-    console.log(
-      "resolved",
-      resolvedEmail,
-      draftData?.emailAddress,
-      completionPercentage,
-      totalSteps,
-    );
 
     const payload = {
       fullName: resolvedFullName,
@@ -141,12 +153,15 @@ export default function ProjectBasics() {
 
     try {
       if (serviceCallId) {
-        await updateDraft(serviceCallId, serviceType, payload);
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
       } else {
-        await createDraft(serviceType, {
+        await createDraft(
           serviceType,
-          ...payload,
-        });
+          createFormData({
+            serviceType,
+            ...payload,
+          }),
+        );
       }
 
       toast.success("Draft saved successfully!");

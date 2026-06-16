@@ -10,7 +10,7 @@ import { useDraftDetails } from "@/src/hook/useDraftDetails";
 import { useDraftSave } from "@/src/hook/useDraftSave";
 import {
   useDeleteImageMutation,
-  useUpdateProfilePhotoMutation,
+  useUploadImagesMutation,
 } from "@/src/redux/api-slices/quote/quote-api";
 import {
   selectCategory,
@@ -79,7 +79,7 @@ export default function UploadPhotos() {
   const serviceType =
     serviceTypeParam || selectedCategory?.title || "Service Call";
   const { createDraft, updateDraft, isSaving } = useDraftSave();
-  const [updateProfilePhoto] = useUpdateProfilePhotoMutation();
+  const [uploadImages] = useUploadImagesMutation();
   const [deleteImage] = useDeleteImageMutation();
   const isLoading = isSaving;
 
@@ -105,17 +105,17 @@ export default function UploadPhotos() {
     }
   }, [draftData]);
 
+  // ─── Upload single image → returns Cloudinary URL ───────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
     const formData = new FormData();
-    formData.append("user", {
+    formData.append("images", {
       uri: localUri,
       name: "photo.jpg",
       type: "image/jpeg",
     } as any);
 
-    const res = await updateProfilePhoto(formData).unwrap();
-    const cloudinaryUrl = res.data.user.image;
-    return cloudinaryUrl;
+    const res = await uploadImages(formData).unwrap();
+    return res.data[0]; // data is string[]
   };
 
   const deleteImageHandler = async (imageUrl: string) => {
@@ -188,6 +188,13 @@ export default function UploadPhotos() {
     return true;
   };
 
+  // ─── Helper to convert payload to FormData ──────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+
   const handleSaveForLater = async () => {
     if (!validatePhotos()) return;
 
@@ -207,9 +214,9 @@ export default function UploadPhotos() {
       issueDescription: draft?.issueDescription || "",
       preferredTime: draft?.preferredTime || "",
       schedulingPreference: draft?.schedulingPreference || [],
-      panelPhotos: panelPhotos,
-      workAreaPhotos: workAreaPhotos,
-      extraReferencePhotos: referencePhotos,
+      panelPhotos: panelPhotos, // Cloudinary URLs from Redux
+      workAreaPhotos: workAreaPhotos, // Cloudinary URLs from Redux
+      extraReferencePhotos: referencePhotos, // Cloudinary URLs from Redux
       notes: draft?.notes || "",
       quickTags: draft?.quickTags || [],
       status: "draft" as const,
@@ -218,9 +225,12 @@ export default function UploadPhotos() {
 
     try {
       if (serviceCallId) {
-        await updateDraft(serviceCallId, serviceType, payload);
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
       } else {
-        await createDraft(serviceType, { serviceType, ...payload });
+        await createDraft(
+          serviceType,
+          createFormData({ serviceType, ...payload }),
+        );
       }
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");

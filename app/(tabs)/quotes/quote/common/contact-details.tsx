@@ -106,6 +106,13 @@ export default function ContactDetails() {
     dispatch(updateContactDetails({ fullName: name, email: mail, phone: tel }));
   };
 
+  // ─── Helper to convert payload to FormData ──────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const values = getValues();
@@ -120,10 +127,15 @@ export default function ContactDetails() {
         completionPercentage,
       };
 
+      // Create FormData from payload
+      const formData = createFormData(payload);
+
       if (serviceCallId) {
-        await updateDraft(serviceCallId, serviceType, payload);
+        // For update, we need to send FormData
+        await updateDraft(serviceCallId, serviceType, formData);
       } else {
-        await createDraft(serviceType, {
+        // For create, we need to send FormData with serviceType
+        const createPayload = {
           serviceType,
           ...payload,
           streetAddress: "",
@@ -133,13 +145,18 @@ export default function ContactDetails() {
           propertyType: "",
           ownershipStatus: "",
           timelineUrgency: "",
-        });
+        };
+        const createFormDataObj = createFormData(createPayload);
+        await createDraft(serviceType, createFormDataObj);
       }
 
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
-    } catch {
-      toast.error("Failed to save draft. Please try again.");
+    } catch (error: any) {
+      console.log("Save error:", error);
+      toast.error(
+        error?.data?.message || "Failed to save draft. Please try again.",
+      );
     }
   };
 

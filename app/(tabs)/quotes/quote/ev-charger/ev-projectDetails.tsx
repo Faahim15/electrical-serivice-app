@@ -7,15 +7,24 @@ import BackButton from "@/src/components/shared/BackButton";
 import CustomSvg from "@/src/components/shared/CustomSvg";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
+import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import {
   setEVChargerType,
   setEVProvidingCharger,
   updateEVChargerDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  EVChargerDetailsFormValues,
+  evChargerDetailsSchema,
+} from "@/src/schemas/quotes/ev-charger/ev-chargerDetailsSchema";
+import { verticalScale } from "@/src/utils/Scaling";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,8 +35,11 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
+
+const CURRENT_STEP = 4;
+const TOTAL_STEPS = 9;
 
 const CHARGER_TYPES = ["Plug-in", "Hardwired", "I want help deciding"];
 const PROVIDING_OPTIONS = ["Yes", "No"];
@@ -105,31 +117,200 @@ export default function EVChargerDetails() {
   const dispatch = useDispatch();
   const [showNemaChart, setShowNemaChart] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
-  const chargerType = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "2") return data?.details?.chargerType;
-    return "" as const;
-  });
-  const nemaConfig = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "2") return data?.details?.nemaConfig;
-    return "";
-  });
-  const providingCharger = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "2") return data?.details?.providingCharger;
-    return "" as const;
-  });
-  const chargerStatus = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "2") return data?.details?.chargerStatus;
-    return "" as const;
+
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
+
+  // ─── Redux state ──────────────────────────────────────────────────────────────
+  const selectedCategory = useSelector(
+    (state: RootState) => state.categoryRoute.selectedCategory,
+  );
+  const contactDetails = useSelector(
+    (state: RootState) => state.serviceForm.contactDetails,
+  );
+  const serviceAddress = useSelector(
+    (state: RootState) => state.serviceForm.serviceAddress,
+  );
+  const projectBasics = useSelector(
+    (state: RootState) => state.serviceForm.projectBasics,
+  );
+  const categoryData = useSelector(
+    (state: RootState) => state.serviceForm.categoryData,
+  );
+
+  const serviceType =
+    serviceTypeParam || selectedCategory?.title || "EV Charger Installation";
+  const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
+
+  // ─── API hooks ────────────────────────────────────────────────────────────────
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+  const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+
+  // ─── Get current values from Redux ───────────────────────────────────────────
+  const reduxChargerType =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerType
+      : "";
+  const reduxNemaConfig =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.nemaConfig
+      : "";
+  const reduxProvidingCharger =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.providingCharger
+      : "";
+  const reduxChargerStatus =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerStatus
+      : "";
+  // Add this helper function at the top of the file, after imports
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    // Add data as JSON string (as per API requirement)
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+  // ─── React Hook Form ──────────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    watch,
+    formState: { errors },
+  } = useForm<EVChargerDetailsFormValues>({
+    resolver: zodResolver(evChargerDetailsSchema),
+    mode: "onChange",
+    defaultValues: {
+      chargerType: reduxChargerType || "",
+      nemaConfig: reduxNemaConfig || "",
+      providingCharger: reduxProvidingCharger || "",
+      chargerStatus: reduxChargerStatus || "",
+    },
   });
 
-  const isPlugIn = chargerType === "Plug-in";
-  const isHardwired = chargerType === "Hardwired";
+  const watchedChargerType = watch("chargerType");
+  const watchedProvidingCharger = watch("providingCharger");
+
+  const isPlugIn = watchedChargerType === "Plug-in";
+  const isHardwired = watchedChargerType === "Hardwired";
   const showConditionalFields = isPlugIn || isHardwired;
-  const showChargerStatus = showConditionalFields && providingCharger === "Yes";
+  const showChargerStatus =
+    showConditionalFields && watchedProvidingCharger === "Yes";
+
+  // ─── Prefill from API draft ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (draftData) {
+      const draft = draftData as any;
+
+      if (draft.chargerConnectionType) {
+        setValue("chargerType", draft.chargerConnectionType);
+        dispatch(setEVChargerType(draft.chargerConnectionType));
+      }
+      if (draft.nemaConfiguration) {
+        setValue("nemaConfig", draft.nemaConfiguration);
+        dispatch(
+          updateEVChargerDetails({ nemaConfig: draft.nemaConfiguration }),
+        );
+      }
+      if (draft.chargerProvidedByUser !== undefined) {
+        const providingValue = draft.chargerProvidedByUser ? "Yes" : "No";
+        setValue("providingCharger", providingValue);
+        dispatch(setEVProvidingCharger(providingValue as any));
+      }
+      if (draft.chargerStatus) {
+        setValue("chargerStatus", draft.chargerStatus);
+        dispatch(
+          updateEVChargerDetails({ chargerStatus: draft.chargerStatus }),
+        );
+      }
+    }
+  }, [draftData]);
+
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const values = getValues();
+
+    // Get all required data from Redux or draft
+    const finalFullName = draftData?.fullName || contactDetails.fullName;
+    const finalEmail = draftData?.emailAddress || contactDetails.email;
+    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
+    const finalPreferredContact =
+      draftData?.preferredContactMethod || contactDetails.preferredContact;
+    const finalStreetAddress =
+      draftData?.streetAddress || serviceAddress.streetAddress;
+    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
+    const finalCity = draftData?.city || serviceAddress.city;
+    const finalState = draftData?.state || serviceAddress.state;
+    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
+    const finalPropertyType =
+      draftData?.propertyType || projectBasics.propertyType;
+    const finalOwnershipStatus =
+      draftData?.ownershipStatus || projectBasics.ownershipStatus;
+    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
+
+    const payload = {
+      fullName: finalFullName || "",
+      emailAddress: finalEmail || "",
+      phoneNumber: finalPhone || "",
+      preferredContactMethod: finalPreferredContact || "Call",
+      streetAddress: finalStreetAddress || "",
+      apartmentUnit: finalApartment || "",
+      city: finalCity || "",
+      state: finalState || "",
+      zipCode: finalZipCode || "",
+      propertyType: finalPropertyType || "",
+      ownershipStatus: finalOwnershipStatus || "",
+      timelineUrgency: finalTimeline || "",
+      chargerConnectionType: values.chargerType || "",
+      nemaConfiguration: values.nemaConfig || "",
+      chargerProvidedByUser: values.providingCharger === "Yes",
+      chargerStatus: values.chargerStatus || "",
+      status: "draft" as const,
+      completionPercentage,
+    };
+
+    // Create FormData from payload
+    const formData = createFormData(payload);
+
+    try {
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, formData);
+      } else {
+        await createDraft(serviceType, formData);
+      }
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch (error: any) {
+      console.log("Save draft error:", error);
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
+
+  // ─── Continue handler ────────────────────────────────────────────────────────
+  const onSubmit = (values: EVChargerDetailsFormValues) => {
+    // Dispatch to Redux
+    dispatch(setEVChargerType(values.chargerType as any));
+    if (values.nemaConfig) {
+      dispatch(updateEVChargerDetails({ nemaConfig: values.nemaConfig }));
+    }
+    if (values.providingCharger) {
+      dispatch(setEVProvidingCharger(values.providingCharger as any));
+    }
+    if (values.chargerStatus) {
+      dispatch(
+        updateEVChargerDetails({ chargerStatus: values.chargerStatus as any }),
+      );
+    }
+
+    router.push({
+      pathname: "/(tabs)/quotes/quote/ev-charger/installation-location",
+      params: { serviceCallId, serviceType },
+    });
+  };
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -137,15 +318,28 @@ export default function EVChargerDetails() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/quotes/quote/common/project-basics",
+              params: {
+                serviceType: serviceType,
+                serviceCallId: serviceCallId,
+              },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(80) }}
         >
-          <StepProgressBar currentStep={4} totalSteps={9} />
+          <StepProgressBar
+            currentStep={CURRENT_STEP}
+            totalSteps={TOTAL_STEPS}
+          />
 
-          <CategoryTag title="EV Charger Installation" />
+          <CategoryTag title={serviceType} />
 
           <AuthHeading
             title="Project details"
@@ -156,13 +350,24 @@ export default function EVChargerDetails() {
           <View className="mb-4">
             <SectionLabel label="Is your EV charger hardwired or a plug-in?" />
             {CHARGER_TYPES.map((option) => (
-              <SelectOption
+              <Controller
                 key={option}
-                label={option}
-                selected={chargerType === option}
-                onPress={() => dispatch(setEVChargerType(option as any))}
+                control={control}
+                name="chargerType"
+                render={({ field: { value, onChange } }) => (
+                  <SelectOption
+                    label={option}
+                    selected={value === option}
+                    onPress={() => onChange(option)}
+                  />
+                )}
               />
             ))}
+            {errors.chargerType && (
+              <Text className="text-red-500 text-xs mt-1">
+                {errors.chargerType.message}
+              </Text>
+            )}
           </View>
 
           {showConditionalFields && (
@@ -176,30 +381,41 @@ export default function EVChargerDetails() {
                     onInfoPress={() => setShowNemaChart((prev) => !prev)}
                   />
 
-                  <TextInput
-                    placeholder="14-50, 6-50, 14-30, unsure, etc."
-                    placeholderTextColor="#AABCD0"
-                    value={nemaConfig}
-                    onChangeText={(text) =>
-                      dispatch(updateEVChargerDetails({ nemaConfig: text }))
-                    }
-                    style={{
-                      backgroundColor: "#FFFFFF",
-                      borderRadius: 12,
-                      borderWidth: 1.5,
-                      borderColor: "#E2E8F0",
-                      paddingHorizontal: 14,
-                      paddingVertical: 13,
-                      fontFamily: "Inter-Regular",
-                      fontSize: 13.5,
-                      color: "#1E293B",
-                      shadowColor: "#94A3B8",
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.07,
-                      shadowRadius: 3,
-                      elevation: 1,
-                    }}
+                  <Controller
+                    control={control}
+                    name="nemaConfig"
+                    render={({ field: { value, onChange } }) => (
+                      <TextInput
+                        placeholder="14-50, 6-50, 14-30, unsure, etc."
+                        placeholderTextColor="#AABCD0"
+                        value={value}
+                        onChangeText={onChange}
+                        style={{
+                          backgroundColor: "#FFFFFF",
+                          borderRadius: 12,
+                          borderWidth: 1.5,
+                          borderColor: errors.nemaConfig
+                            ? "#EF4444"
+                            : "#E2E8F0",
+                          paddingHorizontal: 14,
+                          paddingVertical: 13,
+                          fontFamily: "Inter-Regular",
+                          fontSize: 13.5,
+                          color: "#1E293B",
+                          shadowColor: "#94A3B8",
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.07,
+                          shadowRadius: 3,
+                          elevation: 1,
+                        }}
+                      />
+                    )}
                   />
+                  {errors.nemaConfig && (
+                    <Text className="text-red-500 text-xs mt-1">
+                      {errors.nemaConfig.message}
+                    </Text>
+                  )}
 
                   {/* NEMA Chart — inline toggle */}
                   {showNemaChart && (
@@ -215,13 +431,12 @@ export default function EVChargerDetails() {
                         elevation: 3,
                       }}
                     >
-                      {/* Header */}
                       <View
                         className="flex-row items-center justify-between px-4 py-3"
                         style={{ backgroundColor: "#EEF9FF" }}
                       >
                         <Text className="text-lg font-Inter_SemiBold text-[#0369A1]">
-                          {/* NEMA Configuration Chart */}
+                          NEMA Configuration Chart
                         </Text>
                         <Pressable
                           onPress={() => setShowNemaChart(false)}
@@ -232,16 +447,15 @@ export default function EVChargerDetails() {
                         </Pressable>
                       </View>
 
-                      {/* SVG — full width, scrollable vertically */}
                       <ScrollView
                         showsVerticalScrollIndicator={false}
                         bounces={false}
-                        style={{ backgroundColor: "#F0F9FF", maxHeight: 900 }}
+                        style={{ backgroundColor: "#F0F9FF", maxHeight: 500 }}
                       >
                         <CustomSvg
                           xml={nemaChart}
                           width={screenWidth - 48}
-                          height={800}
+                          height={600}
                         />
                       </ScrollView>
                     </View>
@@ -253,15 +467,24 @@ export default function EVChargerDetails() {
               <View className="mb-4">
                 <SectionLabel label="Will you be providing the charger?" />
                 {PROVIDING_OPTIONS.map((option) => (
-                  <SelectOption
+                  <Controller
                     key={option}
-                    label={option}
-                    selected={providingCharger === option}
-                    onPress={() =>
-                      dispatch(setEVProvidingCharger(option as any))
-                    }
+                    control={control}
+                    name="providingCharger"
+                    render={({ field: { value, onChange } }) => (
+                      <SelectOption
+                        label={option}
+                        selected={value === option}
+                        onPress={() => onChange(option)}
+                      />
+                    )}
                   />
                 ))}
+                {errors.providingCharger && (
+                  <Text className="text-red-500 text-xs mt-1">
+                    {errors.providingCharger.message}
+                  </Text>
+                )}
               </View>
 
               {/* Charger Status */}
@@ -269,19 +492,24 @@ export default function EVChargerDetails() {
                 <View className="mb-4">
                   <SectionLabel label="What is the status of the charger?" />
                   {CHARGER_STATUS_OPTIONS.map((option) => (
-                    <SelectOption
+                    <Controller
                       key={option}
-                      label={option}
-                      selected={chargerStatus === option}
-                      onPress={() =>
-                        dispatch(
-                          updateEVChargerDetails({
-                            chargerStatus: option as any,
-                          }),
-                        )
-                      }
+                      control={control}
+                      name="chargerStatus"
+                      render={({ field: { value, onChange } }) => (
+                        <SelectOption
+                          label={option}
+                          selected={value === option}
+                          onPress={() => onChange(option)}
+                        />
+                      )}
                     />
                   ))}
+                  {errors.chargerStatus && (
+                    <Text className="text-red-500 text-xs mt-1">
+                      {errors.chargerStatus.message}
+                    </Text>
+                  )}
                 </View>
               )}
             </>
@@ -290,13 +518,13 @@ export default function EVChargerDetails() {
           <View className="mb-[4%]">
             <GradientButton
               label="Continue"
-              onPress={() =>
-                router.push(
-                  "/(tabs)/quotes/quote/ev-charger/installation-location",
-                )
-              }
+              onPress={handleSubmit(onSubmit)}
+              disabled={isSaving}
             />
-            <SavedEditAction />
+            <SavedEditAction
+              onPress={handleSaveForLater}
+              title={isSaving ? "Saving..." : "Save for Later"}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
