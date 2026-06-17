@@ -195,14 +195,14 @@ export default function ProjectBasics() {
       });
     } else if (
       selectedCategory?.id === "3" ||
-      serviceType === "Panel Upgrade"
+      serviceType === "Panel Upgrade / Replacement"
     ) {
       dispatch(selectCategory("3"));
       router.push({
         pathname: "/(tabs)/quotes/quote/panel-upgrade/service-type",
         params,
       });
-    } else if (selectedCategory?.id === "4") {
+    } else if (selectedCategory?.id === "4" || serviceType === "Remodeling") {
       dispatch(selectCategory("4"));
       router.push({
         pathname: "/(tabs)/quotes/quote/remodeling/project-basics",

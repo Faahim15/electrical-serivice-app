@@ -5,12 +5,16 @@ import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
+import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import {
   selectCategory,
   updatePanelUpgradeDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
-import { router } from "expo-router";
+import { PanelUpgradeRecord } from "@/src/types/quotes/panel.upgrader.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
 import {
   KeyboardAvoidingView,
@@ -21,7 +25,11 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
 
+const SERVICE_TYPE = "Panel Upgrade / Replacement";
+const CURRENT_STEP = 4;
+const TOTAL_STEPS = 9;
 const SERVICE_TYPES = ["Replacement", "Upgrade"] as const;
 const AMP_OPTIONS = ["100", "150", "200", "300", "350", "400"] as const;
 
@@ -63,11 +71,30 @@ const SelectOption = ({
 export default function PanelServiceType() {
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    dispatch(selectCategory("3"));
-  }, []);
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
 
-  const serviceType = useSelector((state: RootState) => {
+  const serviceType = serviceTypeParam || SERVICE_TYPE;
+  const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
+
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+  const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+  const draft = draftData as PanelUpgradeRecord | undefined;
+
+  const { fullName, email, phone, preferredContact } = useSelector(
+    (state: RootState) => state.serviceForm.contactDetails,
+  );
+  const { streetAddress, apartment, city, state, zipCode } = useSelector(
+    (state: RootState) => state.serviceForm.serviceAddress,
+  );
+  const { propertyType, ownershipStatus, timeline } = useSelector(
+    (state: RootState) => state.serviceForm.projectBasics,
+  );
+
+  const panelServiceType = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "3" && data.details)
       return data.details.serviceType;
@@ -81,7 +108,76 @@ export default function PanelServiceType() {
     return "" as const;
   });
 
-  const isUpgrade = serviceType === "Upgrade";
+  const isUpgrade = panelServiceType === "Upgrade";
+
+  useEffect(() => {
+    dispatch(selectCategory("3"));
+  }, []);
+
+  // ─── Prefill from draft ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!draft) return;
+    if (draft.panelServiceType) {
+      dispatch(
+        updatePanelUpgradeDetails({
+          serviceType: draft.panelServiceType as any,
+        }),
+      );
+    }
+    if (draft.desiredPanelAmperage) {
+      dispatch(
+        updatePanelUpgradeDetails({
+          upgradeAmps: draft.desiredPanelAmperage as any,
+        }),
+      );
+    }
+  }, [draft]);
+
+  // ─── Helper ──────────────────────────────────────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const payload = {
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      panelServiceType: panelServiceType || "",
+      desiredPanelAmperage: upgradeAmps || "",
+      status: "draft" as const,
+      completionPercentage,
+    };
+
+    try {
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
+      } else {
+        await createDraft(
+          serviceType,
+          createFormData({ serviceType, ...payload }),
+        );
+      }
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch (err: any) {
+      console.log({ err });
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -93,16 +189,15 @@ export default function PanelServiceType() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
-          <StepProgressBar currentStep={4} totalSteps={9} />
-
-          {/* Category Tag */}
-          <CategoryTag title="Panel Upgrade / Replacement" />
-
+          <StepProgressBar
+            currentStep={CURRENT_STEP}
+            totalSteps={TOTAL_STEPS}
+          />
+          <CategoryTag title={serviceType} />
           <AuthHeading title="Service type" subtitle="What do you need?" />
 
-          {/* Service Type */}
           <View className="mb-4">
             <Text className="text-[#1E293B] text-[13.5px] font-Inter_SemiBold mb-3">
               Do you need a replacement or upgrade?
@@ -111,7 +206,7 @@ export default function PanelServiceType() {
               <SelectOption
                 key={option}
                 label={option}
-                selected={serviceType === option}
+                selected={panelServiceType === option}
                 onPress={() => {
                   dispatch(updatePanelUpgradeDetails({ serviceType: option }));
                   if (option === "Replacement") {
@@ -122,7 +217,6 @@ export default function PanelServiceType() {
             ))}
           </View>
 
-          {/* Amp Options — শুধু Upgrade select হলে দেখাবে */}
           {isUpgrade && (
             <View className="mb-4">
               <Text className="text-[#1E293B] text-[13.5px] font-Inter_SemiBold mb-3">
@@ -144,12 +238,17 @@ export default function PanelServiceType() {
           <GradientButton
             label="Continue"
             onPress={() =>
-              router.push(
-                "/(tabs)/quotes/quote/panel-upgrade/current-panel-details",
-              )
+              router.push({
+                pathname:
+                  "/(tabs)/quotes/quote/panel-upgrade/current-panel-details",
+                params: { serviceType, serviceCallId },
+              })
             }
           />
-          <SavedEditAction />
+          <SavedEditAction
+            onPress={handleSaveForLater}
+            title={isSaving ? "Saving..." : "Save for Later"}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>

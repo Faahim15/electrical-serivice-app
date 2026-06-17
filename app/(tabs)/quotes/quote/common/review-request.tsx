@@ -3,6 +3,7 @@ import {
   ReviewSection,
   ServiceCallReviewForm,
 } from "@/src/components/common";
+import PanelUpgradeReviewForm from "@/src/components/common/PanelUpgradeReviewForm";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
@@ -26,7 +27,6 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
-
 export default function ReviewRequest() {
   const dispatch = useDispatch();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,7 +68,7 @@ export default function ReviewRequest() {
     serviceType,
   );
 
-  // ─── Use values from API (draft) or fallback to Redux ─────────────────────────
+  // ─── Use values from API (draft) or fallback to Redux ────────────────────────
   const finalValues = {
     fullName: draftData?.fullName || contactDetails.fullName,
     email: draftData?.emailAddress || contactDetails.email,
@@ -126,14 +126,16 @@ export default function ReviewRequest() {
             Check your answers before sending
           </Text>
 
-          {/* ─── Common Review Section ──────────────────────────────────────── */}
+          {/* ─── Common Review Section ────────────────────────────────────────── */}
           <ReviewSection
             contactDetails={finalValues}
             serviceAddress={finalValues}
             projectBasics={finalValues}
           />
 
-          {/* ─── Category Specific Review ───────────────────────────────────── */}
+          {/* ─── Category Specific Review ─────────────────────────────────────── */}
+
+          {/* Service Call */}
           {categoryData?.categoryId === "1" && categoryData.details && (
             <ServiceCallReviewForm
               draftData={draftData}
@@ -144,6 +146,7 @@ export default function ReviewRequest() {
             />
           )}
 
+          {/* EV Charger Installation */}
           {categoryData?.categoryId === "2" && categoryData.details && (
             <EVChargerReviewForm
               draftData={draftData}
@@ -153,6 +156,27 @@ export default function ReviewRequest() {
               isSubmitting={isSubmitting}
             />
           )}
+
+          {/* Panel Upgrade / Replacement */}
+          {categoryData?.categoryId === "3" && categoryData.details && (
+            <PanelUpgradeReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* TODO: Add review forms for remaining categories:
+            categoryId === "4"  → Remodeling
+            categoryId === "5"  → Accessory Building / Shed Power
+            categoryId === "6"  → Hot Tub Installation
+            categoryId === "7"  → Dock Power
+            categoryId === "8"  → Electrical Inspection
+            categoryId === "9"  → Generator Installation
+            categoryId === "10" → New Construction
+          */}
 
           <SavedEditAction title="Edit" onPress={() => router.back()} />
         </ScrollView>
