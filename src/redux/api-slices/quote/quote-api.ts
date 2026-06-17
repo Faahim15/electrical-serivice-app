@@ -4,7 +4,6 @@ import {
   CreateEvChargerInstallationPayload,
   CreateEvChargerInstallationResponse,
   GetEvChargerInstallationsResponse,
-  UpdateEvChargerInstallationPayload,
   UpdateEvChargerInstallationResponse,
 } from "@/src/types/evCharger.api.types";
 import {
@@ -136,7 +135,7 @@ const quoteApi = baseApi.injectEndpoints({
 
     updateEvChargerInstallation: builder.mutation<
       UpdateEvChargerInstallationResponse,
-      { id: string; body: UpdateEvChargerInstallationPayload }
+      { id: string; body: FormData } // ← was UpdateEvChargerInstallationPayload
     >({
       query: ({ id, body }) => ({
         url: `/ev-charger-installations/${id}`,
@@ -162,30 +161,6 @@ const quoteApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [TagTypes.User],
     }),
-
-    deletePanelUpgradeReplacement: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/panel-upgrade-replacements/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: [TagTypes.User],
-    }),
-
-    deleteRemodeling: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/remodelings/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: [TagTypes.User],
-    }),
-
-    deleteAccessoryBuildingPower: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/accessory-building-powers/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: [TagTypes.User],
-    }),
   }),
 });
 
@@ -203,8 +178,5 @@ export const {
   useUpdateEvChargerInstallationMutation,
   useDeleteServiceCallMutation,
   useDeleteEvChargerInstallationMutation,
-  useDeletePanelUpgradeReplacementMutation,
   useDeleteImageMutation,
-  useDeleteRemodelingMutation,
-  useDeleteAccessoryBuildingPowerMutation,
 } = quoteApi;
