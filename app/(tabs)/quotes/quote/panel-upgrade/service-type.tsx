@@ -77,6 +77,8 @@ export default function PanelServiceType() {
       serviceType?: string;
     }>();
 
+  console.log({ serviceTypeParam, serviceCallId });
+
   const serviceType = serviceTypeParam || SERVICE_TYPE;
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
 
@@ -185,7 +187,17 @@ export default function PanelServiceType() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/quotes/quote/common/project-basics",
+              params: {
+                serviceType: serviceType,
+                serviceCallId: serviceCallId,
+              },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

@@ -208,19 +208,25 @@ export default function ProjectBasics() {
         pathname: "/(tabs)/quotes/quote/remodeling/project-basics",
         params,
       });
-    } else if (selectedCategory?.id === "5") {
+    } else if (
+      selectedCategory?.id === "5" ||
+      serviceType === "Accessory Building / Shed Power"
+    ) {
       dispatch(selectCategory("5"));
       router.push({
         pathname: "/(tabs)/quotes/quote/accessory-building/building-basics",
         params,
       });
-    } else if (selectedCategory?.id === "6") {
+    } else if (
+      selectedCategory?.id === "6" ||
+      serviceType === "Hot tub installation"
+    ) {
       dispatch(selectCategory("6"));
       router.push({
         pathname: "/(tabs)/quotes/quote/hot-tub/hot-tub-info",
         params,
       });
-    } else if (selectedCategory?.id === "7") {
+    } else if (selectedCategory?.id === "7" || serviceType === "Dock Power") {
       dispatch(selectCategory("7"));
       router.push({
         pathname: "/(tabs)/quotes/quote/dock-power/dock-basics",

@@ -6,13 +6,21 @@ import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
+import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { updateAccessoryBuildingDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
-import { router } from "expo-router";
-import React from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
+
+const SERVICE_TYPE = "Accessory Building / Shed Power";
+const CURRENT_STEP = 5;
+const TOTAL_STEPS = 12;
 
 const BUILDING_STATUS = ["Yes", "No", "Will be delivered / built soon"];
 const CONSTRUCTION_TYPES = [
@@ -25,6 +33,43 @@ const FLOOR_TYPES = ["Dirt", "Stone", "Wood", "Concrete"];
 
 export default function ConstructionDetails() {
   const dispatch = useDispatch();
+
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
+
+  const serviceType = serviceTypeParam || SERVICE_TYPE;
+  const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
+
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+  const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+  const draft = draftData as AccessoryBuildingRecord | undefined;
+
+  const { fullName, email, phone, preferredContact } = useSelector(
+    (state: RootState) => state.serviceForm.contactDetails,
+  );
+  const { streetAddress, apartment, city, state, zipCode } = useSelector(
+    (state: RootState) => state.serviceForm.serviceAddress,
+  );
+  const { propertyType, ownershipStatus, timeline } = useSelector(
+    (state: RootState) => state.serviceForm.projectBasics,
+  );
+
+  const squareFootage = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details)
+      return data.details.squareFootage;
+    return "";
+  });
+
+  const intendedUse = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details)
+      return data.details.intendedUse;
+    return "";
+  });
 
   const buildingStatus = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
@@ -46,6 +91,78 @@ export default function ConstructionDetails() {
     return "" as const;
   });
 
+  // ─── Prefill from draft ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!draft) return;
+    if (draft.buildingStatus) {
+      dispatch(
+        updateAccessoryBuildingDetails({
+          buildingStatus: draft.buildingStatus as any,
+        }),
+      );
+    }
+    if (draft.constructionType) {
+      dispatch(
+        updateAccessoryBuildingDetails({
+          constructionType: draft.constructionType as any,
+        }),
+      );
+    }
+    if (draft.floorType) {
+      dispatch(
+        updateAccessoryBuildingDetails({ floorType: draft.floorType as any }),
+      );
+    }
+  }, [draft]);
+
+  // ─── Helper ──────────────────────────────────────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const payload = {
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      entireSquareFootage: Number(squareFootage) || 0,
+      intendedUse: intendedUse || "",
+      buildingStatus: buildingStatus || "",
+      constructionType: constructionType || "",
+      floorType: floorType || "",
+      status: "draft" as const,
+      completionPercentage,
+    };
+
+    try {
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
+      } else {
+        await createDraft(
+          serviceType,
+          createFormData({ serviceType, ...payload }),
+        );
+      }
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch {
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -58,9 +175,11 @@ export default function ConstructionDetails() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: verticalScale(120) }}
         >
-          <StepProgressBar currentStep={5} totalSteps={12} />
-          <CategoryTag title="Accessory Building Power / Shed Power" />
-
+          <StepProgressBar
+            currentStep={CURRENT_STEP}
+            totalSteps={TOTAL_STEPS}
+          />
+          <CategoryTag title={serviceType} />
           <AuthHeading title="Construction details" subtitle="" />
 
           <OptionGrid
@@ -104,13 +223,18 @@ export default function ConstructionDetails() {
             <GradientButton
               label="Continue"
               onPress={() =>
-                router.push(
-                  "/(tabs)/quotes/quote/accessory-building/electrical-needs",
-                )
+                router.push({
+                  pathname:
+                    "/(tabs)/quotes/quote/accessory-building/electrical-needs",
+                  params: { serviceType, serviceCallId },
+                })
               }
             />
           </View>
-          <SavedEditAction />
+          <SavedEditAction
+            onPress={handleSaveForLater}
+            title={isSaving ? "Saving..." : "Save for Later"}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>

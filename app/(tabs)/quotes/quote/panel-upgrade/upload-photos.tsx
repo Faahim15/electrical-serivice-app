@@ -135,9 +135,10 @@ export default function PanelUploadPhotos() {
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
       return url;
-    } catch {
+    } catch (error) {
+      console.error("[PanelUpload] Meter upload error:", error); // ← see the real cause
       toast.error("Failed to upload photo. Please try again.");
-      throw new Error("Upload failed");
+      throw error; // ← rethrow original error, not a generic one
     } finally {
       setUploadingSection(null);
     }
@@ -149,9 +150,10 @@ export default function PanelUploadPhotos() {
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
       return url;
-    } catch {
+    } catch (error) {
+      console.error("[PanelUpload] Panel upload error:", error); // ← see the real cause
       toast.error("Failed to upload photo. Please try again.");
-      throw new Error("Upload failed");
+      throw error; // ← rethrow original error, not a generic one
     } finally {
       setUploadingSection(null);
     }
@@ -217,7 +219,17 @@ export default function PanelUploadPhotos() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/quotes/quote/panel-upgrade/panel-location",
+              params: {
+                serviceType: serviceType,
+                serviceCallId: serviceCallId,
+              },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

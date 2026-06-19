@@ -14,8 +14,8 @@ interface BaseQueryArgs {
 }
 
 const handleLogout = async () => {
-  await SecureStore.deleteItemAsync("token");
-  await SecureStore.deleteItemAsync("refreshToken");
+  // await SecureStore.deleteItemAsync("token");
+  // await SecureStore.deleteItemAsync("refreshToken");
 };
 
 const baseQuery: BaseQueryFn<

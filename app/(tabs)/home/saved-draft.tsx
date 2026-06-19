@@ -9,7 +9,14 @@ import { verticalScale } from "@/src/utils/Scaling";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, Pressable, Text, View } from "react-native";
+import {
+  Animated,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
@@ -17,6 +24,7 @@ import { toast } from "sonner-native";
 
 const SavedDraft = () => {
   const { data, isLoading, isError, refetch } = useGetDraftsQuery();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Flatten grouped draft response into a single list of drafts
   const drafts: ServiceCallResponse[] = useMemo(() => {
@@ -51,7 +59,10 @@ const SavedDraft = () => {
     return cardAnimsRef.current[id];
   };
 
-  const { deleteDraft, isDeleting } = useDeleteDraft();
+  const { deleteDraft, isDeleting } = useDeleteDraft(() => {
+    // Refetch after successful delete
+    refetch();
+  });
 
   // Header entrance
   useEffect(() => {
@@ -99,6 +110,13 @@ const SavedDraft = () => {
       toast.error("Failed to load drafts. Please try again.");
     }
   }, [isError]);
+
+  // ─── Refresh handler ──────────────────────────────────────────────────────────
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  };
 
   // ─── Modal helpers ───────────────────────────────────────────────────────────
 
@@ -197,6 +215,14 @@ const SavedDraft = () => {
             }}
             ItemSeparatorComponent={() => <View className="h-3" />}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                colors={["#0EA5E9"]}
+                tintColor="#0EA5E9"
+              />
+            }
             renderItem={({ item: draft }) => {
               const anim = getCardAnim(draft._id);
               return (

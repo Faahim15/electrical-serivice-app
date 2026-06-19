@@ -5,13 +5,21 @@ import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
-import TextAreaInput from "@/src/components/shared/TextAreaInput"; // import add করো
+import TextAreaInput from "@/src/components/shared/TextAreaInput";
+import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { updateAccessoryBuildingDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
-import { router } from "expo-router";
-import React from "react";
+import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
+
+const SERVICE_TYPE = "Accessory Building / Shed Power";
+const CURRENT_STEP = 7;
+const TOTAL_STEPS = 12;
 
 const SERVICE_TYPES = ["New Service", "Sub-panel", "1-2 dedicated circuits"];
 const NEW_SERVICE_SIZES = [
@@ -47,72 +55,232 @@ const PANEL_LOCATIONS = [
 export default function AccessoryServiceType() {
   const dispatch = useDispatch();
 
-  const serviceType = useSelector((state: RootState) => {
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
+
+  const serviceType = serviceTypeParam || SERVICE_TYPE;
+  const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
+
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+  const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+  const draft = draftData as AccessoryBuildingRecord | undefined;
+
+  const { fullName, email, phone, preferredContact } = useSelector(
+    (state: RootState) => state.serviceForm.contactDetails,
+  );
+  const { streetAddress, apartment, city, state, zipCode } = useSelector(
+    (state: RootState) => state.serviceForm.serviceAddress,
+  );
+  const { propertyType, ownershipStatus, timeline } = useSelector(
+    (state: RootState) => state.serviceForm.projectBasics,
+  );
+
+  const squareFootage = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details)
+      return data.details.squareFootage;
+    return "";
+  });
+  const intendedUse = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details)
+      return data.details.intendedUse;
+    return "";
+  });
+  const buildingStatus = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details)
+      return data.details.buildingStatus;
+    return "";
+  });
+  const constructionType = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details)
+      return data.details.constructionType;
+    return "";
+  });
+  const floorType = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details) return data.details.floorType;
+    return "";
+  });
+  const electricalNeeds = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details)
+      return data.details.electricalNeeds;
+    return "";
+  });
+  const hasHeatingCooling = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "5" && data.details)
+      return data.details.hasHeatingCooling;
+    return "";
+  });
+
+  const serviceTypeSelected = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details)
       return data.details.serviceType;
     return "" as const;
   });
-
   const newServiceSize = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details)
       return data.details.newServiceSize;
     return "" as const;
   });
-
   const subPanelSize = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details)
       return data.details.subPanelSize;
     return "" as const;
   });
-
   const circuitCount = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details)
       return data.details.circuitCount;
     return "" as const;
   });
-
   const ampRating = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details) return data.details.ampRating;
     return "" as const;
   });
-
   const panelLocation = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details)
       return data.details.panelLocation;
     return "" as const;
   });
-
-  // selectors add করো
   const panelLocationOther = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details)
       return data.details.panelLocationOther;
     return "";
   });
-
   const newServiceSizeOther = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details)
       return data.details.newServiceSizeOther;
     return "";
   });
-
   const subPanelSizeOther = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "5" && data.details)
       return data.details.subPanelSizeOther;
     return "";
   });
-  const isNewService = serviceType === "New Service";
-  const isSubPanel = serviceType === "Sub-panel";
-  const isDedicatedCircuits = serviceType === "1-2 dedicated circuits";
+
+  const isNewService = serviceTypeSelected === "New Service";
+  const isSubPanel = serviceTypeSelected === "Sub-panel";
+  const isDedicatedCircuits = serviceTypeSelected === "1-2 dedicated circuits";
   const showPanelSection = isNewService || isSubPanel || isDedicatedCircuits;
+
+  // ─── Prefill from draft ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!draft) return;
+    if (draft.electricalServiceType) {
+      dispatch(
+        updateAccessoryBuildingDetails({
+          serviceType: draft.electricalServiceType as any,
+        }),
+      );
+    }
+    if (draft.serviceSize) {
+      if (draft.electricalServiceType === "New Service") {
+        dispatch(
+          updateAccessoryBuildingDetails({
+            newServiceSize: draft.serviceSize as any,
+          }),
+        );
+      } else if (draft.electricalServiceType === "Sub-panel") {
+        dispatch(
+          updateAccessoryBuildingDetails({
+            subPanelSize: draft.serviceSize as any,
+          }),
+        );
+      }
+    }
+    if (draft.panelLocation) {
+      dispatch(
+        updateAccessoryBuildingDetails({
+          panelLocation: draft.panelLocation as any,
+        }),
+      );
+    }
+  }, [draft]);
+
+  // ─── Helper ──────────────────────────────────────────────────────────────────
+  const createFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    return formData;
+  };
+
+  // ─── Compute resolved service size ──────────────────────────────────────────
+  const resolvedServiceSize = isNewService
+    ? newServiceSize === "Other"
+      ? newServiceSizeOther
+      : newServiceSize
+    : isSubPanel
+      ? subPanelSize === "Other"
+        ? subPanelSizeOther
+        : subPanelSize
+      : isDedicatedCircuits
+        ? `${circuitCount} circuit(s) @ ${ampRating}A`
+        : "";
+
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const payload = {
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      entireSquareFootage: Number(squareFootage) || 0,
+      intendedUse: intendedUse || "",
+      buildingStatus: buildingStatus || "",
+      constructionType: constructionType || "",
+      floorType: floorType || "",
+      electricalNeeds: electricalNeeds || "",
+      hasHeatingOrCooling: hasHeatingCooling === "Yes",
+      electricalServiceType: serviceTypeSelected || "",
+      serviceSize: resolvedServiceSize || "",
+      panelLocation:
+        panelLocation === "Other (please specify)"
+          ? panelLocationOther
+          : panelLocation || "",
+      status: "draft" as const,
+      completionPercentage,
+    };
+
+    try {
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
+      } else {
+        await createDraft(
+          serviceType,
+          createFormData({ serviceType, ...payload }),
+        );
+      }
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch {
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -126,19 +294,20 @@ export default function AccessoryServiceType() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <StepProgressBar currentStep={7} totalSteps={12} />
-          <CategoryTag title="Accessory Building Power / Shed Power" />
+          <StepProgressBar
+            currentStep={CURRENT_STEP}
+            totalSteps={TOTAL_STEPS}
+          />
+          <CategoryTag title={serviceType} />
 
-          {/* Service Type */}
           <OptionGrid
             label="Will you need a new service (panel and meter), sub-panel, or 1-2 dedicated circuits to power the accessory building?"
             options={SERVICE_TYPES}
-            selected={serviceType}
+            selected={serviceTypeSelected}
             onSelect={(val) => {
               dispatch(
                 updateAccessoryBuildingDetails({
                   serviceType: val as any,
-                  // reset conditional fields
                   newServiceSize: "",
                   subPanelSize: "",
                   circuitCount: "",
@@ -149,7 +318,6 @@ export default function AccessoryServiceType() {
             numColumns={1}
           />
 
-          {/* New Service */}
           {isNewService && (
             <>
               <OptionGrid
@@ -182,7 +350,6 @@ export default function AccessoryServiceType() {
             </>
           )}
 
-          {/* Sub-panel */}
           {isSubPanel && (
             <>
               <OptionGrid
@@ -215,7 +382,6 @@ export default function AccessoryServiceType() {
             </>
           )}
 
-          {/* 1-2 dedicated circuits */}
           {isDedicatedCircuits && (
             <>
               <OptionGrid
@@ -245,7 +411,6 @@ export default function AccessoryServiceType() {
             </>
           )}
 
-          {/* Panel location */}
           {showPanelSection && (
             <>
               <OptionGrid
@@ -281,13 +446,18 @@ export default function AccessoryServiceType() {
             <GradientButton
               label="Continue"
               onPress={() =>
-                router.push(
-                  "/(tabs)/quotes/quote/accessory-building/route-details",
-                )
+                router.push({
+                  pathname:
+                    "/(tabs)/quotes/quote/accessory-building/route-details",
+                  params: { serviceType, serviceCallId },
+                })
               }
             />
           </View>
-          <SavedEditAction />
+          <SavedEditAction
+            onPress={handleSaveForLater}
+            title={isSaving ? "Saving..." : "Save for Later"}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>

@@ -1,4 +1,3 @@
-// src/app/quote/new-construction/project-status.tsx
 import AuthHeading from "@/src/components/auth/AuthHeading";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
@@ -8,10 +7,17 @@ import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
+import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftSave } from "@/src/hook/useDraftSave";
+import {
+  useDeleteImageMutation,
+  useUploadImagesMutation,
+} from "@/src/redux/api-slices/quote/quote-api";
 import { updateNewConstructionDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
-import { router } from "expo-router";
-import React from "react";
+import { NewConstructionRecord } from "@/src/types/quotes/new-construction.api.types";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,6 +26,10 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
+
+const CURRENT_STEP = 4;
+const TOTAL_STEPS = 5;
 
 const CONSTRUCTION_STAGES = [
   "Preliminary",
@@ -29,27 +39,63 @@ const CONSTRUCTION_STAGES = [
   "Ready for electrical now",
 ];
 
+// ─── Helper to convert payload to FormData ──────────────────────────────────
+const createFormData = (payload: Record<string, any>) => {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(payload));
+  return formData;
+};
+
 export default function ProjectStatus() {
   const dispatch = useDispatch();
+  const [uploadingSection, setUploadingSection] = useState<
+    "plans1" | "plans2" | null
+  >(null);
+
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
+
+  const serviceType = serviceTypeParam || "New Construction";
+  const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
+
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+  const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+  const draft = draftData as NewConstructionRecord | undefined;
+
+  const [uploadImages] = useUploadImagesMutation();
+  const [deleteImage] = useDeleteImageMutation();
+
+  const { fullName, email, phone, preferredContact } = useSelector(
+    (state: RootState) => state.serviceForm.contactDetails,
+  );
+  const { streetAddress, apartment, city, state, zipCode } = useSelector(
+    (state: RootState) => state.serviceForm.serviceAddress,
+  );
+  const { propertyType, ownershipStatus, timeline } = useSelector(
+    (state: RootState) => state.serviceForm.projectBasics,
+  );
 
   const constructionBegun = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "10" && data.details)
       return data.details.constructionBegun;
-    return "" as const;
+    return "";
   });
 
   const constructionStage = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "10" && data.details)
       return data.details.constructionStage;
-    return "" as const;
+    return "";
   });
 
   const buildingPlanPhotos = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "10" && data.details)
-      return data.details.buildingPlanPhotos;
+      return data.details.buildingPlanPhotos || [];
     return [];
   });
 
@@ -57,18 +103,141 @@ export default function ProjectStatus() {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "10" && data.details)
       return data.details.hasBuildingPlans;
-    return "" as const;
+    return "";
   });
 
   const buildingPlanPhotos2 = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "10" && data.details)
-      return data.details.buildingPlanPhotos2;
+      return data.details.buildingPlanPhotos2 || [];
     return [];
   });
 
   const isYes = constructionBegun === "Yes";
   const isNo = constructionBegun === "No";
+
+  // ─── Prefill from draft ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!draft) return;
+    if (draft.hasConstructionBegun !== undefined) {
+      dispatch(
+        updateNewConstructionDetails({
+          constructionBegun: draft.hasConstructionBegun ? "Yes" : "No",
+        }),
+      );
+    }
+    if (draft.stageOfConstruction) {
+      dispatch(
+        updateNewConstructionDetails({
+          constructionStage: draft.stageOfConstruction as any,
+        }),
+      );
+    }
+    if (draft.haveBuildingPlans !== undefined) {
+      dispatch(
+        updateNewConstructionDetails({
+          hasBuildingPlans: draft.haveBuildingPlans ? "Yes" : "No",
+        }),
+      );
+    }
+    if (draft.photosOfBuildingPlans?.length) {
+      dispatch(
+        updateNewConstructionDetails({
+          buildingPlanPhotos: draft.photosOfBuildingPlans,
+        }),
+      );
+    }
+  }, [draft]);
+
+  // ─── Upload helpers ──────────────────────────────────────────────────────────
+  const uploadImage = async (localUri: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append("images", {
+      uri: localUri,
+      name: "photo.jpg",
+      type: "image/jpeg",
+    } as any);
+    const res = await uploadImages(formData).unwrap();
+    return res.data[0];
+  };
+
+  const handlePlans1UploadSingle = async (
+    localUri: string,
+  ): Promise<string> => {
+    try {
+      setUploadingSection("plans1");
+      const url = await uploadImage(localUri);
+      toast.success("Photo uploaded!");
+      return url;
+    } catch (error) {
+      toast.error("Failed to upload photo. Please try again.");
+      throw error;
+    } finally {
+      setUploadingSection(null);
+    }
+  };
+
+  const handlePlans2UploadSingle = async (
+    localUri: string,
+  ): Promise<string> => {
+    try {
+      setUploadingSection("plans2");
+      const url = await uploadImage(localUri);
+      toast.success("Photo uploaded!");
+      return url;
+    } catch (error) {
+      toast.error("Failed to upload photo. Please try again.");
+      throw error;
+    } finally {
+      setUploadingSection(null);
+    }
+  };
+
+  const deleteImageHandler = async (imageUrl: string) => {
+    await deleteImage({ imageUrl }).unwrap();
+  };
+
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const payload = {
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      hasConstructionBegun: constructionBegun === "Yes",
+      stageOfConstruction: constructionStage || "",
+      haveBuildingPlans: hasBuildingPlans === "Yes",
+      photosOfBuildingPlans: isYes
+        ? buildingPlanPhotos || []
+        : buildingPlanPhotos2 || [],
+      status: "draft" as const,
+      completionPercentage,
+    };
+
+    try {
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
+      } else {
+        await createDraft(
+          serviceType,
+          createFormData({ serviceType, ...payload }),
+        );
+      }
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch {
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -76,16 +245,25 @@ export default function ProjectStatus() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/quotes/quote/common/project-basics",
+              params: { serviceCallId, serviceType },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <StepProgressBar currentStep={4} totalSteps={5} />
-          <CategoryTag title="New Construction" />
+          <StepProgressBar
+            currentStep={CURRENT_STEP}
+            totalSteps={TOTAL_STEPS}
+          />
+          <CategoryTag title={serviceType} />
 
-          {/* Project Status */}
           <AuthHeading title="Project status" subtitle="" />
 
           <OptionGrid
@@ -106,7 +284,6 @@ export default function ProjectStatus() {
             numColumns={1}
           />
 
-          {/* Yes — construction stage + building plans upload */}
           {isYes && (
             <>
               <OptionGrid
@@ -135,11 +312,13 @@ export default function ProjectStatus() {
                     updateNewConstructionDetails({ buildingPlanPhotos: p }),
                   )
                 }
+                onUploadSingle={handlePlans1UploadSingle}
+                onDeleteSingle={deleteImageHandler}
+                isUploading={uploadingSection === "plans1"}
               />
             </>
           )}
 
-          {/* No — has building plans question */}
           {isNo && (
             <>
               <Text className="text-[#1E293B] text-[15px] font-Inter_Bold mb-3">
@@ -161,7 +340,6 @@ export default function ProjectStatus() {
                 numColumns={1}
               />
 
-              {/* Building plans Yes — upload */}
               {hasBuildingPlans === "Yes" && (
                 <PhotoUploadSection
                   label="Upload building plans"
@@ -171,20 +349,29 @@ export default function ProjectStatus() {
                       updateNewConstructionDetails({ buildingPlanPhotos2: p }),
                     )
                   }
+                  onUploadSingle={handlePlans2UploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "plans2"}
                 />
               )}
-              {/* Building plans No — upload section দেখাবে না */}
             </>
           )}
           <View className="mt-[3%]">
             <GradientButton
               label="Continue"
               onPress={() =>
-                router.push("/(tabs)/quotes/quote/common/review-request")
+                router.push({
+                  pathname: "/(tabs)/quotes/quote/common/review-request",
+                  params: { serviceCallId, serviceType },
+                })
               }
+              disabled={isSaving || uploadingSection !== null}
             />
           </View>
-          <SavedEditAction />
+          <SavedEditAction
+            onPress={handleSaveForLater}
+            title={isSaving ? "Saving..." : "Save for Later"}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>

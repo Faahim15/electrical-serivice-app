@@ -3,7 +3,14 @@ import {
   ReviewSection,
   ServiceCallReviewForm,
 } from "@/src/components/common";
+import AccessoryBuildingReviewForm from "@/src/components/common/AccessoryBuildingReviewForm";
+import DockPowerReviewForm from "@/src/components/common/DockPowerReviewForm";
+import ElectricalInspectionReviewForm from "@/src/components/common/ElectricalInspectionReviewForm";
+import GeneratorReviewForm from "@/src/components/common/GeneratorReviewForm";
+import HotTubReviewForm from "@/src/components/common/HotTubReviewForm";
+import NewConstructionReviewForm from "@/src/components/common/NewConstructionReviewForm";
 import PanelUpgradeReviewForm from "@/src/components/common/PanelUpgradeReviewForm";
+import RemodelingReviewForm from "@/src/components/common/RemodelingReviewForm";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
@@ -27,6 +34,7 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+
 export default function ReviewRequest() {
   const dispatch = useDispatch();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -168,10 +176,82 @@ export default function ReviewRequest() {
             />
           )}
 
+          {/* Remodeling */}
+          {categoryData?.categoryId === "4" && categoryData.details && (
+            <RemodelingReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Accessory Building / Shed Power */}
+          {categoryData?.categoryId === "5" && categoryData.details && (
+            <AccessoryBuildingReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Hot Tub Installation */}
+          {categoryData?.categoryId === "6" && categoryData.details && (
+            <HotTubReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Dock Power */}
+          {categoryData?.categoryId === "7" && categoryData.details && (
+            <DockPowerReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {categoryData?.categoryId === "8" && categoryData.details && (
+            <ElectricalInspectionReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Generator Installation */}
+          {categoryData?.categoryId === "9" && categoryData.details && (
+            <GeneratorReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {categoryData?.categoryId === "10" && categoryData.details && (
+            <NewConstructionReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
           {/* TODO: Add review forms for remaining categories:
-            categoryId === "4"  → Remodeling
-            categoryId === "5"  → Accessory Building / Shed Power
-            categoryId === "6"  → Hot Tub Installation
             categoryId === "7"  → Dock Power
             categoryId === "8"  → Electrical Inspection
             categoryId === "9"  → Generator Installation

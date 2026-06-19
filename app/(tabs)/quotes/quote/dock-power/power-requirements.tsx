@@ -1,4 +1,3 @@
-// src/app/quote/dock-power/power-requirements.tsx
 import AuthHeading from "@/src/components/auth/AuthHeading";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
@@ -8,12 +7,19 @@ import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
+import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { updateDockPowerDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
-import { router } from "expo-router";
-import React from "react";
+import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner-native";
+
+const CURRENT_STEP = 5;
+const TOTAL_STEPS = 10;
 
 const SERVICE_TYPES = ["New service", "Sub-panel", "1-2 dedicated circuits"];
 const NEW_SERVICE_SIZES = [
@@ -46,51 +52,80 @@ const PANEL_LOCATIONS = [
   "Other (please specify)",
 ];
 
+// ─── Helper to convert payload to FormData ──────────────────────────────────
+const createFormData = (payload: Record<string, any>) => {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(payload));
+  return formData;
+};
+
 export default function PowerRequirements() {
   const dispatch = useDispatch();
 
-  const serviceType = useSelector((state: RootState) => {
+  const { serviceCallId, serviceType: serviceTypeParam } =
+    useLocalSearchParams<{
+      serviceCallId?: string;
+      serviceType?: string;
+    }>();
+
+  const serviceType = serviceTypeParam || "Dock Power";
+  const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
+
+  const { createDraft, updateDraft, isSaving } = useDraftSave();
+  const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+  const draft = draftData as DockPowerRecord | undefined;
+
+  const { fullName, email, phone, preferredContact } = useSelector(
+    (state: RootState) => state.serviceForm.contactDetails,
+  );
+  const { streetAddress, apartment, city, state, zipCode } = useSelector(
+    (state: RootState) => state.serviceForm.serviceAddress,
+  );
+  const { propertyType, ownershipStatus, timeline } = useSelector(
+    (state: RootState) => state.serviceForm.projectBasics,
+  );
+
+  const serviceType_ = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.serviceType;
-    return "" as const;
+    return "";
   });
 
   const newServiceSize = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.newServiceSize;
-    return "" as const;
+    return "";
   });
 
   const subPanelSize = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.subPanelSize;
-    return "" as const;
+    return "";
   });
 
   const circuitCount = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.circuitCount;
-    return "" as const;
+    return "";
   });
 
   const ampRating = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details) return data.details.ampRating;
-    return "" as const;
+    return "";
   });
 
   const panelLocation = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.panelLocation;
-    return "" as const;
+    return "";
   });
 
-  // selectors add করো
   const panelLocationOther = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
@@ -112,10 +147,71 @@ export default function PowerRequirements() {
     return "";
   });
 
-  const isNewService = serviceType === "New service";
-  const isSubPanel = serviceType === "Sub-panel";
-  const isDedicatedCircuits = serviceType === "1-2 dedicated circuits";
+  const isNewService = serviceType_ === "New service";
+  const isSubPanel = serviceType_ === "Sub-panel";
+  const isDedicatedCircuits = serviceType_ === "1-2 dedicated circuits";
   const showPanelSection = isNewService || isSubPanel || isDedicatedCircuits;
+
+  // ─── Prefill from draft ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!draft) return;
+    if (draft.electricalServiceType) {
+      dispatch(
+        updateDockPowerDetails({
+          serviceType: draft.electricalServiceType as any,
+        }),
+      );
+    }
+    if (draft.subPanelSize) {
+      dispatch(
+        updateDockPowerDetails({ subPanelSize: draft.subPanelSize as any }),
+      );
+    }
+    if (draft.panelLocation) {
+      dispatch(
+        updateDockPowerDetails({ panelLocation: draft.panelLocation as any }),
+      );
+    }
+  }, [draft]);
+
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const payload = {
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      electricalServiceType: serviceType_ || "",
+      subPanelSize: subPanelSize || "",
+      panelLocation: panelLocation || "",
+      status: "draft" as const,
+      completionPercentage,
+    };
+
+    try {
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
+      } else {
+        await createDraft(
+          serviceType,
+          createFormData({ serviceType, ...payload }),
+        );
+      }
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch {
+      toast.error("Failed to save draft. Please try again.");
+    }
+  };
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -123,21 +219,31 @@ export default function PowerRequirements() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/quotes/quote/dock-power/dock-basics",
+              params: { serviceCallId, serviceType },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <StepProgressBar currentStep={5} totalSteps={10} />
-          <CategoryTag title="Dock Power" />
+          <StepProgressBar
+            currentStep={CURRENT_STEP}
+            totalSteps={TOTAL_STEPS}
+          />
+          <CategoryTag title={serviceType} />
 
           <AuthHeading title="Power requirements" subtitle="" />
 
           <OptionGrid
             label="Will you need a new service (panel and meter), sub-panel, or 1-2 dedicated circuits to power the Dock power?"
             options={SERVICE_TYPES}
-            selected={serviceType}
+            selected={serviceType_}
             onSelect={(val) =>
               dispatch(
                 updateDockPowerDetails({
@@ -206,7 +312,6 @@ export default function PowerRequirements() {
             </>
           )}
 
-          {/* 1-2 dedicated circuits */}
           {isDedicatedCircuits && (
             <>
               <OptionGrid
@@ -230,8 +335,6 @@ export default function PowerRequirements() {
             </>
           )}
 
-          {/* Panel location + photo — সব service type এ */}
-          {/* Panel location */}
           {showPanelSection && (
             <>
               <OptionGrid
@@ -263,10 +366,17 @@ export default function PowerRequirements() {
           <GradientButton
             label="Continue"
             onPress={() =>
-              router.push("/(tabs)/quotes/quote/dock-power/route-details")
+              router.push({
+                pathname: "/(tabs)/quotes/quote/dock-power/route-details",
+                params: { serviceCallId, serviceType },
+              })
             }
+            disabled={isSaving}
           />
-          <SavedEditAction />
+          <SavedEditAction
+            onPress={handleSaveForLater}
+            title={isSaving ? "Saving..." : "Save for Later"}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>
