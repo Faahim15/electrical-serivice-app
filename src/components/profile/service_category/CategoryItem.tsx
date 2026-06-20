@@ -1,5 +1,4 @@
 import { setSelectedRouteCategory } from "@/src/redux/slices/categoryRouteSlice";
-import { setSelectedRouteOtherCategory } from "@/src/redux/slices/otherRouteSlice";
 import { ServiceCategory } from "@/src/types/tabs.home.types";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -17,23 +16,26 @@ const CategoryItem = ({
   trailingIcon?: React.ReactNode;
 }) => {
   const dispatch = useDispatch();
-  const handlePress = () => {
-    dispatch(setSelectedRouteCategory(item));
 
-    if (Number(item.id) < 11) {
-      router.push("/(tabs)/quotes/quote/service-details");
-    } else if (Number(item.id) === 11) {
+  const handlePress = () => {
+    const categoryId = Number(item.id);
+
+    // ─── Solar Installation (id: 11) - Single screen, no Redux slice ────────
+    if (categoryId === 11) {
       router.push("/(tabs)/quotes/quote/other/sollar-installation");
-    } else {
-      dispatch(setSelectedRouteOtherCategory(item));
-      router.push("/(tabs)/quotes/quote/other/other-start");
+    }
+    // ─── All other categories (1-10, 12-19) ──────────────────────────────────
+    else {
+      // Set the category in Redux for the service-details page
+      dispatch(setSelectedRouteCategory(item));
+      router.push("/(tabs)/quotes/quote/service-details");
     }
   };
 
   return (
     <Pressable
       onPress={handlePress}
-      className="flex-row border border-green-50 items-center bg-white rounded-2xl  mb-3 px-4 py-4"
+      className="flex-row border border-green-50 items-center bg-white rounded-2xl mb-3 px-4 py-4"
       style={{
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },

@@ -448,6 +448,191 @@ export interface NewConstructionDetails {
 }
 
 // ============================================
+// id: "11" - Home Surge Protection
+// ============================================
+export interface SurgeProtectionDetails {
+  panelPhotos: string[];
+  additionalNotes: string;
+}
+
+// ============================================
+// id: "12" - Starlink Installation
+// ============================================
+export type StarlinkDishLocation = "roof" | "ground" | "wall" | "";
+export type StarlinkMounting = "Yes" | "No" | "";
+
+export interface StarlinkDetails {
+  haveStarlinkEquipment: StarlinkMounting;
+  haveMountingEquipment: StarlinkMounting;
+  dishLocation: StarlinkDishLocation;
+  whenHaveEquipment: string; // ← Add this field
+  roomOfRouterIn: string; // ← Add this field
+  roomCondition: string; // ← Add this field
+  areaOfInstallationPhotos: string[];
+  photosOfRoomForRouter: string[];
+  additionalNotes: string;
+}
+
+// ============================================
+// id: "13" - Dedicated Circuit
+// ============================================
+export type CircuitType =
+  | "20 amp"
+  | "30 amp"
+  | "40 amp"
+  | "50 amp"
+  | "60 amp"
+  | "";
+export type CircuitLocation =
+  | "Garage"
+  | "Basement"
+  | "Kitchen"
+  | "Outdoor"
+  | "Other"
+  | "";
+
+export interface DedicatedCircuitDetails {
+  circuitType: CircuitType;
+  circuitLocation: CircuitLocation;
+  numberOfCircuits: string;
+  intendedUse: string;
+  panelPhotos: string[];
+  additionalNotes: string;
+  locationOther: string;
+
+  // ─── New fields for dedicated circuit ──────────────────────────────────────
+  whyNeedDedicatedCircuit: string;
+  whyNeedDedicatedCircuitOther: string; // ← Add this
+  electricalPanelLocation: string;
+  electricalPanelLocationOther: string; // ← Add this
+  whereWillDedicatedCircuitInstalled: string;
+  aboveBelowArea: string;
+  distanceElectricalPanelToInstallationArea: string;
+  distanceElectricalPanelToInstallationAreaOther: string; // ← Add this
+  ampsNeeded: string;
+  voltsNeeded: string;
+  NEMAConfiguration: string;
+  photosOfElectricalMeter: string[];
+  photosOfInstallationLocation: string[];
+}
+
+// ============================================
+// id: "14" - Exhaust Fan
+// ============================================
+export type FanType = "Bathroom" | "Kitchen" | "Attic" | "Garage" | "";
+export type FanInstallationType = "Replacement" | "New Installation" | "";
+export type AtticFanType = "Roof fan" | "Gable (wall) fan" | "";
+export interface ExhaustFanDetails {
+  fanType: FanType;
+  installationType: FanInstallationType;
+  existingFan: "Yes" | "No" | "";
+  fanLocation: string;
+  panelPhotos: string[];
+  additionalNotes: string;
+  // ─── New fields ──────────────────────────────────────────────────────────────
+  atticFanType: AtticFanType;
+  stories: string;
+  panelLocation: string;
+  photosOfInstallationArea: string[]; // ← Add this
+}
+
+// ============================================
+// id: "15" - Outlets
+// ============================================
+export type OutletType = "Standard" | "GFCI" | "USB" | "Smart" | "";
+export type OutletLocation = "Indoor" | "Outdoor" | "Garage" | "Basement" | "";
+export type OutletIntendedUse =
+  | "General"
+  | "Freezer"
+  | "Tools/Equipment"
+  | "Appliance"
+  | "";
+
+export interface OutletsDetails {
+  numberOfOutlets: string;
+  outletType: OutletType;
+  outletLocation: OutletLocation;
+  intendedUse: OutletIntendedUse;
+  isDedicatedCircuit: "Yes" | "No" | "";
+  panelPhotos: string[];
+  additionalNotes: string;
+}
+
+// ============================================
+// id: "16" - Switches
+// ============================================
+export type SwitchType =
+  | "Standard"
+  | "Dim"
+  | "Motion"
+  | "Smart"
+  | "3-Way"
+  | "4-Way"
+  | "";
+export type SwitchLocation = "Indoor" | "Outdoor" | "Garage" | "Basement" | "";
+
+export interface SwitchesDetails {
+  numberOfSwitches: string;
+  switchType: SwitchType;
+  switchLocation: SwitchLocation;
+  existingWiring: "Yes" | "No" | "";
+  panelPhotos: string[];
+  additionalNotes: string;
+}
+
+// ============================================
+// id: "17" - Lighting
+// ============================================
+export type LightingType =
+  | "LED"
+  | "Fluorescent"
+  | "Incandescent"
+  | "Smart"
+  | "";
+export type LightingLocation =
+  | "Indoor"
+  | "Outdoor"
+  | "Garage"
+  | "Basement"
+  | "";
+
+export interface LightingDetails {
+  numberOfFixtures: string;
+  lightingType: LightingType;
+  lightingLocation: LightingLocation;
+  existingWiring: "Yes" | "No" | "";
+  panelPhotos: string[];
+  additionalNotes: string;
+}
+
+// ============================================
+// id: "18" - Ceiling Fan
+// ============================================
+export type FanSize =
+  | "30-36 inch"
+  | "42-48 inch"
+  | "52-56 inch"
+  | "60+ inch"
+  | "";
+export type FanLocation =
+  | "Living Room"
+  | "Bedroom"
+  | "Kitchen"
+  | "Outdoor"
+  | "Other"
+  | "";
+
+export interface CeilingFanDetails {
+  fanSize: FanSize;
+  fanLocation: FanLocation;
+  hasLightKit: "Yes" | "No" | "";
+  existingWiring: "Yes" | "No" | "";
+  panelPhotos: string[];
+  additionalNotes: string;
+  locationOther: string;
+}
+
+// ============================================
 // CATEGORY DATA CONTAINERS
 // ============================================
 export interface CategoryData_1 {
@@ -494,7 +679,41 @@ export interface CategoryData_10 {
   categoryId: "10";
   details: NewConstructionDetails;
 }
-
+// ============================================
+// CATEGORY DATA CONTAINERS - New
+// ============================================
+export interface CategoryData_11 {
+  categoryId: "11";
+  details: SurgeProtectionDetails;
+}
+export interface CategoryData_12 {
+  categoryId: "12";
+  details: StarlinkDetails;
+}
+export interface CategoryData_13 {
+  categoryId: "13";
+  details: DedicatedCircuitDetails;
+}
+export interface CategoryData_14 {
+  categoryId: "14";
+  details: ExhaustFanDetails;
+}
+export interface CategoryData_15 {
+  categoryId: "15";
+  details: OutletsDetails;
+}
+export interface CategoryData_16 {
+  categoryId: "16";
+  details: SwitchesDetails;
+}
+export interface CategoryData_17 {
+  categoryId: "17";
+  details: LightingDetails;
+}
+export interface CategoryData_18 {
+  categoryId: "18";
+  details: CeilingFanDetails;
+}
 export interface CategoryData_Other {
   categoryId: string;
   details: null;
@@ -510,4 +729,12 @@ export type CategorySpecificData =
   | CategoryData_8
   | CategoryData_9
   | CategoryData_10
+  | CategoryData_11
+  | CategoryData_12
+  | CategoryData_13
+  | CategoryData_14
+  | CategoryData_15
+  | CategoryData_16
+  | CategoryData_17
+  | CategoryData_18
   | CategoryData_Other;

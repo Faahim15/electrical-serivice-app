@@ -156,16 +156,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     iconBg: "#FEF9E8",
     iconColor: "#F5C623",
   },
-  // {
-  //   id: "12",
-  //   title: "Other Custom Service",
-  //   description: "Custom electrical help\nFor unique projects",
-  //   iconName: "document-outline",
-  //   iconBg: "#F0EDFB",
-  //   iconColor: "#7B61FF",
-  // },
-
-  // other section Rasel Islam
+  // ─── New Categories (IDs 12-19) ──────────────────────────────────────────────
   {
     id: "12",
     title: "Whole Home Surge Protection",
@@ -176,15 +167,6 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "13",
-    title: "Starlink Installation",
-    description: "Satellite internet setup",
-    iconName: "wifi-outline",
-    iconBg: "#E8F3FD",
-    iconColor: "#4A90D9",
-  },
-
-  {
-    id: "14",
     title: "Dedicated Circuit",
     description: "For RV and equipment/tools",
     iconName: "hardware-chip-outline",
@@ -192,12 +174,20 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     iconColor: "#7B61FF",
   },
   {
-    id: "15",
+    id: "14",
     title: "Exhaust Fan",
     description: "Kitchen, bathroom, or attic fans",
     iconName: "partly-sunny-outline",
     iconBg: "#FEF3E8",
     iconColor: "#F5A623",
+  },
+  {
+    id: "15",
+    title: "Starlink Installation",
+    description: "Satellite internet setup",
+    iconName: "wifi-outline",
+    iconBg: "#E8F3FD",
+    iconColor: "#4A90D9",
   },
   {
     id: "16",

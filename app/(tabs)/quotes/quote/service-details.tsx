@@ -261,50 +261,215 @@ const SERVICE_DETAIL_DATA: Record<
       { id: "4", step: 4, label: "Review & submit" },
     ],
   },
-  "11": {
+
+  // ─── Whole Home Surge Protection (id: 12) ──────────────────────────────────
+  "12": {
     subtitle:
-      "Electrical support and wiring for residential and commercial solar installations.",
+      "Protect your home from damaging power surges with whole-home surge protection.",
     bestForItems: [
-      { id: "1", text: "Solar panel system wiring" },
-      { id: "2", text: "Inverter and battery hookup" },
-      { id: "3", text: "Net metering connection" },
-      { id: "4", text: "Panel upgrade for solar" },
+      { id: "1", text: "Whole-home surge devices" },
+      { id: "2", text: "Panel-based surge protection" },
+      { id: "3", text: "Extra protection for electronics and appliances" },
     ],
     provideItems: [
-      { id: "1", text: "Solar system size and brand" },
-      { id: "2", text: "Installer or project contact" },
-      { id: "3", text: "Photos of roof and panel" },
+      { id: "1", text: "Panel photos" },
+      { id: "2", text: "Basic project notes" },
     ],
-    estimatedTime: "Takes about 4–5 minutes",
-    estimatedTimeSubtitle: "System details help us prepare",
+    estimatedTime: "Takes about 1–2 minutes",
+    estimatedTimeSubtitle: "Simple and quick protection request",
     steps: [
       { id: "1", step: 1, label: "Contact details" },
-      { id: "2", step: 2, label: "Solar system info" },
-      { id: "3", step: 3, label: "Photo upload" },
+      { id: "2", step: 2, label: "Upload panel photos" },
+      { id: "3", step: 3, label: "Add notes" },
       { id: "4", step: 4, label: "Review & submit" },
     ],
   },
-  "12": {
+
+  // ─── Starlink Installation (id: 13) ────────────────────────────────────────
+  "13": {
     subtitle:
-      "Custom electrical solutions for unique or specialized project needs.",
+      "Get help planning electrical setup and installation support for your Starlink equipment.",
     bestForItems: [
-      { id: "1", text: "Unique or unusual requests" },
-      { id: "2", text: "Special equipment wiring" },
-      { id: "3", text: "Non-standard installations" },
-      { id: "4", text: "Anything not listed above" },
+      { id: "1", text: "Starlink dish setup" },
+      { id: "2", text: "Router placement planning" },
+      { id: "3", text: "Mounting preparation" },
+      { id: "4", text: "Room and route planning" },
     ],
     provideItems: [
-      { id: "1", text: "Description of the project" },
-      { id: "2", text: "Any relevant photos" },
-      { id: "3", text: "Preferred timeline" },
+      { id: "1", text: "Equipment availability" },
+      { id: "2", text: "Dish install location" },
+      { id: "3", text: "Router room details" },
+      { id: "4", text: "Room and mounting photos" },
     ],
-    estimatedTime: "Takes about 3–5 minutes",
-    estimatedTimeSubtitle: "More detail helps us assist you",
+    estimatedTime: "Takes about 3–4 minutes",
+    estimatedTimeSubtitle: "Helpful for install preparation",
     steps: [
       { id: "1", step: 1, label: "Contact details" },
-      { id: "2", step: 2, label: "Project description" },
-      { id: "3", step: 3, label: "Photo upload" },
-      { id: "4", step: 4, label: "Review & submit" },
+      { id: "2", step: 2, label: "Equipment details" },
+      { id: "3", step: 3, label: "Dish location" },
+      { id: "4", step: 4, label: "Router room info" },
+      { id: "5", step: 5, label: "Review & submit" },
+    ],
+  },
+
+  // ─── Dedicated Circuit (id: 14) ────────────────────────────────────────────
+  "14": {
+    subtitle:
+      "Request a dedicated circuit quote for equipment, appliances, or specialty power needs.",
+    bestForItems: [
+      { id: "1", text: "Freezers" },
+      { id: "2", text: "RV connections" },
+      { id: "3", text: "Tools or equipment" },
+      { id: "4", text: "Special dedicated outlets or loads" },
+    ],
+    provideItems: [
+      { id: "1", text: "Intended use" },
+      { id: "2", text: "Install location" },
+      { id: "3", text: "Panel location" },
+      { id: "4", text: "Path and panel photos" },
+    ],
+    estimatedTime: "Takes about 3–5 minutes",
+    estimatedTimeSubtitle: "Best for custom dedicated circuit requests",
+    steps: [
+      { id: "1", step: 1, label: "Contact details" },
+      { id: "2", step: 2, label: "Circuit purpose" },
+      { id: "3", step: 3, label: "Install location" },
+      { id: "4", step: 4, label: "Electrical specs" },
+      { id: "5", step: 5, label: "Review & submit" },
+    ],
+  },
+
+  // ─── Exhaust Fan (id: 15) ──────────────────────────────────────────────────
+  "15": {
+    subtitle:
+      "Request a quote for attic, kitchen, or bathroom exhaust fan installation or replacement.",
+    bestForItems: [
+      { id: "1", text: "Bathroom fan replacement" },
+      { id: "2", text: "Kitchen exhaust upgrades" },
+      { id: "3", text: "Attic ventilation fans" },
+      { id: "4", text: "Specialty fan controls" },
+    ],
+    provideItems: [
+      { id: "1", text: "Fan location" },
+      { id: "2", text: "New or replacement info" },
+      { id: "3", text: "Duct or vent details if known" },
+      { id: "4", text: "Panel photo if required" },
+    ],
+    estimatedTime: "Takes about 3–5 minutes",
+    estimatedTimeSubtitle: "Quick fan installation request",
+    steps: [
+      { id: "1", step: 1, label: "Contact details" },
+      { id: "2", step: 2, label: "Fan type & location" },
+      { id: "3", step: 3, label: "Project details" },
+      { id: "4", step: 4, label: "Panel info" },
+      { id: "5", step: 5, label: "Review & submit" },
+    ],
+  },
+
+  // ─── Outlets (id: 16) ──────────────────────────────────────────────────────
+  "16": {
+    subtitle: "Request a quote for installing or replacing electrical outlets.",
+    bestForItems: [
+      { id: "1", text: "New outlet installation" },
+      { id: "2", text: "Replacing old outlets" },
+      { id: "3", text: "Specialty outlet types" },
+      { id: "4", text: "GFI or surge-protected outlets" },
+    ],
+    provideItems: [
+      { id: "1", text: "Intended use" },
+      { id: "2", text: "New or replacement details" },
+      { id: "3", text: "Outlet type" },
+      { id: "4", text: "Photos if applicable" },
+    ],
+    estimatedTime: "Takes about 2–4 minutes",
+    estimatedTimeSubtitle: "Simple and flexible outlet request",
+    steps: [
+      { id: "1", step: 1, label: "Contact details" },
+      { id: "2", step: 2, label: "Outlet purpose" },
+      { id: "3", step: 3, label: "Install type" },
+      { id: "4", step: 4, label: "Electrical details" },
+      { id: "5", step: 5, label: "Review & submit" },
+    ],
+  },
+
+  // ─── Switches (id: 17) ─────────────────────────────────────────────────────
+  "17": {
+    subtitle:
+      "Request a quote for installing or replacing switches in your home or project area.",
+    bestForItems: [
+      { id: "1", text: "New switch installs" },
+      { id: "2", text: "Replacing old switches" },
+      { id: "3", text: "Smart or dimmer switches" },
+      { id: "4", text: "Motion and timer controls" },
+    ],
+    provideItems: [
+      { id: "1", text: "Switch quantity" },
+      { id: "2", text: "New or replacement details" },
+      { id: "3", text: "Current switch photos if needed" },
+      { id: "4", text: "Preferred switch type" },
+    ],
+    estimatedTime: "Takes about 2–3 minutes",
+    estimatedTimeSubtitle: "Quick switch upgrade request",
+    steps: [
+      { id: "1", step: 1, label: "Contact details" },
+      { id: "2", step: 2, label: "Quantity & type" },
+      { id: "3", step: 3, label: "Upload photos" },
+      { id: "4", step: 4, label: "Project timing" },
+      { id: "5", step: 5, label: "Review & submit" },
+    ],
+  },
+
+  // ─── Lighting (id: 18) ─────────────────────────────────────────────────────
+  "18": {
+    subtitle:
+      "Request a quote for interior or exterior lighting installation or replacement.",
+    bestForItems: [
+      { id: "1", text: "Interior fixtures" },
+      { id: "2", text: "Exterior lights" },
+      { id: "3", text: "Flood lights" },
+      { id: "4", text: "Coach lights, driveway lights, and more" },
+    ],
+    provideItems: [
+      { id: "1", text: "Lighting type" },
+      { id: "2", text: "Fixture details" },
+      { id: "3", text: "Photos of area or existing lights" },
+      { id: "4", text: "Switch preferences" },
+    ],
+    estimatedTime: "Takes about 3–5 minutes",
+    estimatedTimeSubtitle: "Covers both indoor and outdoor lighting",
+    steps: [
+      { id: "1", step: 1, label: "Contact details" },
+      { id: "2", step: 2, label: "Lighting category" },
+      { id: "3", step: 3, label: "Fixture details" },
+      { id: "4", step: 4, label: "Install type" },
+      { id: "5", step: 5, label: "Switch setup" },
+      { id: "6", step: 6, label: "Review & submit" },
+    ],
+  },
+
+  // ─── Ceiling Fan (id: 19) ──────────────────────────────────────────────────
+  "19": {
+    subtitle: "Request a quote for ceiling fan installation or replacement.",
+    bestForItems: [
+      { id: "1", text: "Replacing old ceiling fans" },
+      { id: "2", text: "New fan installation" },
+      { id: "3", text: "Smart or upgraded controls" },
+      { id: "4", text: "Rooms with existing or new switch setups" },
+    ],
+    provideItems: [
+      { id: "1", text: "New or replacement details" },
+      { id: "2", text: "Ceiling height" },
+      { id: "3", text: "Fan model or preferences" },
+      { id: "4", text: "Photos of current fan if applicable" },
+    ],
+    estimatedTime: "Takes about 3–4 minutes",
+    estimatedTimeSubtitle: "Easy ceiling fan quote process",
+    steps: [
+      { id: "1", step: 1, label: "Contact details" },
+      { id: "2", step: 2, label: "Install type" },
+      { id: "3", step: 3, label: "Fan details" },
+      { id: "4", step: 4, label: "Switch setup" },
+      { id: "5", step: 5, label: "Review & submit" },
     ],
   },
 };
@@ -314,11 +479,20 @@ export default function ServiceDetails() {
     (state: RootState) => state.categoryRoute.selectedCategory,
   );
 
+  // If Solar Installation (id: 11), redirect to its own screen
+  if (selectedCategory?.id === "11") {
+    // This should not happen as CategoryItem redirects directly
+    // but just in case, redirect
+    return null;
+  }
+
   const detail = selectedCategory
     ? SERVICE_DETAIL_DATA[selectedCategory.id]
     : null;
 
   if (!selectedCategory || !detail) return null;
+
+  console.log(selectedCategory.title);
 
   return (
     <View style={{ flex: 1 }}>

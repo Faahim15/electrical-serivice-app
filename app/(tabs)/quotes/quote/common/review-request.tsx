@@ -4,14 +4,18 @@ import {
   ServiceCallReviewForm,
 } from "@/src/components/common";
 import AccessoryBuildingReviewForm from "@/src/components/common/AccessoryBuildingReviewForm";
+import DedicatedCircuitReviewForm from "@/src/components/common/DedicatedCircuitReviewForm";
 import DockPowerReviewForm from "@/src/components/common/DockPowerReviewForm";
 import ElectricalInspectionReviewForm from "@/src/components/common/ElectricalInspectionReviewForm";
+import ExhaustFanReviewForm from "@/src/components/common/ExhaustedFanReviewForm";
 import GeneratorReviewForm from "@/src/components/common/GeneratorReviewForm";
 import HotTubReviewForm from "@/src/components/common/HotTubReviewForm";
 import NewConstructionReviewForm from "@/src/components/common/NewConstructionReviewForm";
 import PanelUpgradeReviewForm from "@/src/components/common/PanelUpgradeReviewForm";
 import RemodelingReviewForm from "@/src/components/common/RemodelingReviewForm";
 import SavedEditAction from "@/src/components/common/SavedButton";
+import StarlinkReviewForm from "@/src/components/common/StarLinkReviewForm";
+import SurgeProtectionReviewForm from "@/src/components/common/SurgeProtectionReviewForm";
 import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
@@ -111,6 +115,8 @@ export default function ReviewRequest() {
     );
   }
 
+  console.log(categoryData);
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <BackButton />
@@ -143,7 +149,7 @@ export default function ReviewRequest() {
 
           {/* ─── Category Specific Review ─────────────────────────────────────── */}
 
-          {/* Service Call */}
+          {/* Service Call - ID 1 */}
           {categoryData?.categoryId === "1" && categoryData.details && (
             <ServiceCallReviewForm
               draftData={draftData}
@@ -154,7 +160,7 @@ export default function ReviewRequest() {
             />
           )}
 
-          {/* EV Charger Installation */}
+          {/* EV Charger - ID 2 */}
           {categoryData?.categoryId === "2" && categoryData.details && (
             <EVChargerReviewForm
               draftData={draftData}
@@ -165,7 +171,7 @@ export default function ReviewRequest() {
             />
           )}
 
-          {/* Panel Upgrade / Replacement */}
+          {/* Panel Upgrade - ID 3 */}
           {categoryData?.categoryId === "3" && categoryData.details && (
             <PanelUpgradeReviewForm
               draftData={draftData}
@@ -176,7 +182,7 @@ export default function ReviewRequest() {
             />
           )}
 
-          {/* Remodeling */}
+          {/* Remodeling - ID 4 */}
           {categoryData?.categoryId === "4" && categoryData.details && (
             <RemodelingReviewForm
               draftData={draftData}
@@ -187,7 +193,7 @@ export default function ReviewRequest() {
             />
           )}
 
-          {/* Accessory Building / Shed Power */}
+          {/* Accessory Building - ID 5 */}
           {categoryData?.categoryId === "5" && categoryData.details && (
             <AccessoryBuildingReviewForm
               draftData={draftData}
@@ -198,7 +204,7 @@ export default function ReviewRequest() {
             />
           )}
 
-          {/* Hot Tub Installation */}
+          {/* Hot Tub - ID 6 */}
           {categoryData?.categoryId === "6" && categoryData.details && (
             <HotTubReviewForm
               draftData={draftData}
@@ -209,7 +215,7 @@ export default function ReviewRequest() {
             />
           )}
 
-          {/* Dock Power */}
+          {/* Dock Power - ID 7 */}
           {categoryData?.categoryId === "7" && categoryData.details && (
             <DockPowerReviewForm
               draftData={draftData}
@@ -220,6 +226,7 @@ export default function ReviewRequest() {
             />
           )}
 
+          {/* Electrical Inspection - ID 8 */}
           {categoryData?.categoryId === "8" && categoryData.details && (
             <ElectricalInspectionReviewForm
               draftData={draftData}
@@ -230,7 +237,7 @@ export default function ReviewRequest() {
             />
           )}
 
-          {/* Generator Installation */}
+          {/* Generator - ID 9 */}
           {categoryData?.categoryId === "9" && categoryData.details && (
             <GeneratorReviewForm
               draftData={draftData}
@@ -241,6 +248,7 @@ export default function ReviewRequest() {
             />
           )}
 
+          {/* New Construction - ID 10 */}
           {categoryData?.categoryId === "10" && categoryData.details && (
             <NewConstructionReviewForm
               draftData={draftData}
@@ -251,13 +259,51 @@ export default function ReviewRequest() {
             />
           )}
 
-          {/* TODO: Add review forms for remaining categories:
-            categoryId === "7"  → Dock Power
-            categoryId === "8"  → Electrical Inspection
-            categoryId === "9"  → Generator Installation
-            categoryId === "10" → New Construction
-          */}
+          {/* Whole Home Surge Protection - ID 11 */}
+          {categoryData?.categoryId === "11" && categoryData.details && (
+            <SurgeProtectionReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
 
+          {/* Starlink Installation - ID 12 */}
+          {categoryData?.categoryId === "12" && categoryData.details && (
+            <StarlinkReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Dedicated Circuit - ID 13 */}
+          {categoryData?.categoryId === "13" && categoryData.details && (
+            <DedicatedCircuitReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Exhaust Fan - ID 14 */}
+          {categoryData?.categoryId === "14" && categoryData.details && (
+            <ExhaustFanReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* ─── Edit Button ──────────────────────────────────────────────────── */}
           <SavedEditAction title="Edit" onPress={() => router.back()} />
         </ScrollView>
       </KeyboardAvoidingView>
