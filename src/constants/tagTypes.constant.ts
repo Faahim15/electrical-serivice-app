@@ -14,6 +14,11 @@ const TagTypes = {
   HomeSurgeProtection: "HomeSurgeProtection",
   Starlink: "Starlink",
   DedicatedCircuit: "DedicatedCircuit",
+  Lighting: "Lighting",
+  ExhaustFan: "ExhaustFan",
+  Outlet: "Outlet",
+  Switches: "Switches",
+  CeilingFan: "CeilingFan",
 } as const;
 
 export default TagTypes;
