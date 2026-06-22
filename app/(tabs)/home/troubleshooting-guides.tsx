@@ -12,7 +12,6 @@ const Troubleshootingguides = () => {
   const category = useSelector(
     (state: RootState) => state.troubleshootRoute.selectedCategory,
   );
-  // console.log("Selected Category in Guides:", category?.title);
 
   const steps = category?.steps ?? [];
   const safetyWarning = category?.safetyWarning ?? "";

@@ -14,6 +14,19 @@ import { useGetPanelUpgradeByIdQuery } from "../redux/api-slices/quote/quote-api
 import { useGetRemodelingByIdQuery } from "../redux/api-slices/quote/remodeling-api";
 import { useGetStarlinkByIdQuery } from "../redux/api-slices/quote/starLinkApi";
 
+// ─── New Imports ──────────────────────────────────────────────────────────────
+// import { useGetExhaustFanByIdQuery } from "@/src/redux/api-slices/quote/exhaustFanApi";
+// import { useGetOutletsByIdQuery } from "@/src/redux/api-slices/quote/outletsApi";
+// import { useGetSwitchesByIdQuery } from "@/src/redux/api-slices/quote/switchesApi";
+// import { useGetLightingByIdQuery } from "@/src/redux/api-slices/quote/lightingApi";
+// import { useGetCeilingFanByIdQuery } from "@/src/redux/api-slices/quote/ceilingFanApi";
+
+import { useGetCeilingFanByIdQuery } from "../redux/api-slices/quote/ceiling-fan-api";
+import { useGetExhaustFanByIdQuery } from "../redux/api-slices/quote/exhaust-fan-api";
+import { useGetLightingByIdQuery } from "../redux/api-slices/quote/lighting-api";
+import { useGetOutletByIdQuery } from "../redux/api-slices/quote/outlet-api";
+import { useGetSwitchesByIdQuery } from "../redux/api-slices/quote/switches-api";
+
 import { EvChargerInstallationResponse } from "@/src/types/evCharger.api.types";
 import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
@@ -28,6 +41,13 @@ import { PanelUpgradeRecord } from "@/src/types/quotes/panel.upgrader.api.types"
 import { RemodelingRecord } from "@/src/types/quotes/remodeling.api.types";
 import { StarlinkRecord } from "@/src/types/quotes/starlink.api.types";
 
+// ─── New Type Imports ─────────────────────────────────────────────────────────
+import { CeilingFanRecord } from "@/src/types/quotes/ceiling-fan.api.types";
+import { ExhaustFanRecord } from "@/src/types/quotes/exhaust-fan.api.types";
+import { LightingRecord } from "@/src/types/quotes/lighting.api.types";
+import { OutletRecord } from "@/src/types/quotes/outlet.api.types";
+import { SwitchesRecord } from "@/src/types/quotes/switches.api.types";
+
 export type DraftResponse =
   | ServiceCallResponse
   | EvChargerInstallationResponse
@@ -41,7 +61,12 @@ export type DraftResponse =
   | NewConstructionRecord
   | HomeSurgeProtectionRecord
   | StarlinkRecord
-  | DedicatedCircuitRecord;
+  | DedicatedCircuitRecord
+  | ExhaustFanRecord
+  | OutletRecord
+  | SwitchesRecord
+  | LightingRecord
+  | CeilingFanRecord;
 
 export const useDraftDetails = (id?: string, serviceType?: string) => {
   const isServiceCall = !id || serviceType === "Service Call" || !serviceType;
@@ -59,6 +84,18 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
   const isStarlink = !!id && serviceType === "Starlink Installation";
   const isDedicatedCircuit =
     !!id && serviceType === "Dedicated Circuit Installation";
+
+  // ─── New Flags ──────────────────────────────────────────────────────────────
+  const isExhaustFan = !!id && serviceType === "Exhaust Fan";
+  const isOutlets = !!id && serviceType === "Outlets";
+  const isSwitches =
+    !!id &&
+    (serviceType === "Switches" || serviceType === "Switches Installation");
+  const isLighting = !!id && serviceType === "Lighting";
+  const isCeilingFan =
+    !!id &&
+    (serviceType === "Ceiling Fan" ||
+      serviceType === "Ceiling Fan Installation");
 
   // ─── Queries ─────────────────────────────────────────────────────────────────
   const serviceCallResult = useGetServiceCallByIdQuery(id as string, {
@@ -105,6 +142,23 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
   });
   const dedicatedCircuitResult = useGetDedicatedCircuitByIdQuery(id as string, {
     skip: !id || !isDedicatedCircuit,
+  });
+
+  // ─── New Queries ─────────────────────────────────────────────────────────────
+  const exhaustFanResult = useGetExhaustFanByIdQuery(id as string, {
+    skip: !id || !isExhaustFan,
+  });
+  const outletsResult = useGetOutletByIdQuery(id as string, {
+    skip: !id || !isOutlets,
+  });
+  const switchesResult = useGetSwitchesByIdQuery(id as string, {
+    skip: !id || !isSwitches,
+  });
+  const lightingResult = useGetLightingByIdQuery(id as string, {
+    skip: !id || !isLighting,
+  });
+  const ceilingFanResult = useGetCeilingFanByIdQuery(id as string, {
+    skip: !id || !isCeilingFan,
   });
 
   // ─── Return matching result ───────────────────────────────────────────────────
@@ -188,6 +242,38 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
         | DedicatedCircuitRecord
         | undefined,
       isLoading: dedicatedCircuitResult.isLoading,
+    };
+  }
+
+  // ─── New Returns ─────────────────────────────────────────────────────────────
+  if (isExhaustFan) {
+    return {
+      data: exhaustFanResult.data?.data as ExhaustFanRecord | undefined,
+      isLoading: exhaustFanResult.isLoading,
+    };
+  }
+  if (isOutlets) {
+    return {
+      data: outletsResult.data?.data as OutletRecord | undefined,
+      isLoading: outletsResult.isLoading,
+    };
+  }
+  if (isSwitches) {
+    return {
+      data: switchesResult.data?.data as SwitchesRecord | undefined,
+      isLoading: switchesResult.isLoading,
+    };
+  }
+  if (isLighting) {
+    return {
+      data: lightingResult.data?.data as LightingRecord | undefined,
+      isLoading: lightingResult.isLoading,
+    };
+  }
+  if (isCeilingFan) {
+    return {
+      data: ceilingFanResult.data?.data as CeilingFanRecord | undefined,
+      isLoading: ceilingFanResult.isLoading,
     };
   }
 

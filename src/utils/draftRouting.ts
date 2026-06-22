@@ -249,6 +249,109 @@ export const getResumeRoute = (
     return "/(tabs)/quotes/quote/electric-system/system-details";
   }
 
+  // ─── Lighting ─────────────────────────────────────────────────────────────────
+  if (serviceType === "Lighting" || serviceType === "Lighting Installation") {
+    if (completionPercentage <= 17)
+      return "/(tabs)/quotes/quote/common/contact-details";
+    if (completionPercentage <= 33)
+      return "/(tabs)/quotes/quote/common/service-address";
+    if (completionPercentage <= 50)
+      return "/(tabs)/quotes/quote/common/project-basics";
+    if (completionPercentage <= 67)
+      return "/(tabs)/quotes/quote/lighting/lighting-type";
+    if (completionPercentage <= 83)
+      return "/(tabs)/quotes/quote/lighting/lighting-additional";
+
+    return "/(tabs)/quotes/quote/lighting/lighting-details";
+  }
+
+  // ─── Exhaust Fan ─────────────────────────────────────────────────────────────
+  if (serviceType === "Exhaust Fan") {
+    if (completionPercentage <= 12)
+      return "/(tabs)/quotes/quote/common/contact-details";
+    if (completionPercentage <= 25)
+      return "/(tabs)/quotes/quote/common/service-address";
+    if (completionPercentage <= 37)
+      return "/(tabs)/quotes/quote/common/project-basics";
+    if (completionPercentage <= 50)
+      return "/(tabs)/quotes/quote/exhaust-fan/fan-details";
+    if (completionPercentage <= 62)
+      return "/(tabs)/quotes/quote/exhaust-fan/fan-type";
+    if (completionPercentage <= 75)
+      return "/(tabs)/quotes/quote/exhaust-fan/fan-location";
+    if (completionPercentage <= 87)
+      return "/(tabs)/quotes/quote/exhaust-fan/fan-photos";
+    if (completionPercentage <= 100)
+      return "/(tabs)/quotes/quote/exhaust-fan/fan-additional";
+
+    return "/(tabs)/quotes/quote/exhaust-fan/fan-additional";
+  }
+
+  // ─── Outlets ─────────────────────────────────────────────────────────────────
+  if (serviceType === "Outlets") {
+    if (completionPercentage <= 12)
+      return "/(tabs)/quotes/quote/common/contact-details";
+    if (completionPercentage <= 25)
+      return "/(tabs)/quotes/quote/common/service-address";
+    if (completionPercentage <= 37)
+      return "/(tabs)/quotes/quote/common/project-basics";
+    if (completionPercentage <= 50)
+      return "/(tabs)/quotes/quote/outlets/outlet-details";
+    if (completionPercentage <= 62)
+      return "/(tabs)/quotes/quote/outlets/outlet-type";
+    if (completionPercentage <= 75)
+      return "/(tabs)/quotes/quote/outlets/outlet-location";
+    if (completionPercentage <= 87)
+      return "/(tabs)/quotes/quote/outlets/outlet-photos";
+    if (completionPercentage <= 100)
+      return "/(tabs)/quotes/quote/outlets/outlet-additional";
+
+    return "/(tabs)/quotes/quote/outlets/outlet-additional";
+  }
+
+  // ─── Switches ─────────────────────────────────────────────────────────────────
+  if (serviceType === "Switches" || serviceType === "Switches Installation") {
+    if (completionPercentage <= 12)
+      return "/(tabs)/quotes/quote/common/contact-details";
+    if (completionPercentage <= 25)
+      return "/(tabs)/quotes/quote/common/service-address";
+    if (completionPercentage <= 37)
+      return "/(tabs)/quotes/quote/common/project-basics";
+    if (completionPercentage <= 50)
+      return "/(tabs)/quotes/quote/switches/switch-details";
+    if (completionPercentage <= 62)
+      return "/(tabs)/quotes/quote/switches/switch-photos";
+    if (completionPercentage <= 75)
+      return "/(tabs)/quotes/quote/switches/switch-type";
+    if (completionPercentage <= 87)
+      return "/(tabs)/quotes/quote/switches/additional-info";
+
+    return "/(tabs)/quotes/quote/switches/additional-info";
+  }
+
+  // ─── Ceiling Fan ─────────────────────────────────────────────────────────────
+  if (
+    serviceType === "Ceiling Fan" ||
+    serviceType === "Ceiling Fan Installation"
+  ) {
+    if (completionPercentage <= 12)
+      return "/(tabs)/quotes/quote/common/contact-details";
+    if (completionPercentage <= 25)
+      return "/(tabs)/quotes/quote/common/service-address";
+    if (completionPercentage <= 37)
+      return "/(tabs)/quotes/quote/common/project-basics";
+    if (completionPercentage <= 50)
+      return "/(tabs)/quotes/quote/ceiling-fan/installation-type";
+    if (completionPercentage <= 62)
+      return "/(tabs)/quotes/quote/ceiling-fan/fan-details";
+    if (completionPercentage <= 75)
+      return "/(tabs)/quotes/quote/ceiling-fan/switch-details";
+    if (completionPercentage <= 87)
+      return "/(tabs)/quotes/quote/ceiling-fan/additional-info";
+
+    return "/(tabs)/quotes/quote/ceiling-fan/additional-info";
+  }
+
   // ─── Common steps — shared across all service types ───────────────────────────
   if (completionPercentage <= 13)
     return "/(tabs)/quotes/quote/common/contact-details";
@@ -271,47 +374,9 @@ export const getResumeRoute = (
     return "/(tabs)/quotes/quote/service-call/additional-notes";
   }
 
-  // ─── Starlink Installation ───────────────────────────────────────────────────
-  if (serviceType === "Starlink Installation") {
-    if (completionPercentage <= 14)
-      return "/(tabs)/quotes/quote/common/contact-details";
-    if (completionPercentage <= 29)
-      return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 43)
-      return "/(tabs)/quotes/quote/common/project-basics";
-    if (completionPercentage <= 57)
-      return "/(tabs)/quotes/quote/starlink/starlink-details";
-    if (completionPercentage <= 71)
-      return "/(tabs)/quotes/quote/starlink/starlink-location";
-    if (completionPercentage <= 86)
-      return "/(tabs)/quotes/quote/starlink/starlink-router";
-    if (completionPercentage <= 100)
-      return "/(tabs)/quotes/quote/starlink/starlink-additional";
+  // ─── Starlink Installation (duplicate removed - already handled above) ──────
 
-    return "/(tabs)/quotes/quote/starlink/starlink-additional";
-  }
-
-  // ─── Dedicated Circuit ──────────────────────────────────────────────────────
-  if (serviceType === "Dedicated Circuit") {
-    if (completionPercentage <= 12)
-      return "/(tabs)/quotes/quote/common/contact-details";
-    if (completionPercentage <= 25)
-      return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 37)
-      return "/(tabs)/quotes/quote/common/project-basics";
-    if (completionPercentage <= 50)
-      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-details";
-    if (completionPercentage <= 62)
-      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-location";
-    if (completionPercentage <= 75)
-      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-specs";
-    if (completionPercentage <= 87)
-      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-photos";
-    if (completionPercentage <= 100)
-      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-additional";
-
-    return "/(tabs)/quotes/quote/dedicated-circuit/circuit-additional";
-  }
+  // ─── Dedicated Circuit (duplicate removed - already handled above) ──────────
 
   return "/(tabs)/quotes/quote/common/project-basics";
 };

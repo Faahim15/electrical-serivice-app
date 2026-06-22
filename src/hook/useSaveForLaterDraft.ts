@@ -25,6 +25,13 @@ import { useUpdateStarlinkMutation } from "../redux/api-slices/quote/starLinkApi
 
 import { useUpdateDedicatedCircuitMutation } from "@/src/redux/api-slices/quote/dedicatedCircuitApi";
 
+// ─── New Imports ──────────────────────────────────────────────────────────────
+import { useUpdateCeilingFanMutation } from "../redux/api-slices/quote/ceiling-fan-api";
+import { useUpdateExhaustFanMutation } from "../redux/api-slices/quote/exhaust-fan-api";
+import { useUpdateLightingMutation } from "../redux/api-slices/quote/lighting-api";
+import { useUpdateOutletMutation } from "../redux/api-slices/quote/outlet-api";
+import { useUpdateSwitchesMutation } from "../redux/api-slices/quote/switches-api";
+
 import { UpdateServiceCallPayload } from "@/src/types/quotes.api.types";
 import { useState } from "react";
 import { toast } from "sonner-native";
@@ -46,6 +53,13 @@ export const useSaveForLaterDraft = (onSuccess?: () => void) => {
   const [updateHomeSurgeProtection] = useUpdateHomeSurgeProtectionMutation();
   const [updateStarlink] = useUpdateStarlinkMutation();
   const [updateDedicatedCircuit] = useUpdateDedicatedCircuitMutation();
+
+  // ─── New Mutations ──────────────────────────────────────────────────────────
+  const [updateExhaustFan] = useUpdateExhaustFanMutation();
+  const [updateOutlet] = useUpdateOutletMutation();
+  const [updateSwitches] = useUpdateSwitchesMutation();
+  const [updateLighting] = useUpdateLightingMutation();
+  const [updateCeilingFan] = useUpdateCeilingFanMutation();
 
   const saveForLater = async (
     id: string,
@@ -117,6 +131,39 @@ export const useSaveForLaterDraft = (onSuccess?: () => void) => {
           break;
         case "Dedicated Circuit Installation":
           await updateDedicatedCircuit({
+            recordId: id,
+            formData: body as any,
+          }).unwrap();
+          break;
+        // ─── New Cases ────────────────────────────────────────────────────────
+        case "Exhaust Fan":
+          await updateExhaustFan({
+            recordId: id,
+            formData: body as any,
+          }).unwrap();
+          break;
+        case "Outlets":
+          await updateOutlet({
+            recordId: id,
+            formData: body as any,
+          }).unwrap();
+          break;
+        case "Switches":
+        case "Switches Installation":
+          await updateSwitches({
+            recordId: id,
+            formData: body as any,
+          }).unwrap();
+          break;
+        case "Lighting":
+          await updateLighting({
+            recordId: id,
+            formData: body as any,
+          }).unwrap();
+          break;
+        case "Ceiling Fan":
+        case "Ceiling Fan Installation":
+          await updateCeilingFan({
             recordId: id,
             formData: body as any,
           }).unwrap();

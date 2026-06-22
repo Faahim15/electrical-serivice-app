@@ -12,9 +12,14 @@ import {
 import { useState } from "react";
 import { toast } from "sonner-native";
 import { useDeleteAccessoryBuildingMutation } from "../redux/api-slices/quote/accessory-building-api";
+import { useDeleteCeilingFanMutation } from "../redux/api-slices/quote/ceiling-fan-api";
+import { useDeleteExhaustFanMutation } from "../redux/api-slices/quote/exhaust-fan-api";
+import { useDeleteLightingMutation } from "../redux/api-slices/quote/lighting-api";
+import { useDeleteOutletMutation } from "../redux/api-slices/quote/outlet-api";
 import { useDeletePanelUpgradeReplacementMutation } from "../redux/api-slices/quote/quote-api-two";
 import { useDeleteRemodelingMutation } from "../redux/api-slices/quote/remodeling-api";
 import { useDeleteStarlinkMutation } from "../redux/api-slices/quote/starLinkApi";
+import { useDeleteSwitchesMutation } from "../redux/api-slices/quote/switches-api";
 
 export const useDeleteDraft = (onSuccess?: () => void) => {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -33,12 +38,18 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
   const [deleteHomeSurgeProtection] = useDeleteHomeSurgeProtectionMutation();
   const [deleteStarlink] = useDeleteStarlinkMutation();
   const [deleteDedicatedCircuit] = useDeleteDedicatedCircuitMutation();
+  // ─── New Mutations ──────────────────────────────────────────────────────────
+  const [deleteExhaustFan] = useDeleteExhaustFanMutation();
+  const [deleteOutlets] = useDeleteOutletMutation();
+  const [deleteSwitches] = useDeleteSwitchesMutation();
+  const [deleteLighting] = useDeleteLightingMutation();
+  const [deleteCeilingFan] = useDeleteCeilingFanMutation();
 
   // ─── Delete handler ──────────────────────────────────────────────────────────
   const deleteDraft = async (id: string, serviceType: string) => {
     setIsDeleting(true);
     try {
-      console.log({ serviceType });
+      console.log("useDeleteDraft screens", serviceType, id);
       switch (serviceType) {
         case "EV Charger Installation":
           await deleteEvCharger(id).unwrap();
@@ -76,8 +87,25 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
         case "Dedicated Circuit Installation":
           await deleteDedicatedCircuit(id).unwrap();
           break;
+        // ─── New Categories ────────────────────────────────────────────────────
+        case "Exhaust Fan Installation":
+          await deleteExhaustFan(id).unwrap();
+          break;
+        case "Outlet Installation":
+          await deleteOutlets(id).unwrap();
+          break;
+        case "Switches":
+        case "Switches Installation":
+          await deleteSwitches(id).unwrap();
+          break;
+        case "Lighting":
+          await deleteLighting(id).unwrap();
+          break;
+        case "Ceiling Fan":
+        case "Ceiling Fan Installation":
+          await deleteCeilingFan(id).unwrap();
+          break;
         case "Service Call":
-        default:
           await deleteServiceCall(id).unwrap();
           break;
       }

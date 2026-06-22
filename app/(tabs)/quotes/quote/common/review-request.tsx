@@ -119,8 +119,6 @@ export default function ReviewRequest() {
     );
   }
 
-  console.log(categoryData);
-
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <BackButton />

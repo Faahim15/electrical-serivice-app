@@ -52,6 +52,31 @@ import {
   useUpdateStarlinkMutation,
 } from "../redux/api-slices/quote/starLinkApi";
 
+// ─── New Imports ──────────────────────────────────────────────────────────────
+import {
+  useCreateExhaustFanMutation,
+  useUpdateExhaustFanMutation,
+} from "../redux/api-slices/quote/exhaust-fan-api";
+
+import {
+  useCreateOutletMutation,
+  useUpdateOutletMutation,
+} from "../redux/api-slices/quote/outlet-api";
+
+import {
+  useCreateSwitchesMutation,
+  useUpdateSwitchesMutation,
+} from "../redux/api-slices/quote/switches-api";
+
+import {
+  useCreateCeilingFanMutation,
+  useUpdateCeilingFanMutation,
+} from "../redux/api-slices/quote/ceiling-fan-api";
+import {
+  useCreateLightingMutation,
+  useUpdateLightingMutation,
+} from "../redux/api-slices/quote/lighting-api";
+
 import { useState } from "react";
 
 export type DraftStatus =
@@ -166,6 +191,37 @@ export const useDraftSave = () => {
   const [updateDedicatedCircuit, { isLoading: isUpdatingDedicatedCircuit }] =
     useUpdateDedicatedCircuitMutation();
 
+  // ─── New Mutations ──────────────────────────────────────────────────────────
+  // Exhaust Fan
+  const [createExhaustFan, { isLoading: isCreatingExhaustFan }] =
+    useCreateExhaustFanMutation();
+  const [updateExhaustFan, { isLoading: isUpdatingExhaustFan }] =
+    useUpdateExhaustFanMutation();
+
+  // Outlets
+  const [createOutlets, { isLoading: isCreatingOutlets }] =
+    useCreateOutletMutation();
+  const [updateOutlets, { isLoading: isUpdatingOutlets }] =
+    useUpdateOutletMutation();
+
+  // Switches
+  const [createSwitches, { isLoading: isCreatingSwitches }] =
+    useCreateSwitchesMutation();
+  const [updateSwitches, { isLoading: isUpdatingSwitches }] =
+    useUpdateSwitchesMutation();
+
+  // Lighting
+  const [createLighting, { isLoading: isCreatingLighting }] =
+    useCreateLightingMutation();
+  const [updateLighting, { isLoading: isUpdatingLighting }] =
+    useUpdateLightingMutation();
+
+  // Ceiling Fan
+  const [createCeilingFan, { isLoading: isCreatingCeilingFan }] =
+    useCreateCeilingFanMutation();
+  const [updateCeilingFan, { isLoading: isUpdatingCeilingFan }] =
+    useUpdateCeilingFanMutation();
+
   const [isSavingExtra, setIsSavingExtra] = useState(false);
 
   const isSaving =
@@ -195,6 +251,17 @@ export const useDraftSave = () => {
     isUpdatingStarlink ||
     isCreatingDedicatedCircuit ||
     isUpdatingDedicatedCircuit ||
+    // ─── New Loading States ──────────────────────────────────────────────────
+    isCreatingExhaustFan ||
+    isUpdatingExhaustFan ||
+    isCreatingOutlets ||
+    isUpdatingOutlets ||
+    isCreatingSwitches ||
+    isUpdatingSwitches ||
+    isCreatingLighting ||
+    isUpdatingLighting ||
+    isCreatingCeilingFan ||
+    isUpdatingCeilingFan ||
     isSavingExtra;
 
   // ─── Create (no existing draft yet) ─────────────────────────────────────────
@@ -224,6 +291,19 @@ export const useDraftSave = () => {
         return createStarlink(body as any).unwrap();
       case "Dedicated Circuit Installation":
         return createDedicatedCircuit(body as any).unwrap();
+      // ─── New Create Cases ──────────────────────────────────────────────────
+      case "Exhaust Fan":
+        return createExhaustFan(body as any).unwrap();
+      case "Outlets":
+        return createOutlets(body as any).unwrap();
+      case "Switches":
+      case "Switches Installation":
+        return createSwitches(body as any).unwrap();
+      case "Lighting":
+        return createLighting(body as any).unwrap();
+      case "Ceiling Fan":
+      case "Ceiling Fan Installation":
+        return createCeilingFan(body as any).unwrap();
       case "Service Call":
       default:
         return createServiceCall(body as any).unwrap();
@@ -291,6 +371,34 @@ export const useDraftSave = () => {
         }).unwrap();
       case "Dedicated Circuit Installation":
         return updateDedicatedCircuit({
+          recordId: id,
+          formData: body as FormData,
+        }).unwrap();
+      // ─── New Update Cases ──────────────────────────────────────────────────
+      case "Exhaust Fan":
+        return updateExhaustFan({
+          recordId: id,
+          formData: body as FormData,
+        }).unwrap();
+      case "Outlets":
+        return updateOutlets({
+          recordId: id,
+          formData: body as FormData,
+        }).unwrap();
+      case "Switches":
+      case "Switches Installation":
+        return updateSwitches({
+          recordId: id,
+          formData: body as FormData,
+        }).unwrap();
+      case "Lighting":
+        return updateLighting({
+          recordId: id,
+          formData: body as FormData,
+        }).unwrap();
+      case "Ceiling Fan":
+      case "Ceiling Fan Installation":
+        return updateCeilingFan({
           recordId: id,
           formData: body as FormData,
         }).unwrap();

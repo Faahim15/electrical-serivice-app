@@ -492,8 +492,6 @@ export default function ServiceDetails() {
 
   if (!selectedCategory || !detail) return null;
 
-  console.log(selectedCategory.title);
-
   return (
     <View style={{ flex: 1 }}>
       <ServiceDetailPage

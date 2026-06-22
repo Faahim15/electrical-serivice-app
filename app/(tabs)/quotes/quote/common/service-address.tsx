@@ -184,8 +184,6 @@ export default function ServiceAddress() {
       completionPercentage,
     };
 
-    console.log(payload.zipCode);
-
     try {
       if (serviceCallId) {
         await updateDraft(serviceCallId, serviceType, createFormData(payload));
