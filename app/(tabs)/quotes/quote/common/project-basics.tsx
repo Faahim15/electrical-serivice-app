@@ -175,7 +175,7 @@ export default function ProjectBasics() {
   // ─── Continue handler ────────────────────────────────────────────────────────
   const onSubmit = (values: ProjectBasicsFormValues) => {
     dispatch(updateProjectBasics(values as any));
-
+    console.log("hello", selectedCategory?.id, serviceType);
     const params = { serviceType, serviceCallId };
 
     // ─── Categories 1-10 ──────────────────────────────────────────────────────
@@ -304,7 +304,10 @@ export default function ProjectBasics() {
       });
     }
     // ─── Outlets (id: 16) ─────────────────────────────────────────────────────
-    else if (selectedCategory?.id === "16" || serviceType === "Outlets") {
+    else if (
+      selectedCategory?.id === "16" ||
+      serviceType === "Outlet Installation"
+    ) {
       dispatch(selectCategory("16"));
       router.push({
         pathname: "/(tabs)/quotes/quote/outlets/outlet-details" as any,
@@ -323,7 +326,7 @@ export default function ProjectBasics() {
     else if (selectedCategory?.id === "18" || serviceType === "Lighting") {
       dispatch(selectCategory("18"));
       router.push({
-        pathname: "/(tabs)/quotes/quote/lighting/lighting-details" as any,
+        pathname: "/(tabs)/quotes/quote/lighting/lighting-type",
         params,
       });
     }

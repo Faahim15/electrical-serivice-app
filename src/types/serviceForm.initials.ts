@@ -257,18 +257,25 @@ export const initialOutletsDetails: OutletsDetails = {
   isDedicatedCircuit: "",
   panelPhotos: [],
   additionalNotes: "",
+
+  intendedUseOther: "",
+  installationType: "",
+  outletTypes: [],
+  ampsNeeded: "",
+  voltsNeeded: "",
+  NEMAConfiguration: "",
+  photosOfWhereOutletsInstall: [],
 };
 
 // ============================================
 // id: "16" - Switches
 // ============================================
 export const initialSwitchesDetails: SwitchesDetails = {
-  numberOfSwitches: "",
-  switchType: "",
-  switchLocation: "",
-  existingWiring: "",
-  panelPhotos: [],
-  additionalNotes: "",
+  howManySwitchesNeeded: "",
+  isNewInstallationOrReplacement: "",
+  photosOfWhereSwitchesInstallationNeeded: [],
+  typeOfSwitchesNeeded: [],
+  additionalInformation: "",
 };
 
 // ============================================
@@ -281,17 +288,49 @@ export const initialLightingDetails: LightingDetails = {
   existingWiring: "",
   panelPhotos: [],
   additionalNotes: "",
+
+  // ─── New fields for Lighting ──────────────────────────────────────────────
+  fixtureWeight: "",
+  fixtureKind: "",
+  complexAssembly: "",
+  interiorInstallType: "",
+  ceilingHeight: "",
+  providingFixture: "",
+  fixtureDetails: "",
+  switchNewExisting: "",
+  upgradeSwitch: "",
+  switchKind: "",
+  multiSwitch: "",
+  photosOfWhereWantToInstall: [],
+  photosOfCurrentLightFixture: [],
+  photosOfNewLightFixture: [],
+  photosOfInstallationAreaFloodLight: [],
+  photosOfCurrentFloodLight: [],
+  photosOfNewFloodLight: [],
 };
 
 // ============================================
-// id: "18" - Ceiling Fan
+// id: "18" - Ceiling Fan (Updated)
 // ============================================
 export const initialCeilingFanDetails: CeilingFanDetails = {
-  fanSize: "",
-  fanLocation: "",
-  hasLightKit: "",
-  existingWiring: "",
-  panelPhotos: [],
-  additionalNotes: "",
-  locationOther: "",
+  // St1 - Installation Type
+  installationType: "",
+  photosOfCurrentCeilingFan: [],
+  aboveBelowAreaOfCeilingFan: [],
+  isThereCurrentLightFixture: "",
+  wasAreaPrewired: "",
+
+  // St2 - Fan Details
+  willProvideNewCeilingFan: "",
+  photosOfNewCeilingFan: [],
+  describeFanWantInstalled: "",
+  tallOfCeilingFanFromFloor: "",
+
+  // St3 - Switch Details
+  willConnectNewOrExistingSwitch: "",
+  wantUpgradeSwitch: "",
+  kindOfSwitchWant: "",
+
+  // St4 - Additional Notes
+  additionalInformation: "",
 };

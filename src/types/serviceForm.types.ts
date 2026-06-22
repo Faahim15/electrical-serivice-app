@@ -556,38 +556,58 @@ export interface OutletsDetails {
   isDedicatedCircuit: "Yes" | "No" | "";
   panelPhotos: string[];
   additionalNotes: string;
+
+  // ─── New fields ──────────────────────────────────────────────────────────────
+  intendedUseOther: string; // ← Add this
+  installationType: string; // ← Add this
+  outletTypes: string[]; // ← Add this
+  ampsNeeded: string; // ← Add this
+  voltsNeeded: string; // ← Add this
+  NEMAConfiguration: string; // ← Add this
+  photosOfWhereOutletsInstall: string[]; // ← Add this
 }
 
 // ============================================
-// id: "16" - Switches
+// id: "16" - Switches (Updated)
 // ============================================
 export type SwitchType =
-  | "Standard"
-  | "Dim"
-  | "Motion"
+  | "Standard (Toggle)"
   | "Smart"
-  | "3-Way"
-  | "4-Way"
+  | "Standard (Rocker/Decorator)"
+  | "Dimmer (Rocker/Decorator)"
+  | "Dimmer (Toggle)"
+  | "Motion"
+  | "Timer"
+  | "I'll provide my own"
   | "";
-export type SwitchLocation = "Indoor" | "Outdoor" | "Garage" | "Basement" | "";
+
+export type SwitchInstallType = "New install" | "Replacement" | "";
 
 export interface SwitchesDetails {
-  numberOfSwitches: string;
-  switchType: SwitchType;
-  switchLocation: SwitchLocation;
-  existingWiring: "Yes" | "No" | "";
-  panelPhotos: string[];
-  additionalNotes: string;
+  // Step 1 - Switch Details
+  howManySwitchesNeeded: string;
+  isNewInstallationOrReplacement: SwitchInstallType;
+
+  // Step 2 - Photos
+  photosOfWhereSwitchesInstallationNeeded: string[];
+
+  // Step 3 - Switch Types
+  typeOfSwitchesNeeded: SwitchType[];
+
+  // Step 4 - Additional Notes
+  additionalInformation: string;
 }
 
 // ============================================
 // id: "17" - Lighting
 // ============================================
 export type LightingType =
-  | "LED"
-  | "Fluorescent"
-  | "Incandescent"
-  | "Smart"
+  | "Interior Lighting"
+  | "Flood Lights"
+  | "Wall / Coach Lights"
+  | "Driveway Lighting"
+  | "Pole / Area Lighting"
+  | "Landscape"
   | "";
 export type LightingLocation =
   | "Indoor"
@@ -603,10 +623,29 @@ export interface LightingDetails {
   existingWiring: "Yes" | "No" | "";
   panelPhotos: string[];
   additionalNotes: string;
+
+  // ─── New fields for Lighting ──────────────────────────────────────────────
+  fixtureWeight: string;
+  fixtureKind: string;
+  complexAssembly: string;
+  interiorInstallType: string;
+  ceilingHeight: string;
+  providingFixture: string;
+  fixtureDetails: string;
+  switchNewExisting: string;
+  upgradeSwitch: string;
+  switchKind: string;
+  multiSwitch: string;
+  photosOfWhereWantToInstall: string[];
+  photosOfCurrentLightFixture: string[];
+  photosOfNewLightFixture: string[];
+  photosOfInstallationAreaFloodLight: string[];
+  photosOfCurrentFloodLight: string[];
+  photosOfNewFloodLight: string[];
 }
 
 // ============================================
-// id: "18" - Ceiling Fan
+// id: "18" - Ceiling Fan (Updated)
 // ============================================
 export type FanSize =
   | "30-36 inch"
@@ -614,6 +653,7 @@ export type FanSize =
   | "52-56 inch"
   | "60+ inch"
   | "";
+
 export type FanLocation =
   | "Living Room"
   | "Bedroom"
@@ -622,14 +662,36 @@ export type FanLocation =
   | "Other"
   | "";
 
+export type InstallationType = "Replacement" | "New install" | "";
+export type YesNo = "Yes" | "No" | "";
+export type YesNoUnsure = "Yes" | "No" | "I'm not sure" | "";
+export type SwitchConnection =
+  | "New"
+  | "Existing"
+  | "My fan comes with a remote"
+  | "";
+
 export interface CeilingFanDetails {
-  fanSize: FanSize;
-  fanLocation: FanLocation;
-  hasLightKit: "Yes" | "No" | "";
-  existingWiring: "Yes" | "No" | "";
-  panelPhotos: string[];
-  additionalNotes: string;
-  locationOther: string;
+  // St1 - Installation Type
+  installationType: InstallationType;
+  photosOfCurrentCeilingFan: string[];
+  aboveBelowAreaOfCeilingFan: string[];
+  isThereCurrentLightFixture: YesNo;
+  wasAreaPrewired: YesNoUnsure;
+
+  // St2 - Fan Details
+  willProvideNewCeilingFan: YesNo;
+  photosOfNewCeilingFan: string[];
+  describeFanWantInstalled: string;
+  tallOfCeilingFanFromFloor: string;
+
+  // St3 - Switch Details
+  willConnectNewOrExistingSwitch: SwitchConnection;
+  wantUpgradeSwitch: YesNo;
+  kindOfSwitchWant: string;
+
+  // St4 - Additional Notes
+  additionalInformation: string;
 }
 
 // ============================================

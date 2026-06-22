@@ -4,18 +4,22 @@ import {
   ServiceCallReviewForm,
 } from "@/src/components/common";
 import AccessoryBuildingReviewForm from "@/src/components/common/AccessoryBuildingReviewForm";
+import CeilingFanReviewForm from "@/src/components/common/CeilingFanReviewForm";
 import DedicatedCircuitReviewForm from "@/src/components/common/DedicatedCircuitReviewForm";
 import DockPowerReviewForm from "@/src/components/common/DockPowerReviewForm";
 import ElectricalInspectionReviewForm from "@/src/components/common/ElectricalInspectionReviewForm";
 import ExhaustFanReviewForm from "@/src/components/common/ExhaustedFanReviewForm";
 import GeneratorReviewForm from "@/src/components/common/GeneratorReviewForm";
 import HotTubReviewForm from "@/src/components/common/HotTubReviewForm";
+import LightingReviewForm from "@/src/components/common/LightingReviewForm";
 import NewConstructionReviewForm from "@/src/components/common/NewConstructionReviewForm";
+import OutletsReviewForm from "@/src/components/common/OutletsReviewForm";
 import PanelUpgradeReviewForm from "@/src/components/common/PanelUpgradeReviewForm";
 import RemodelingReviewForm from "@/src/components/common/RemodelingReviewForm";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import StarlinkReviewForm from "@/src/components/common/StarLinkReviewForm";
 import SurgeProtectionReviewForm from "@/src/components/common/SurgeProtectionReviewForm";
+import SwitchesReviewForm from "@/src/components/common/SwitchesReivewForm";
 import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
@@ -295,6 +299,49 @@ export default function ReviewRequest() {
           {/* Exhaust Fan - ID 14 */}
           {categoryData?.categoryId === "14" && categoryData.details && (
             <ExhaustFanReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {categoryData?.categoryId === "15" && categoryData.details && (
+            <OutletsReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Switches - ID 16 */}
+          {categoryData?.categoryId === "16" && categoryData.details && (
+            <SwitchesReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Lighting - ID 17 */}
+          {categoryData?.categoryId === "17" && categoryData.details && (
+            <LightingReviewForm
+              draftData={draftData}
+              categoryData={categoryData}
+              onSuccess={handleSubmitSuccess}
+              setIsSubmitting={setIsSubmitting}
+              isSubmitting={isSubmitting}
+            />
+          )}
+
+          {/* Ceiling Fan - ID 18 */}
+          {categoryData?.categoryId === "18" && categoryData.details && (
+            <CeilingFanReviewForm
               draftData={draftData}
               categoryData={categoryData}
               onSuccess={handleSubmitSuccess}
