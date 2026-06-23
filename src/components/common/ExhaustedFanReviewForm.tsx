@@ -1,7 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useCreateExhaustFanMutation } from "@/src/redux/api-slices/quote/exhaust-fan-api";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -19,6 +19,8 @@ interface ExhaustFanReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -75,8 +77,10 @@ const ExhaustFanReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: ExhaustFanReviewFormProps) => {
-  const [createExhaustFan] = useCreateExhaustFanMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ────────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -156,15 +160,35 @@ const ExhaustFanReviewForm = ({
       panelPhotos: details.panelPhotos,
       additionalInformation: details.additionalInformation,
       photosOfInstallationArea: details.photosOfInstallationArea,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
     setIsSubmitting(true);
     try {
-      const result = await createExhaustFan(
-        createFormData(payload) as any,
-      ).unwrap();
+      let result;
+
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Exhaust Fan",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Exhaust Fan",
+          createFormData({
+            serviceType: serviceType || "Exhaust Fan",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
+
       if (result.success) {
         onSuccess();
       } else {

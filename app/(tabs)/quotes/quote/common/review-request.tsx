@@ -159,6 +159,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -170,6 +172,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -181,6 +185,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -192,6 +198,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -203,6 +211,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -214,6 +224,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -225,6 +237,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -236,6 +250,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -247,6 +263,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -258,6 +276,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -269,6 +289,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -280,6 +302,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -291,6 +315,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -302,9 +328,12 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
+          {/* Outlets - ID 15 */}
           {categoryData?.categoryId === "15" && categoryData.details && (
             <OutletsReviewForm
               draftData={draftData}
@@ -312,6 +341,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -323,6 +354,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -334,6 +367,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 
@@ -345,6 +380,8 @@ export default function ReviewRequest() {
               onSuccess={handleSubmitSuccess}
               setIsSubmitting={setIsSubmitting}
               isSubmitting={isSubmitting}
+              serviceCallId={serviceCallId}
+              serviceType={serviceType}
             />
           )}
 

@@ -1,8 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-// import { useCreateRemodelingMutation } from "../redux/api-slices/quote/remodeling-api";
-import { useCreateRemodelingMutation } from "@/src/redux/api-slices/quote/remodeling-api";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -20,6 +19,8 @@ interface RemodelingReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -76,8 +77,10 @@ const RemodelingReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: RemodelingReviewFormProps) => {
-  const [createRemodeling] = useCreateRemodelingMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ────────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -219,7 +222,7 @@ const RemodelingReviewForm = ({
       existingSpacePhotos: details.existingSpacePhotos,
       panelPhotos: details.panelPhotos,
       additionalInformation: details.additionalInformation,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -227,11 +230,28 @@ const RemodelingReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createRemodeling(
-        createFormData(payload) as any,
-      ).unwrap();
+      let result;
 
-      console.log("Submit result:", result);
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Remodeling",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Remodeling",
+          createFormData({
+            serviceType: serviceType || "Remodeling",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

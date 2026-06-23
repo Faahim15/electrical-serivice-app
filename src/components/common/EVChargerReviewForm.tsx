@@ -1,6 +1,6 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { EVChargerReview } from "@/src/components/quote/review/EVChargerRow";
-import { useCreateEvChargerInstallationMutation } from "@/src/redux/api-slices/quote/quote-api";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import { View } from "react-native";
@@ -13,6 +13,8 @@ interface EVChargerReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string; // ← Add this prop
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -28,8 +30,10 @@ const EVChargerReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType, // ← Receive serviceType
 }: EVChargerReviewFormProps) => {
-  const [createEvCharger] = useCreateEvChargerInstallationMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ──────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -167,6 +171,7 @@ const EVChargerReviewForm = ({
       return;
     }
 
+    // ─── Build payload ─────────────────────────────────────────────────────────
     const payload = {
       fullName: finalFullName,
       phoneNumber: finalPhone,
@@ -194,7 +199,7 @@ const EVChargerReviewForm = ({
       additionalInformation: details.additionalInformation,
       areaPhoto: details.areaPhoto,
       panelPhotos: details.panelPhotos,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -202,11 +207,28 @@ const EVChargerReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createEvCharger(
-        createFormData(payload) as any,
-      ).unwrap();
+      let result;
 
-      console.log("Submit result:", result);
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "EV Charger Installation", // ← Use dynamic serviceType
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "EV Charger Installation", // ← Use dynamic serviceType
+          createFormData({
+            serviceType: serviceType || "EV Charger Installation",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

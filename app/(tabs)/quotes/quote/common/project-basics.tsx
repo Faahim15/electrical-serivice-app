@@ -175,7 +175,7 @@ export default function ProjectBasics() {
   // ─── Continue handler ────────────────────────────────────────────────────────
   const onSubmit = (values: ProjectBasicsFormValues) => {
     dispatch(updateProjectBasics(values as any));
-    console.log("hello", selectedCategory?.id, serviceType);
+
     const params = { serviceType, serviceCallId };
 
     // ─── Categories 1-10 ──────────────────────────────────────────────────────
@@ -334,7 +334,7 @@ export default function ProjectBasics() {
     else if (selectedCategory?.id === "19" || serviceType === "Ceiling Fan") {
       dispatch(selectCategory("19"));
       router.push({
-        pathname: "/(tabs)/quotes/quote/ceiling-fan/fan-details" as any,
+        pathname: "/(tabs)/quotes/quote/ceiling-fan/installation-type",
         params,
       });
     }

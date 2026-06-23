@@ -1,7 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useCreateHomeSurgeProtectionMutation } from "@/src/redux/api-slices/quote/homeSurgeProtectionApi";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -19,6 +19,8 @@ interface SurgeProtectionReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -75,8 +77,10 @@ const SurgeProtectionReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: SurgeProtectionReviewFormProps) => {
-  const [createSurgeProtection] = useCreateHomeSurgeProtectionMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ────────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -177,7 +181,7 @@ const SurgeProtectionReviewForm = ({
       // API expects photosOfElectricalPanel
       photosOfElectricalPanel: details.photosOfElectricalPanel,
       additionalNotes: details.additionalNotes,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -185,10 +189,28 @@ const SurgeProtectionReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createSurgeProtection(
-        createFormData(payload) as any,
-      ).unwrap();
-      console.log("Submit result:", result);
+      let result;
+
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Home Surge Protection",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Home Surge Protection",
+          createFormData({
+            serviceType: serviceType || "Home Surge Protection",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

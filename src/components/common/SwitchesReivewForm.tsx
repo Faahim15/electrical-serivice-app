@@ -1,8 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-// import { useCreateSwitchesMutation } from "@/src/redux/api-slices/quote/switchesApi";
-import { useCreateSwitchesMutation } from "@/src/redux/api-slices/quote/switches-api";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -20,6 +19,8 @@ interface SwitchesReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -109,8 +110,10 @@ const SwitchesReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: SwitchesReviewFormProps) => {
-  const [createSwitches] = useCreateSwitchesMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ────────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -252,7 +255,7 @@ const SwitchesReviewForm = ({
       photosOfWhereSwitchesInstallationNeeded:
         details.photosOfWhereSwitchesInstallationNeeded,
 
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -260,11 +263,28 @@ const SwitchesReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createSwitches(
-        createFormData(payload) as any,
-      ).unwrap();
+      let result;
 
-      console.log("Submit result:", result);
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Switches Installation",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Switches Installation",
+          createFormData({
+            serviceType: serviceType || "Switches Installation",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

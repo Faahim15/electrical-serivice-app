@@ -1,7 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useCreateAccessoryBuildingMutation } from "@/src/redux/api-slices/quote/accessory-building-api";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -19,6 +19,8 @@ interface AccessoryBuildingReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string; // ← Add this prop
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -75,8 +77,10 @@ const AccessoryBuildingReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType, // ← Receive serviceType
 }: AccessoryBuildingReviewFormProps) => {
-  const [createAccessoryBuilding] = useCreateAccessoryBuildingMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   const contactDetails = useSelector(
     (state: RootState) => state.serviceForm.contactDetails,
@@ -270,7 +274,7 @@ const AccessoryBuildingReviewForm = ({
       existingSpacePhotos: details.existingSpacePhotos,
       panelPhotos: details.panelPhotos,
       additionalInformation: details.additionalInformation,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -278,9 +282,28 @@ const AccessoryBuildingReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createAccessoryBuilding(
-        createFormData(payload) as any,
-      ).unwrap();
+      let result;
+
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Accessory Building / Shed Power", // ← Use dynamic serviceType
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Accessory Building / Shed Power", // ← Use dynamic serviceType
+          createFormData({
+            serviceType: serviceType || "Accessory Building / Shed Power",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

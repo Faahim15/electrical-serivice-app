@@ -1,7 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useCreateCeilingFanMutation } from "@/src/redux/api-slices/quote/ceiling-fan-api";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -19,6 +19,8 @@ interface CeilingFanReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -69,47 +71,16 @@ const PhotosRow = ({ label, photos }: { label: string; photos: string[] }) => (
   </View>
 );
 
-// ─── Tags Row Component ─────────────────────────────────────────────────────
-const TagsRow = ({ label, tags }: { label: string; tags: string[] }) => (
-  <View
-    className="bg-white rounded-2xl px-4 py-4 mb-3"
-    style={{
-      shadowColor: "#94A3B8",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.07,
-      shadowRadius: 4,
-      elevation: 1,
-    }}
-  >
-    <Text className="text-[#94A3B8] text-[11.5px] font-Inter_Medium mb-2">
-      {label}
-    </Text>
-    {tags?.length > 0 ? (
-      <View className="flex-row flex-wrap gap-2">
-        {tags.map((tag, index) => (
-          <View key={index} className="bg-[#EFF6FF] px-3 py-1.5 rounded-full">
-            <Text className="text-[#4AA9F5] text-[13px] font-Inter_Medium">
-              {tag}
-            </Text>
-          </View>
-        ))}
-      </View>
-    ) : (
-      <Text className="text-[#1E293B] text-[14px] font-Inter_SemiBold">
-        None selected
-      </Text>
-    )}
-  </View>
-);
-
 const CeilingFanReviewForm = ({
   draftData,
   categoryData,
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: CeilingFanReviewFormProps) => {
-  const [createCeilingFan] = useCreateCeilingFanMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ────────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -134,10 +105,10 @@ const CeilingFanReviewForm = ({
         ?.length
         ? draftData.photosOfCurrentCeilingFan
         : details.photosOfCurrentCeilingFan || [];
-      const aboveBelowAreaOfCeilingFan = draftData?.aboveBelowAreaOfCeilingFan
-        ?.length
-        ? draftData.aboveBelowAreaOfCeilingFan
-        : details.aboveBelowAreaOfCeilingFan || [];
+      const aboveBelowAreaOfCeilingFan =
+        draftData?.aboveBelowAreaOfCeilingFan ||
+        details.aboveBelowAreaOfCeilingFan ||
+        "";
       const isThereCurrentLightFixture =
         draftData?.isThereCurrentLightFixture !== undefined
           ? draftData.isThereCurrentLightFixture
@@ -197,7 +168,7 @@ const CeilingFanReviewForm = ({
     return {
       installationType: "",
       photosOfCurrentCeilingFan: [],
-      aboveBelowAreaOfCeilingFan: [],
+      aboveBelowAreaOfCeilingFan: "",
       isThereCurrentLightFixture: false,
       wasAreaPrewired: "",
       willProvideNewCeilingFan: false,
@@ -290,7 +261,7 @@ const CeilingFanReviewForm = ({
       // St1 - Installation Type
       installationType: details.installationType,
       photosOfCurrentCeilingFan: details.photosOfCurrentCeilingFan,
-      aboveBelowAreaOfCeilingFan: details.aboveBelowAreaOfCeilingFan,
+      aboveBelowAreaOfCeilingFan: details.aboveBelowAreaOfCeilingFan || "",
       isThereCurrentLightFixture: details.isThereCurrentLightFixture,
       wasAreaPrewired: details.wasAreaPrewired,
 
@@ -308,7 +279,7 @@ const CeilingFanReviewForm = ({
       // St4 - Additional Notes
       additionalInformation: details.additionalInformation,
 
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -316,11 +287,28 @@ const CeilingFanReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createCeilingFan(
-        createFormData(payload) as any,
-      ).unwrap();
+      let result;
 
-      console.log("Submit result:", result);
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Ceiling Fan Installation",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Ceiling Fan Installation",
+          createFormData({
+            serviceType: serviceType || "Ceiling Fan Installation",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();
@@ -341,7 +329,6 @@ const CeilingFanReviewForm = ({
 
   // ─── Helper to format display values ────────────────────────────────────────
   const formatYesNo = (value: boolean) => (value ? "Yes" : "No");
-  const formatArray = (arr: string[]) => arr?.join(", ") || "None selected";
 
   return (
     <View>
@@ -353,11 +340,11 @@ const CeilingFanReviewForm = ({
       />
 
       {/* ─── Above/Below Area ────────────────────────────────────────────────── */}
-      {details.installationType === "New install" && (
+      {details.installationType === "New Install" && (
         <>
           <ReviewRow
             label="Above/Below Area"
-            value={formatArray(details.aboveBelowAreaOfCeilingFan)}
+            value={details.aboveBelowAreaOfCeilingFan || "Not specified"}
           />
           <ReviewRow
             label="Current Light Fixture"

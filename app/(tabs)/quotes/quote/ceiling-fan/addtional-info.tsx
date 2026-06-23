@@ -151,8 +151,7 @@ export default function AdditionalInfo() {
         <BackButton
           onPress={() =>
             router.push({
-              pathname:
-                "/(tabs)/quotes/quote/ceiling-fan/switch-details" as any,
+              pathname: "/(tabs)/quotes/quote/ceiling-fan/switch-details",
               params: { serviceCallId, serviceType },
             })
           }

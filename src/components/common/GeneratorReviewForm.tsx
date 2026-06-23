@@ -1,7 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useCreateGeneratorMutation } from "@/src/redux/api-slices/quote/generatorApi";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -19,6 +19,8 @@ interface GeneratorReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -75,8 +77,10 @@ const GeneratorReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: GeneratorReviewFormProps) => {
-  const [createGenerator] = useCreateGeneratorMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ────────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -235,7 +239,7 @@ const GeneratorReviewForm = ({
       generatorInstallationLocationPhotos:
         details.generatorInstallationLocationPhotos,
       photosOfElectricalMeter: details.photosOfElectricalMeter,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -243,11 +247,28 @@ const GeneratorReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createGenerator(
-        createFormData(payload) as any,
-      ).unwrap();
+      let result;
 
-      console.log("Submit result:", result);
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Generator Installation",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Generator Installation",
+          createFormData({
+            serviceType: serviceType || "Generator Installation",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

@@ -256,7 +256,7 @@ export default function LightingType() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
+          contentContainerStyle={{ paddingBottom: verticalScale(200) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}

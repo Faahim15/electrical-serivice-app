@@ -1,7 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useCreateStarlinkMutation } from "@/src/redux/api-slices/quote/starLinkApi";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -19,6 +19,8 @@ interface StarlinkReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -75,8 +77,10 @@ const StarlinkReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: StarlinkReviewFormProps) => {
-  const [createStarlink] = useCreateStarlinkMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ────────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -91,7 +95,7 @@ const StarlinkReviewForm = ({
 
   // ─── Get Starlink Details ────────────────────────────────────────────────────
   const getStarlinkDetails = () => {
-    if (categoryData?.categoryId === "13" && categoryData.details) {
+    if (categoryData?.categoryId === "12" && categoryData.details) {
       const details = categoryData.details as any;
       return {
         haveStarlinkEquipment: details.haveStarlinkEquipment === "Yes",
@@ -196,7 +200,7 @@ const StarlinkReviewForm = ({
       areaOfInstallationPhotos: details.areaOfInstallationPhotos,
       photosOfRoomForRouter: details.photosOfRoomForRouter,
       additionalNotes: details.additionalNotes,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -204,10 +208,28 @@ const StarlinkReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createStarlink(
-        createFormData(payload) as any,
-      ).unwrap();
-      console.log("Submit result:", result);
+      let result;
+
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Starlink Installation",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Starlink Installation",
+          createFormData({
+            serviceType: serviceType || "Starlink Installation",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

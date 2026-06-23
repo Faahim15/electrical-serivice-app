@@ -316,7 +316,7 @@ export const initialCeilingFanDetails: CeilingFanDetails = {
   // St1 - Installation Type
   installationType: "",
   photosOfCurrentCeilingFan: [],
-  aboveBelowAreaOfCeilingFan: [],
+  aboveBelowAreaOfCeilingFan: "",
   isThereCurrentLightFixture: "",
   wasAreaPrewired: "",
 

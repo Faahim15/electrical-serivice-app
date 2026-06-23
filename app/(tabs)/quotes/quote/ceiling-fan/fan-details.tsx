@@ -219,8 +219,7 @@ export default function FanDetails() {
         <BackButton
           onPress={() =>
             router.push({
-              pathname:
-                "/(tabs)/quotes/quote/ceiling-fan/installation-type" as any,
+              pathname: "/(tabs)/quotes/quote/ceiling-fan/installation-type",
               params: { serviceCallId, serviceType },
             })
           }
@@ -316,8 +315,7 @@ export default function FanDetails() {
               label="Continue"
               onPress={() =>
                 router.push({
-                  pathname:
-                    "/(tabs)/quotes/quote/ceiling-fan/switch-details" as any,
+                  pathname: "/(tabs)/quotes/quote/ceiling-fan/switch-details",
                   params: { serviceCallId, serviceType },
                 })
               }

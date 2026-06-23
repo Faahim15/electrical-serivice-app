@@ -1,7 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useCreateOutletMutation } from "@/src/redux/api-slices/quote/outlet-api";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -19,6 +19,8 @@ interface OutletsReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 const createFormData = (payload: Record<string, any>) => {
@@ -64,8 +66,10 @@ const OutletsReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: OutletsReviewFormProps) => {
-  const [createOutlet] = useCreateOutletMutation();
+  const { createDraft, updateDraft } = useDraftSave();
   const contactDetails = useSelector(
     (s: RootState) => s.serviceForm.contactDetails,
   );
@@ -150,17 +154,37 @@ const OutletsReviewForm = ({
       NEMAConfiguration: details.NEMAConfiguration,
       photosOfWhereOutletsInstall: details.photosOfWhereOutletsInstall,
       additionalInformation: details.additionalInformation,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
     setIsSubmitting(true);
     try {
-      const result = await createOutlet(
-        createFormData(payload) as any,
-      ).unwrap();
-      if (result.success) onSuccess();
-      else toast.error(result.message || "Failed to submit request");
+      let result;
+
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Outlets",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Outlets",
+          createFormData({ serviceType: serviceType || "Outlets", ...payload }),
+        );
+        console.log("Created new draft:", result);
+      }
+
+      if (result.success) {
+        onSuccess();
+      } else {
+        toast.error(result.message || "Failed to submit request");
+      }
     } catch (error: any) {
       toast.error(
         error?.data?.message || "Failed to submit request. Please try again.",

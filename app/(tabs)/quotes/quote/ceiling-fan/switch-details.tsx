@@ -199,7 +199,7 @@ export default function SwitchDetails() {
         <BackButton
           onPress={() =>
             router.push({
-              pathname: "/(tabs)/quotes/quote/ceiling-fan/fan-details" as any,
+              pathname: "/(tabs)/quotes/quote/ceiling-fan/fan-details",
               params: { serviceCallId, serviceType },
             })
           }
@@ -207,7 +207,7 @@ export default function SwitchDetails() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: verticalScale(32) }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -311,8 +311,7 @@ export default function SwitchDetails() {
               label="Continue"
               onPress={() =>
                 router.push({
-                  pathname:
-                    "/(tabs)/quotes/quote/ceiling-fan/additional-info" as any,
+                  pathname: "/(tabs)/quotes/quote/ceiling-fan/addtional-info",
                   params: { serviceCallId, serviceType },
                 })
               }

@@ -662,7 +662,7 @@ export type FanLocation =
   | "Other"
   | "";
 
-export type InstallationType = "Replacement" | "New install" | "";
+export type InstallationType = "Replacement" | "New Install" | "";
 export type YesNo = "Yes" | "No" | "";
 export type YesNoUnsure = "Yes" | "No" | "I'm not sure" | "";
 export type SwitchConnection =
@@ -675,7 +675,7 @@ export interface CeilingFanDetails {
   // St1 - Installation Type
   installationType: InstallationType;
   photosOfCurrentCeilingFan: string[];
-  aboveBelowAreaOfCeilingFan: string[];
+  aboveBelowAreaOfCeilingFan: string;
   isThereCurrentLightFixture: YesNo;
   wasAreaPrewired: YesNoUnsure;
 

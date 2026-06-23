@@ -1,7 +1,7 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useCreateDedicatedCircuitMutation } from "@/src/redux/api-slices/quote/dedicatedCircuitApi";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
@@ -19,6 +19,8 @@ interface DedicatedCircuitReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -75,8 +77,10 @@ const DedicatedCircuitReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: DedicatedCircuitReviewFormProps) => {
-  const [createDedicatedCircuit] = useCreateDedicatedCircuitMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ────────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -236,7 +240,7 @@ const DedicatedCircuitReviewForm = ({
       photosOfElectricalMeter: details.photosOfElectricalMeter,
       photosOfInstallationLocation: details.photosOfInstallationLocation,
       additionalInformation: details.additionalInformation,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -244,10 +248,28 @@ const DedicatedCircuitReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createDedicatedCircuit(
-        createFormData(payload) as any,
-      ).unwrap();
-      console.log("Submit result:", result);
+      let result;
+
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Dedicated Circuit Installation",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Dedicated Circuit Installation",
+          createFormData({
+            serviceType: serviceType || "Dedicated Circuit Installation",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

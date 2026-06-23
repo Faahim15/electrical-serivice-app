@@ -1,6 +1,6 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ServiceCallReview } from "@/src/components/quote/review/ServiceCallReview";
-import { useCreateServiceCallMutation } from "@/src/redux/api-slices/quote/quote-api";
+import { useDraftSave } from "@/src/hook/useDraftSave";
 import { RootState } from "@/src/redux/store";
 import React from "react";
 import { View } from "react-native";
@@ -13,6 +13,8 @@ interface ServiceCallReviewFormProps {
   onSuccess: () => void;
   setIsSubmitting: (value: boolean) => void;
   isSubmitting: boolean;
+  serviceCallId?: string;
+  serviceType?: string;
 }
 
 // ─── Helper to build FormData ────────────────────────────────────────────────
@@ -28,8 +30,10 @@ const ServiceCallReviewForm = ({
   onSuccess,
   setIsSubmitting,
   isSubmitting,
+  serviceCallId,
+  serviceType,
 }: ServiceCallReviewFormProps) => {
-  const [createServiceCall] = useCreateServiceCallMutation();
+  const { createDraft, updateDraft } = useDraftSave();
 
   // ─── Get values from Redux ──────────────────────────────────────────────────
   const contactDetails = useSelector(
@@ -156,7 +160,7 @@ const ServiceCallReviewForm = ({
       extraReferencePhotos: details.extraReferencePhotos,
       notes: details.notes,
       quickTags: details.quickTags,
-      status: "submitted" as const,
+      status: "pending" as const,
       completionPercentage: 100,
     };
 
@@ -164,9 +168,28 @@ const ServiceCallReviewForm = ({
 
     setIsSubmitting(true);
     try {
-      const result = await createServiceCall(createFormData(payload)).unwrap();
+      let result;
 
-      console.log("Submit result:", result);
+      // ─── Check if we have an ID (existing draft) or not ─────────────────────
+      if (serviceCallId) {
+        // ✅ UPDATE - existing draft
+        result = await updateDraft(
+          serviceCallId,
+          serviceType || "Service Call",
+          createFormData(payload),
+        );
+        console.log("Updated existing draft:", result);
+      } else {
+        // ✅ CREATE - new draft
+        result = await createDraft(
+          serviceType || "Service Call",
+          createFormData({
+            serviceType: serviceType || "Service Call",
+            ...payload,
+          }),
+        );
+        console.log("Created new draft:", result);
+      }
 
       if (result.success) {
         onSuccess();

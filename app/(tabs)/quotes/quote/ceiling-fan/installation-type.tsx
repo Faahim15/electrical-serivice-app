@@ -1,7 +1,6 @@
 import AuthHeading from "@/src/components/auth/AuthHeading";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
-import OptionGrid from "@/src/components/quote/OptionGrid";
 import PhotoUploadSection from "@/src/components/quote/PhotoUploadSection";
 import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
@@ -95,7 +94,6 @@ export default function InstallationType() {
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
-  // Get values from Redux with correct field names
   const installationType =
     categoryData?.categoryId === "18"
       ? (categoryData.details as any)?.installationType || ""
@@ -106,8 +104,8 @@ export default function InstallationType() {
       : [];
   const aboveBelowAreaOfCeilingFan =
     categoryData?.categoryId === "18"
-      ? (categoryData.details as any)?.aboveBelowAreaOfCeilingFan || []
-      : [];
+      ? (categoryData.details as any)?.aboveBelowAreaOfCeilingFan || "" // ← Changed from [] to ""
+      : "";
   const isThereCurrentLightFixture =
     categoryData?.categoryId === "18"
       ? (categoryData.details as any)?.isThereCurrentLightFixture || ""
@@ -193,15 +191,44 @@ export default function InstallationType() {
 
   // ─── Handle area toggle ──────────────────────────────────────────────────────
   const toggleArea = (area: string) => {
-    const currentAreas = aboveBelowAreaOfCeilingFan || [];
-    const newAreas = currentAreas.includes(area)
-      ? currentAreas.filter((a: string) => a !== area)
-      : [...currentAreas, area];
-    dispatch(
-      updateCeilingFanDetails({
-        aboveBelowAreaOfCeilingFan: newAreas,
-      }),
-    );
+    // If already selected, deselect it (set to empty string)
+    if (aboveBelowAreaOfCeilingFan === area) {
+      dispatch(
+        updateCeilingFanDetails({
+          aboveBelowAreaOfCeilingFan: "",
+        }),
+      );
+    } else {
+      // Select this area
+      dispatch(
+        updateCeilingFanDetails({
+          aboveBelowAreaOfCeilingFan: area,
+        }),
+      );
+    }
+  };
+
+  // ─── Handle Installation Type Selection ─────────────────────────────────────
+  const handleInstallationTypeSelect = (value: string) => {
+    if (value === "Replacement") {
+      // Clear all New Install related fields
+      dispatch(
+        updateCeilingFanDetails({
+          installationType: "Replacement",
+          aboveBelowAreaOfCeilingFan: "",
+          isThereCurrentLightFixture: "",
+          wasAreaPrewired: "",
+        }),
+      );
+    } else if (value === "New Install") {
+      // Clear Replacement related fields
+      dispatch(
+        updateCeilingFanDetails({
+          installationType: "New Install",
+          photosOfCurrentCeilingFan: [],
+        }),
+      );
+    }
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
@@ -222,7 +249,7 @@ export default function InstallationType() {
       timelineUrgency: draft?.timelineUrgency || timeline || "",
       installationType: installationType || "",
       photosOfCurrentCeilingFan: photosOfCurrentCeilingFan || [],
-      aboveBelowAreaOfCeilingFan: aboveBelowAreaOfCeilingFan || [],
+      aboveBelowAreaOfCeilingFan: aboveBelowAreaOfCeilingFan || "", // ← Changed from [] to ""
       isThereCurrentLightFixture: isThereCurrentLightFixture === "Yes",
       wasAreaPrewired: wasAreaPrewired || "",
       status: "draft" as const,
@@ -264,7 +291,7 @@ export default function InstallationType() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: verticalScale(32) }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -277,20 +304,44 @@ export default function InstallationType() {
             subtitle="Is this a replacement or new install?"
           />
 
-          <OptionGrid
-            label="Is this a replacement or new install?"
-            options={["Replacement", "New install"]}
-            selected={installationType}
-            onSelect={(val) =>
-              dispatch(
-                updateCeilingFanDetails({
-                  installationType: val as any,
-                }),
-              )
-            }
-            numColumns={2}
-          />
+          {/* ─── Custom Single Select for Installation Type ─────────────────── */}
+          <Text className="text-[#1E293B] text-[15px] font-Inter_SemiBold mb-3">
+            Is this a replacement or new install?
+          </Text>
+          <View className="flex-row flex-wrap gap-2 mb-4">
+            {["Replacement", "New Install"].map((option) => {
+              const isSelected = installationType === option;
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => handleInstallationTypeSelect(option)}
+                  style={{
+                    width: "48%",
+                    paddingVertical: 13,
+                    paddingHorizontal: 18,
+                    borderRadius: 12,
+                    backgroundColor: isSelected ? "#0EA5E9" : "#FFFFFF",
+                    borderWidth: 1.5,
+                    borderColor: isSelected ? "#0EA5E9" : "#E2E8F0",
+                    shadowColor: "#94A3B8",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: isSelected ? 0 : 0.07,
+                    shadowRadius: 3,
+                    elevation: isSelected ? 0 : 1,
+                  }}
+                >
+                  <Text
+                    className="text-[13.5px] font-Inter_Medium text-center"
+                    style={{ color: isSelected ? "#FFFFFF" : "#475569" }}
+                  >
+                    {option}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
+          {/* ─── Replacement Section ────────────────────────────────────────── */}
           {installationType === "Replacement" && (
             <>
               <Text className="text-[#1E293B] text-[15px] font-Inter_Bold mb-3">
@@ -313,7 +364,8 @@ export default function InstallationType() {
             </>
           )}
 
-          {installationType === "New install" && (
+          {/* ─── New Install Section ────────────────────────────────────────── */}
+          {installationType === "New Install" && (
             <>
               <Text className="text-[#1E293B] text-[15px] font-Inter_SemiBold mb-3">
                 What is above / below the area the ceiling fan will be
@@ -321,9 +373,7 @@ export default function InstallationType() {
               </Text>
               <View className="flex-row flex-wrap gap-2 mb-4">
                 {AREA_OPTIONS.map((area) => {
-                  const isSelected = (
-                    aboveBelowAreaOfCeilingFan || []
-                  ).includes(area);
+                  const isSelected = aboveBelowAreaOfCeilingFan === area; // ← Changed from .includes() to ===
                   return (
                     <Pressable
                       key={area}
@@ -348,33 +398,92 @@ export default function InstallationType() {
                 })}
               </View>
 
-              <OptionGrid
-                label="Is there a current light fixture where you want the fan installed?"
-                options={["Yes", "No"]}
-                selected={isThereCurrentLightFixture}
-                onSelect={(val) =>
-                  dispatch(
-                    updateCeilingFanDetails({
-                      isThereCurrentLightFixture: val as any,
-                    }),
-                  )
-                }
-                numColumns={2}
-              />
+              {/* ─── Custom Single Select for Light Fixture ─────────────────── */}
+              <Text className="text-[#1E293B] text-[15px] font-Inter_SemiBold mb-3">
+                Is there a current light fixture where you want the fan
+                installed?
+              </Text>
+              <View className="flex-row flex-wrap gap-2 mb-4">
+                {["Yes", "No"].map((option) => {
+                  const isSelected = isThereCurrentLightFixture === option;
+                  return (
+                    <Pressable
+                      key={option}
+                      onPress={() =>
+                        dispatch(
+                          updateCeilingFanDetails({
+                            isThereCurrentLightFixture: option as any,
+                          }),
+                        )
+                      }
+                      style={{
+                        width: "48%",
+                        paddingVertical: 13,
+                        paddingHorizontal: 18,
+                        borderRadius: 12,
+                        backgroundColor: isSelected ? "#0EA5E9" : "#FFFFFF",
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? "#0EA5E9" : "#E2E8F0",
+                        shadowColor: "#94A3B8",
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: isSelected ? 0 : 0.07,
+                        shadowRadius: 3,
+                        elevation: isSelected ? 0 : 1,
+                      }}
+                    >
+                      <Text
+                        className="text-[13.5px] font-Inter_Medium text-center"
+                        style={{ color: isSelected ? "#FFFFFF" : "#475569" }}
+                      >
+                        {option}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-              <OptionGrid
-                label="Was the area prewired for a ceiling fan?"
-                options={["Yes", "No", "I'm not sure"]}
-                selected={wasAreaPrewired}
-                onSelect={(val) =>
-                  dispatch(
-                    updateCeilingFanDetails({
-                      wasAreaPrewired: val as any,
-                    }),
-                  )
-                }
-                numColumns={1}
-              />
+              {/* ─── Custom Single Select for Prewired ──────────────────────── */}
+              <Text className="text-[#1E293B] text-[15px] font-Inter_SemiBold mb-3">
+                Was the area prewired for a ceiling fan?
+              </Text>
+              <View className="flex-row flex-wrap gap-2 mb-4">
+                {["Yes", "No", "I'm not sure"].map((option) => {
+                  const isSelected = wasAreaPrewired === option;
+                  return (
+                    <Pressable
+                      key={option}
+                      onPress={() =>
+                        dispatch(
+                          updateCeilingFanDetails({
+                            wasAreaPrewired: option as any,
+                          }),
+                        )
+                      }
+                      style={{
+                        width: "100%",
+                        paddingVertical: 13,
+                        paddingHorizontal: 18,
+                        borderRadius: 12,
+                        backgroundColor: isSelected ? "#0EA5E9" : "#FFFFFF",
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? "#0EA5E9" : "#E2E8F0",
+                        shadowColor: "#94A3B8",
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: isSelected ? 0 : 0.07,
+                        shadowRadius: 3,
+                        elevation: isSelected ? 0 : 1,
+                      }}
+                    >
+                      <Text
+                        className="text-[13.5px] font-Inter_Medium text-center"
+                        style={{ color: isSelected ? "#FFFFFF" : "#475569" }}
+                      >
+                        {option}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </>
           )}
 
@@ -383,8 +492,7 @@ export default function InstallationType() {
               label="Continue"
               onPress={() =>
                 router.push({
-                  pathname:
-                    "/(tabs)/quotes/quote/ceiling-fan/fan-details" as any,
+                  pathname: "/(tabs)/quotes/quote/ceiling-fan/fan-details",
                   params: { serviceCallId, serviceType },
                 })
               }

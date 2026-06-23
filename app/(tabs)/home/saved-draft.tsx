@@ -32,7 +32,15 @@ const SavedDraft = () => {
     return data.data.flatMap((group) => group.data);
   }, [data]);
 
-  const skeletonCount = drafts.length || 3;
+  // Persist last known count so skeletons match real list on refresh too
+  const skeletonCountRef = useRef(5);
+  useEffect(() => {
+    if (drafts.length) skeletonCountRef.current = drafts.length;
+  }, [drafts]);
+
+  const skeletonCount =
+    data?.data?.flatMap((group) => group.data).length ||
+    skeletonCountRef.current;
 
   const headerSlide = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -60,7 +68,6 @@ const SavedDraft = () => {
   };
 
   const { deleteDraft, isDeleting } = useDeleteDraft(() => {
-    // Refetch after successful delete
     refetch();
   });
 
@@ -121,10 +128,6 @@ const SavedDraft = () => {
   // ─── Modal helpers ───────────────────────────────────────────────────────────
 
   const openDeleteModal = (id: string, serviceType: string) => {
-    console.log("=== OPEN DELETE MODAL ===");
-    console.log("Draft ID:", id);
-    console.log("Service Type:", serviceType);
-
     setDeleteTarget({ id, serviceType });
     modalOpacity.setValue(0);
     modalScale.setValue(0.88);
@@ -144,7 +147,6 @@ const SavedDraft = () => {
   };
 
   const closeModal = () => {
-    console.log("=== CLOSE DELETE MODAL ===");
     Animated.timing(modalOpacity, {
       toValue: 0,
       duration: 180,
@@ -153,21 +155,8 @@ const SavedDraft = () => {
   };
 
   const handleConfirmDelete = async () => {
-    console.log("=== CONFIRM DELETE ===");
-    console.log("Delete Target:", deleteTarget);
-
-    if (!deleteTarget) {
-      console.log("No delete target found!");
-      return;
-    }
-
-    console.log("Calling deleteDraft with:", {
-      id: deleteTarget.id,
-      serviceType: deleteTarget.serviceType,
-    });
-
+    if (!deleteTarget) return;
     await deleteDraft(deleteTarget.id, deleteTarget.serviceType);
-    console.log("Delete operation completed, closing modal");
     closeModal();
   };
 
