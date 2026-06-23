@@ -27,8 +27,8 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
-const CURRENT_STEP = 3;
-const TOTAL_STEPS = 4;
+const CURRENT_STEP = 6;
+const TOTAL_STEPS = 8;
 
 const SWITCH_KINDS = [
   "Standard (Toggle)",

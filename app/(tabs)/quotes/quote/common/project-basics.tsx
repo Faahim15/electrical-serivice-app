@@ -276,7 +276,8 @@ export default function ProjectBasics() {
     // ─── Dedicated Circuit (id: 13) ───────────────────────────────────────────
     else if (
       selectedCategory?.id === "13" ||
-      serviceType === "Dedicated Circuit"
+      serviceType === "Dedicated Circuit" ||
+      serviceType === "Dedicated Circuit Installation"
     ) {
       dispatch(selectCategory("13"));
       router.push({
@@ -285,7 +286,11 @@ export default function ProjectBasics() {
       });
     }
     // ─── Exhaust Fan (id: 14) ─────────────────────────────────────────────────
-    else if (selectedCategory?.id === "14" || serviceType === "Exhaust Fan") {
+    else if (
+      selectedCategory?.id === "14" ||
+      serviceType === "Exhaust Fan" ||
+      serviceType === "Exhaust Fan Installation"
+    ) {
       dispatch(selectCategory("14"));
       router.push({
         pathname: "/(tabs)/quotes/quote/exhaust-fan/fan-details" as any,
@@ -315,7 +320,11 @@ export default function ProjectBasics() {
       });
     }
     // ─── Switches (id: 17) ─────────────────────────────────────────────────────
-    else if (selectedCategory?.id === "17" || serviceType === "Switches") {
+    else if (
+      selectedCategory?.id === "17" ||
+      serviceType === "Switches" ||
+      serviceType === "Switches Installation"
+    ) {
       dispatch(selectCategory("17"));
       router.push({
         pathname: "/(tabs)/quotes/quote/switches/switch-details" as any,
@@ -323,7 +332,11 @@ export default function ProjectBasics() {
       });
     }
     // ─── Lighting (id: 18) ────────────────────────────────────────────────────
-    else if (selectedCategory?.id === "18" || serviceType === "Lighting") {
+    else if (
+      selectedCategory?.id === "18" ||
+      serviceType === "Lighting" ||
+      serviceType === "Lighting Installation"
+    ) {
       dispatch(selectCategory("18"));
       router.push({
         pathname: "/(tabs)/quotes/quote/lighting/lighting-type",

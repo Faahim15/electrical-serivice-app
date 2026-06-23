@@ -1,8 +1,4 @@
-import {
-  FixtureWeight,
-  InstallType,
-  SwitchNewExisting,
-} from "@/src/redux/slices/globalstore/lightingDataSlice";
+import { FixtureWeight } from "@/src/redux/slices/globalstore/lightingDataSlice";
 import { updateLightingDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { LightingSectionProps } from "@/src/types/lighting.types";
@@ -54,6 +50,8 @@ export const InteriorSection = ({
     return (lightingDetails as any)?.[field] ?? "";
   };
 
+  const interiorInstallType = getValue("interiorInstallType");
+
   return (
     <SectionCard>
       <Text className="text-lg font-Inter_SemiBold text-[#1F2937] mb-4">
@@ -98,18 +96,26 @@ export const InteriorSection = ({
 
       <Label>Is this a new install or replacement light fixture(s)?</Label>
       <View className="flex-row gap-3 mb-4">
-        {(["New Installation", "Replacement"] as InstallType[]).map((opt) => (
-          <View key={opt!} style={{ flex: 1 }}>
+        {["New Installation", "Replacement"].map((opt) => (
+          <View key={opt} style={{ flex: 1 }}>
             <OptionButton
-              label={opt!}
-              selected={getValue("interiorInstallType") === opt}
-              onPress={() => updateField("interiorInstallType", opt)}
+              label={opt}
+              selected={interiorInstallType === opt}
+              onPress={() => {
+                if (opt === "New Installation") {
+                  updateField("interiorInstallType", "New Installation");
+                  updateField("photosOfCurrentLightFixture", []);
+                } else if (opt === "Replacement") {
+                  updateField("interiorInstallType", "Replacement");
+                  updateField("photosOfWhereWantToInstall", []);
+                }
+              }}
             />
           </View>
         ))}
       </View>
 
-      {getValue("interiorInstallType") === "New Installation" && (
+      {interiorInstallType === "New Installation" && (
         <>
           <Label>
             Upload photos of the area where you want light fixture(s) installed
@@ -129,7 +135,7 @@ export const InteriorSection = ({
         </>
       )}
 
-      {getValue("interiorInstallType") === "Replacement" && (
+      {interiorInstallType === "Replacement" && (
         <>
           <Label>Upload photos of current light fixture(s)</Label>
           <View className="mb-4">
@@ -197,10 +203,10 @@ export const InteriorSection = ({
         Will the fixture(s) be connected to a new or existing switch?
       </Label>
       <View className="flex-row gap-3 mb-4">
-        {(["New", "Existing"] as SwitchNewExisting[]).map((opt) => (
-          <View key={opt!} style={{ flex: 1 }}>
+        {["New", "Existing"].map((opt) => (
+          <View key={opt} style={{ flex: 1 }}>
             <OptionButton
-              label={opt!}
+              label={opt}
               selected={getValue("switchNewExisting") === opt}
               onPress={() => updateField("switchNewExisting", opt)}
             />

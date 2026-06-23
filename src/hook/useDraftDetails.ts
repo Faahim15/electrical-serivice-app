@@ -14,13 +14,6 @@ import { useGetPanelUpgradeByIdQuery } from "../redux/api-slices/quote/quote-api
 import { useGetRemodelingByIdQuery } from "../redux/api-slices/quote/remodeling-api";
 import { useGetStarlinkByIdQuery } from "../redux/api-slices/quote/starLinkApi";
 
-// ─── New Imports ──────────────────────────────────────────────────────────────
-// import { useGetExhaustFanByIdQuery } from "@/src/redux/api-slices/quote/exhaustFanApi";
-// import { useGetOutletsByIdQuery } from "@/src/redux/api-slices/quote/outletsApi";
-// import { useGetSwitchesByIdQuery } from "@/src/redux/api-slices/quote/switchesApi";
-// import { useGetLightingByIdQuery } from "@/src/redux/api-slices/quote/lightingApi";
-// import { useGetCeilingFanByIdQuery } from "@/src/redux/api-slices/quote/ceilingFanApi";
-
 import { useGetCeilingFanByIdQuery } from "../redux/api-slices/quote/ceiling-fan-api";
 import { useGetExhaustFanByIdQuery } from "../redux/api-slices/quote/exhaust-fan-api";
 import { useGetLightingByIdQuery } from "../redux/api-slices/quote/lighting-api";
@@ -91,7 +84,9 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
   const isSwitches =
     !!id &&
     (serviceType === "Switches" || serviceType === "Switches Installation");
-  const isLighting = !!id && serviceType === "Lighting";
+  const isLighting =
+    !!id &&
+    (serviceType === "Lighting" || serviceType === "Lighting Installation");
   const isCeilingFan =
     !!id &&
     (serviceType === "Ceiling Fan" ||

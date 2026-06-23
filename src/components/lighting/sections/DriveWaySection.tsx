@@ -1,8 +1,4 @@
-import {
-  InstallType,
-  PowerControl,
-  SwitchNewExisting,
-} from "@/src/redux/slices/globalstore/lightingDataSlice";
+import { PowerControl } from "@/src/redux/slices/globalstore/lightingDataSlice";
 import { updateLightingDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { LightingSectionProps } from "@/src/types/lighting.types";
@@ -35,6 +31,8 @@ export const DrivewaySection = ({
     return (lightingDetails as any)?.[field] ?? "";
   };
 
+  const drivewayInstallType = getValue("drivewayInstallType");
+
   return (
     <SectionCard>
       <Text className="text-[#0A0A0A] font-Inter_SemiBold text-base mb-4">
@@ -43,18 +41,26 @@ export const DrivewaySection = ({
 
       <Label>Is this a new install or replacement lighting?</Label>
       <View className="flex-row gap-3 mb-4">
-        {(["New Installation", "Replacement"] as InstallType[]).map((opt) => (
-          <View key={opt!} style={{ flex: 1 }}>
+        {["New Installation", "Replacement"].map((opt) => (
+          <View key={opt} style={{ flex: 1 }}>
             <OptionButton
-              label={opt!}
-              selected={getValue("drivewayInstallType") === opt}
-              onPress={() => updateField("drivewayInstallType", opt)}
+              label={opt}
+              selected={drivewayInstallType === opt}
+              onPress={() => {
+                if (opt === "New Installation") {
+                  updateField("drivewayInstallType", "New Installation");
+                  updateField("drivewayPhotosCurrent", []);
+                } else if (opt === "Replacement") {
+                  updateField("drivewayInstallType", "Replacement");
+                  updateField("drivewayPhotosNew", []);
+                }
+              }}
             />
           </View>
         ))}
       </View>
 
-      {getValue("drivewayInstallType") === "New Installation" && (
+      {drivewayInstallType === "New Installation" && (
         <>
           <Label>
             Upload photos of the area where you want light fixture(s) installed
@@ -72,7 +78,7 @@ export const DrivewaySection = ({
         </>
       )}
 
-      {getValue("drivewayInstallType") === "Replacement" && (
+      {drivewayInstallType === "Replacement" && (
         <>
           <Label>Upload photos of current light fixture(s)</Label>
           <View className="mb-4">
@@ -151,10 +157,10 @@ export const DrivewaySection = ({
             Will the fixture(s) be connected to a new or existing switch?
           </Label>
           <View className="flex-row gap-3 mb-4">
-            {(["New", "Existing"] as SwitchNewExisting[]).map((opt) => (
-              <View key={opt!} style={{ flex: 1 }}>
+            {["New", "Existing"].map((opt) => (
+              <View key={opt} style={{ flex: 1 }}>
                 <OptionButton
-                  label={opt!}
+                  label={opt}
                   selected={getValue("drivewaySwitchNewExisting") === opt}
                   onPress={() => updateField("drivewaySwitchNewExisting", opt)}
                 />

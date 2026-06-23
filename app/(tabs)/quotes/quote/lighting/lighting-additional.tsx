@@ -158,7 +158,7 @@ export default function LightingAdditional() {
         <BackButton
           onPress={() =>
             router.push({
-              pathname: "/(tabs)/quotes/quote/lighting/lighting-interior",
+              pathname: "/(tabs)/quotes/quote/lighting/lighting-type",
               params: { serviceCallId, serviceType },
             })
           }

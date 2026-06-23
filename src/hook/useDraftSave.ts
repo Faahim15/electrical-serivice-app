@@ -266,6 +266,7 @@ export const useDraftSave = () => {
 
   // ─── Create (no existing draft yet) ─────────────────────────────────────────
   const createDraft = async (serviceType: string, body: DraftPayload) => {
+    console.log("from crateDraft", serviceType);
     switch (serviceType) {
       case "EV Charger Installation":
         return createEvCharger(body as any).unwrap();
@@ -392,6 +393,7 @@ export const useDraftSave = () => {
           formData: body as FormData,
         }).unwrap();
       case "Lighting":
+      case "Lighting Installation":
         return updateLighting({
           recordId: id,
           formData: body as FormData,

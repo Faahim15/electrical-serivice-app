@@ -99,6 +99,7 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
           await deleteSwitches(id).unwrap();
           break;
         case "Lighting":
+        case "Lighting Installation":
           await deleteLighting(id).unwrap();
           break;
         case "Ceiling Fan":

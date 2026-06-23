@@ -251,11 +251,11 @@ export const getResumeRoute = (
 
   // ─── Lighting ─────────────────────────────────────────────────────────────────
   if (serviceType === "Lighting" || serviceType === "Lighting Installation") {
-    if (completionPercentage <= 17)
+    if (completionPercentage <= 13)
       return "/(tabs)/quotes/quote/common/contact-details";
-    if (completionPercentage <= 33)
+    if (completionPercentage <= 25)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 50)
+    if (completionPercentage <= 38)
       return "/(tabs)/quotes/quote/common/project-basics";
     if (completionPercentage <= 67)
       return "/(tabs)/quotes/quote/lighting/lighting-type";
@@ -266,7 +266,10 @@ export const getResumeRoute = (
   }
 
   // ─── Exhaust Fan ─────────────────────────────────────────────────────────────
-  if (serviceType === "Exhaust Fan") {
+  if (
+    serviceType === "Exhaust Fan" ||
+    serviceType === "Exhaust Fan Installation"
+  ) {
     if (completionPercentage <= 12)
       return "/(tabs)/quotes/quote/common/contact-details";
     if (completionPercentage <= 25)
@@ -288,7 +291,7 @@ export const getResumeRoute = (
   }
 
   // ─── Outlets ─────────────────────────────────────────────────────────────────
-  if (serviceType === "Outlets") {
+  if (serviceType === "Outlets" || serviceType === "Outlets Installation") {
     if (completionPercentage <= 12)
       return "/(tabs)/quotes/quote/common/contact-details";
     if (completionPercentage <= 25)
@@ -334,19 +337,19 @@ export const getResumeRoute = (
     serviceType === "Ceiling Fan" ||
     serviceType === "Ceiling Fan Installation"
   ) {
-    if (completionPercentage <= 12)
+    if (completionPercentage <= 13)
       return "/(tabs)/quotes/quote/common/contact-details";
     if (completionPercentage <= 25)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 37)
+    if (completionPercentage <= 38)
       return "/(tabs)/quotes/quote/common/project-basics";
     if (completionPercentage <= 50)
       return "/(tabs)/quotes/quote/ceiling-fan/installation-type";
-    if (completionPercentage <= 62)
+    if (completionPercentage <= 63)
       return "/(tabs)/quotes/quote/ceiling-fan/fan-details";
     if (completionPercentage <= 75)
       return "/(tabs)/quotes/quote/ceiling-fan/switch-details";
-    if (completionPercentage <= 87)
+    if (completionPercentage <= 88)
       return "/(tabs)/quotes/quote/ceiling-fan/additional-info";
 
     return "/(tabs)/quotes/quote/ceiling-fan/additional-info";
