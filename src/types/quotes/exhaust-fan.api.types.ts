@@ -11,26 +11,28 @@ export interface ExhaustFanPayload {
   propertyType: string;
   ownershipStatus: string;
   timelineUrgency: string;
+
+  // ─── Exhaust Fan specific fields ──────────────────────────────────────────
   newOrReplacement: string;
   locationOfExhaustFan: string;
-  isRoofOrGableFan: string;
-  willSupplyAtticFan: boolean;
-  howManyStories: number;
-  whereElectricalPanelLocated: string;
-  existingDuctAndVentDiameterLocation: string;
-  willProvideKitchenExhaustFan: boolean;
-  willProvideBathroomExhaustFan: boolean;
-  typeOfExhaustFanWanted: string;
-  specialityControlsWanted: string;
-  aboveBelowAreaOfExhaustFan: string;
-  distanceOfElectricalPanelToExhaustFan: string;
-  additionalInformation?: string;
+  isRoofOrGableFan?: string;
+  willSupplyAtticFan?: boolean;
   photoOfNewFan?: string[];
+  howManyStories?: number;
   photosOfInstallationArea?: string[];
+  whereElectricalPanelLocated?: string;
   photosOfPanelCloseUp?: string[];
   photosOfPanelWideShot?: string[];
   photosOfCurrentKitchenExhaustFan?: string[];
   photosOfCurrentBathroomExhaustFan?: string[];
+  existingDuctAndVentDiameterLocation?: string;
+  willProvideKitchenExhaustFan?: boolean;
+  willProvideBathroomExhaustFan?: boolean;
+  typeOfExhaustFanWanted?: string;
+  specialityControlsWanted?: string;
+  aboveBelowAreaOfExhaustFan?: string;
+  distanceOfElectricalPanelToExhaustFan?: string;
+  additionalInformation?: string;
 }
 
 export interface ExhaustFanRecord extends ExhaustFanPayload {
@@ -39,6 +41,8 @@ export interface ExhaustFanRecord extends ExhaustFanPayload {
   createdBy: string;
   status: string;
   completionPercentage: number;
+  qId?: string;
+  internalNote?: string;
 }
 
 export interface ExhaustFanResponse {

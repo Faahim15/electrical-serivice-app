@@ -178,14 +178,16 @@ export default function ProjectBasics() {
 
     const params = { serviceType, serviceCallId };
 
-    // ─── Categories 1-10 ──────────────────────────────────────────────────────
+    // ─── Service Call (id: 1) ─────────────────────────────────────────────────
     if (selectedCategory?.id === "1" || serviceType === "Service Call") {
       dispatch(selectCategory("1"));
       router.push({
         pathname: "/(tabs)/quotes/quote/service-call/project-details",
         params,
       });
-    } else if (
+    }
+    // ─── EV Charger Installation (id: 2) ─────────────────────────────────────
+    else if (
       selectedCategory?.id === "2" ||
       serviceType === "EV Charger Installation"
     ) {
@@ -194,8 +196,11 @@ export default function ProjectBasics() {
         pathname: "/(tabs)/quotes/quote/ev-charger/ev-projectDetails",
         params,
       });
-    } else if (
+    }
+    // ─── Panel Upgrade/Replacement (id: 3) ───────────────────────────────────
+    else if (
       selectedCategory?.id === "3" ||
+      serviceType === "Panel Upgrade/Replacement" ||
       serviceType === "Panel Upgrade / Replacement"
     ) {
       dispatch(selectCategory("3"));
@@ -203,14 +208,19 @@ export default function ProjectBasics() {
         pathname: "/(tabs)/quotes/quote/panel-upgrade/service-type",
         params,
       });
-    } else if (selectedCategory?.id === "4" || serviceType === "Remodeling") {
+    }
+    // ─── Remodeling (id: 4) ───────────────────────────────────────────────────
+    else if (selectedCategory?.id === "4" || serviceType === "Remodeling") {
       dispatch(selectCategory("4"));
       router.push({
         pathname: "/(tabs)/quotes/quote/remodeling/project-basics",
         params,
       });
-    } else if (
+    }
+    // ─── Accessory Building / Shed Power (id: 5) ─────────────────────────────
+    else if (
       selectedCategory?.id === "5" ||
+      serviceType === "Accessory Building /\nShed Power" ||
       serviceType === "Accessory Building / Shed Power"
     ) {
       dispatch(selectCategory("5"));
@@ -218,8 +228,11 @@ export default function ProjectBasics() {
         pathname: "/(tabs)/quotes/quote/accessory-building/building-basics",
         params,
       });
-    } else if (
+    }
+    // ─── Hot Tub Installation (id: 6) ────────────────────────────────────────
+    else if (
       selectedCategory?.id === "6" ||
+      serviceType === "Hot Tub Installation" ||
       serviceType === "Hot tub installation"
     ) {
       dispatch(selectCategory("6"));
@@ -227,22 +240,29 @@ export default function ProjectBasics() {
         pathname: "/(tabs)/quotes/quote/hot-tub/hot-tub-info",
         params,
       });
-    } else if (selectedCategory?.id === "7" || serviceType === "Dock Power") {
+    }
+    // ─── Dock Power (id: 7) ───────────────────────────────────────────────────
+    else if (selectedCategory?.id === "7" || serviceType === "Dock Power") {
       dispatch(selectCategory("7"));
       router.push({
         pathname: "/(tabs)/quotes/quote/dock-power/dock-basics",
         params,
       });
-    } else if (
+    }
+    // ─── Electrical Systems Inspection (id: 8) ───────────────────────────────
+    else if (
       selectedCategory?.id === "8" ||
-      serviceType === "Electrical Systems Inspection"
+      serviceType === "Electrical Systems Inspection" ||
+      serviceType === "Electric System"
     ) {
       dispatch(selectCategory("8"));
       router.push({
         pathname: "/(tabs)/quotes/quote/electrical-inspection/inspection-type",
         params,
       });
-    } else if (
+    }
+    // ─── Generator Installation (id: 9) ──────────────────────────────────────
+    else if (
       selectedCategory?.id === "9" ||
       serviceType === "Generator Installation"
     ) {
@@ -251,7 +271,9 @@ export default function ProjectBasics() {
         pathname: "/(tabs)/quotes/quote/generator/generator-type",
         params,
       });
-    } else if (
+    }
+    // ─── New Construction (id: 10) ────────────────────────────────────────────
+    else if (
       selectedCategory?.id === "10" ||
       serviceType === "New Construction"
     ) {
@@ -261,19 +283,30 @@ export default function ProjectBasics() {
         params,
       });
     }
-    // ─── ID 11 is Solar Installation (skipped - has its own screen) ──────────
-    // ─── Whole Home Surge Protection (id: 12) ──────────────────────────────────
+    // ─── Whole Home Surge Protection (id: 11) ────────────────────────────────
     else if (
-      selectedCategory?.id === "12" ||
-      serviceType === "Whole Home Surge Protection"
+      selectedCategory?.id === "11" ||
+      serviceType === "Whole Home Surge Protection" ||
+      serviceType === "Home Surge Protection"
     ) {
-      dispatch(selectCategory("12"));
+      dispatch(selectCategory("11"));
       router.push({
         pathname: "/(tabs)/quotes/quote/surge-protection/surge-details",
         params,
       });
     }
-    // ─── Dedicated Circuit (id: 13) ───────────────────────────────────────────
+    // ─── Starlink Installation (id: 12) ──────────────────────────────────────
+    else if (
+      selectedCategory?.id === "12" ||
+      serviceType === "Starlink Installation"
+    ) {
+      dispatch(selectCategory("12"));
+      router.push({
+        pathname: "/(tabs)/quotes/quote/starlink/starLink-details",
+        params,
+      });
+    }
+    // ─── Dedicated Circuit (id: 13) ──────────────────────────────────────────
     else if (
       selectedCategory?.id === "13" ||
       serviceType === "Dedicated Circuit" ||
@@ -297,55 +330,49 @@ export default function ProjectBasics() {
         params,
       });
     }
-    // ─── Starlink Installation (id: 15) ───────────────────────────────────────
+    // ─── Outlets (id: 15) ────────────────────────────────────────────────────
     else if (
       selectedCategory?.id === "15" ||
-      serviceType === "Starlink Installation"
+      serviceType === "Outlets" ||
+      serviceType === "Outlet Installation"
     ) {
       dispatch(selectCategory("15"));
       router.push({
-        pathname: "/(tabs)/quotes/quote/starlink/starLink-details",
+        pathname: "/(tabs)/quotes/quote/outlets/outlets-details",
         params,
       });
     }
-    // ─── Outlets (id: 16) ─────────────────────────────────────────────────────
+    // ─── Switches (id: 16) ───────────────────────────────────────────────────
     else if (
       selectedCategory?.id === "16" ||
-      serviceType === "Outlet Installation"
-    ) {
-      dispatch(selectCategory("16"));
-      router.push({
-        pathname: "/(tabs)/quotes/quote/outlets/outlet-details" as any,
-        params,
-      });
-    }
-    // ─── Switches (id: 17) ─────────────────────────────────────────────────────
-    else if (
-      selectedCategory?.id === "17" ||
       serviceType === "Switches" ||
       serviceType === "Switches Installation"
     ) {
-      dispatch(selectCategory("17"));
+      dispatch(selectCategory("16"));
       router.push({
         pathname: "/(tabs)/quotes/quote/switches/switch-details" as any,
         params,
       });
     }
-    // ─── Lighting (id: 18) ────────────────────────────────────────────────────
+    // ─── Lighting (id: 17) ───────────────────────────────────────────────────
     else if (
-      selectedCategory?.id === "18" ||
+      selectedCategory?.id === "17" ||
       serviceType === "Lighting" ||
       serviceType === "Lighting Installation"
     ) {
-      dispatch(selectCategory("18"));
+      dispatch(selectCategory("17"));
       router.push({
         pathname: "/(tabs)/quotes/quote/lighting/lighting-type",
         params,
       });
     }
-    // ─── Ceiling Fan (id: 19) ─────────────────────────────────────────────────
-    else if (selectedCategory?.id === "19" || serviceType === "Ceiling Fan") {
-      dispatch(selectCategory("19"));
+    // ─── Ceiling Fan (id: 18) ────────────────────────────────────────────────
+    else if (
+      selectedCategory?.id === "18" ||
+      serviceType === "Ceiling Fan" ||
+      serviceType === "Ceiling Fan Installation"
+    ) {
+      dispatch(selectCategory("18"));
       router.push({
         pathname: "/(tabs)/quotes/quote/ceiling-fan/installation-type",
         params,

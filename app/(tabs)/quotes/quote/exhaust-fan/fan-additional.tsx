@@ -15,7 +15,7 @@ import {
 import { RootState } from "@/src/redux/store";
 import { ExhaustFanRecord } from "@/src/types/quotes/exhaust-fan.api.types";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
@@ -33,6 +33,7 @@ const createFormData = (payload: Record<string, any>) => {
 export default function FanAdditional() {
   const dispatch = useDispatch();
   const [localAdditionalNotes, setLocalAdditionalNotes] = useState("");
+  const isInitialMount = useRef(true);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -75,7 +76,7 @@ export default function FanAdditional() {
 
   // ─── Sync local state with Redux ────────────────────────────────────────────
   useEffect(() => {
-    if (reduxAdditionalNotes) {
+    if (reduxAdditionalNotes && !isInitialMount.current) {
       setLocalAdditionalNotes(reduxAdditionalNotes);
     }
   }, [reduxAdditionalNotes]);
@@ -91,6 +92,7 @@ export default function FanAdditional() {
         }),
       );
     }
+    isInitialMount.current = false;
   }, [draft]);
 
   // ─── Handler ──────────────────────────────────────────────────────────────────
@@ -99,8 +101,18 @@ export default function FanAdditional() {
     dispatch(updateExhaustFanDetails({ additionalNotes: text }));
   };
 
+  // ─── Get all details from Redux ─────────────────────────────────────────────
+  const getAllDetails = () => {
+    if (categoryData?.categoryId === "14" && categoryData.details) {
+      return categoryData.details as any;
+    }
+    return {};
+  };
+
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    const details = getAllDetails();
+
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -115,7 +127,54 @@ export default function FanAdditional() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      additionalInformation: localAdditionalNotes || "",
+
+      // ─── Exhaust Fan specific fields ────────────────────────────────────────
+      newOrReplacement: details.installationType || "",
+      locationOfExhaustFan: details.fanLocation || details.fanType || "",
+      isRoofOrGableFan: details.atticFanType || "",
+      willSupplyAtticFan:
+        details.existingFan === "Yes" || details.supplyingAtticFan === "Yes",
+      howManyStories: parseInt(details.stories) || 0,
+      whereElectricalPanelLocated:
+        details.panelLocation === "Other"
+          ? details.panelLocationOther
+          : details.panelLocation || "",
+      existingDuctAndVentDiameterLocation:
+        details.kitchenDuctInfo || details.bathroomDuctInfo || "",
+      willProvideKitchenExhaustFan: details.kitchenYesNo === "Yes",
+      willProvideBathroomExhaustFan: details.bathroomYesNo === "Yes",
+      typeOfExhaustFanWanted:
+        details.kitchenFanType || details.bathroomFanType || "",
+      specialityControlsWanted: details.specialtyControl || "",
+      aboveBelowAreaOfExhaustFan:
+        details.kitchenAreas?.length > 0
+          ? details.kitchenAreas[0]
+          : details.bathroomAreas?.length > 0
+            ? details.bathroomAreas[0]
+            : "",
+      distanceOfElectricalPanelToExhaustFan:
+        details.kitchenDist || details.bathroomDist || "",
+      additionalInformation:
+        localAdditionalNotes || details.additionalInformation || "",
+
+      // ─── Photos ──────────────────────────────────────────────────────────────
+      photosOfInstallationArea:
+        details.photosKitchenLocation?.length > 0
+          ? details.photosKitchenLocation
+          : details.photosBathromlocation?.length > 0
+            ? details.photosBathromlocation
+            : details.photosAtticLocation || [],
+      photoOfNewFan:
+        details.photosNewFan?.length > 0
+          ? details.photosNewFan
+          : details.photosKitchenNewFan?.length > 0
+            ? details.photosKitchenNewFan
+            : details.photosBathroomNewFan || [],
+      photosOfPanelCloseUp: details.panelClosePhotos || [],
+      photosOfPanelWideShot: details.panelWidePhotos || [],
+      photosOfCurrentKitchenExhaustFan: details.photosKitchenCurrentFan || [],
+      photosOfCurrentBathroomExhaustFan: details.photosBathroomCurrentFan || [],
+
       status: "draft" as const,
       completionPercentage,
     };

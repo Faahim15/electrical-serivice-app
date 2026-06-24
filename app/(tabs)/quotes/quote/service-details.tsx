@@ -263,7 +263,7 @@ const SERVICE_DETAIL_DATA: Record<
   },
 
   // ─── Whole Home Surge Protection (id: 12) ──────────────────────────────────
-  "12": {
+  "11": {
     subtitle:
       "Protect your home from damaging power surges with whole-home surge protection.",
     bestForItems: [
@@ -286,7 +286,7 @@ const SERVICE_DETAIL_DATA: Record<
   },
 
   // ─── Starlink Installation (id: 13) ────────────────────────────────────────
-  "13": {
+  "12": {
     subtitle:
       "Get help planning electrical setup and installation support for your Starlink equipment.",
     bestForItems: [
@@ -313,7 +313,7 @@ const SERVICE_DETAIL_DATA: Record<
   },
 
   // ─── Dedicated Circuit (id: 14) ────────────────────────────────────────────
-  "14": {
+  "13": {
     subtitle:
       "Request a dedicated circuit quote for equipment, appliances, or specialty power needs.",
     bestForItems: [
@@ -340,7 +340,7 @@ const SERVICE_DETAIL_DATA: Record<
   },
 
   // ─── Exhaust Fan (id: 15) ──────────────────────────────────────────────────
-  "15": {
+  "14": {
     subtitle:
       "Request a quote for attic, kitchen, or bathroom exhaust fan installation or replacement.",
     bestForItems: [
@@ -367,7 +367,7 @@ const SERVICE_DETAIL_DATA: Record<
   },
 
   // ─── Outlets (id: 16) ──────────────────────────────────────────────────────
-  "16": {
+  "15": {
     subtitle: "Request a quote for installing or replacing electrical outlets.",
     bestForItems: [
       { id: "1", text: "New outlet installation" },
@@ -393,7 +393,7 @@ const SERVICE_DETAIL_DATA: Record<
   },
 
   // ─── Switches (id: 17) ─────────────────────────────────────────────────────
-  "17": {
+  "16": {
     subtitle:
       "Request a quote for installing or replacing switches in your home or project area.",
     bestForItems: [
@@ -420,7 +420,7 @@ const SERVICE_DETAIL_DATA: Record<
   },
 
   // ─── Lighting (id: 18) ─────────────────────────────────────────────────────
-  "18": {
+  "17": {
     subtitle:
       "Request a quote for interior or exterior lighting installation or replacement.",
     bestForItems: [
@@ -448,7 +448,7 @@ const SERVICE_DETAIL_DATA: Record<
   },
 
   // ─── Ceiling Fan (id: 19) ──────────────────────────────────────────────────
-  "19": {
+  "18": {
     subtitle: "Request a quote for ceiling fan installation or replacement.",
     bestForItems: [
       { id: "1", text: "Replacing old ceiling fans" },
@@ -480,7 +480,7 @@ export default function ServiceDetails() {
   );
 
   // If Solar Installation (id: 11), redirect to its own screen
-  if (selectedCategory?.id === "11") {
+  if (selectedCategory?.id === "20") {
     // This should not happen as CategoryItem redirects directly
     // but just in case, redirect
     return null;

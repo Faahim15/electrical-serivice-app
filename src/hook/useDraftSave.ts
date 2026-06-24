@@ -294,8 +294,11 @@ export const useDraftSave = () => {
         return createDedicatedCircuit(body as any).unwrap();
       // ─── New Create Cases ──────────────────────────────────────────────────
       case "Exhaust Fan":
+      case "Exhaust Fan Installation":
         return createExhaustFan(body as any).unwrap();
       case "Outlets":
+      case "Outlets Installation":
+      case "Outlet Installation":
         return createOutlets(body as any).unwrap();
       case "Switches":
       case "Switches Installation":
@@ -377,11 +380,14 @@ export const useDraftSave = () => {
         }).unwrap();
       // ─── New Update Cases ──────────────────────────────────────────────────
       case "Exhaust Fan":
+      case "Exhaust Fan Installation":
         return updateExhaustFan({
           recordId: id,
           formData: body as FormData,
         }).unwrap();
       case "Outlets":
+      case "Outlets Installation":
+      case "Outlet Installation":
         return updateOutlets({
           recordId: id,
           formData: body as FormData,

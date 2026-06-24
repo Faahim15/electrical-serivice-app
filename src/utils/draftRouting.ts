@@ -270,19 +270,15 @@ export const getResumeRoute = (
     serviceType === "Exhaust Fan" ||
     serviceType === "Exhaust Fan Installation"
   ) {
-    if (completionPercentage <= 12)
+    if (completionPercentage <= 13)
       return "/(tabs)/quotes/quote/common/contact-details";
     if (completionPercentage <= 25)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 37)
+    if (completionPercentage <= 38)
       return "/(tabs)/quotes/quote/common/project-basics";
-    if (completionPercentage <= 50)
+    if (completionPercentage <= 67)
       return "/(tabs)/quotes/quote/exhaust-fan/fan-details";
-    if (completionPercentage <= 62)
-      return "/(tabs)/quotes/quote/exhaust-fan/fan-type";
-    if (completionPercentage <= 75)
-      return "/(tabs)/quotes/quote/exhaust-fan/fan-location";
-    if (completionPercentage <= 87)
+    if (completionPercentage <= 83)
       return "/(tabs)/quotes/quote/exhaust-fan/fan-photos";
     if (completionPercentage <= 100)
       return "/(tabs)/quotes/quote/exhaust-fan/fan-additional";
@@ -291,22 +287,24 @@ export const getResumeRoute = (
   }
 
   // ─── Outlets ─────────────────────────────────────────────────────────────────
-  if (serviceType === "Outlets" || serviceType === "Outlets Installation") {
-    if (completionPercentage <= 12)
+  if (
+    serviceType === "Outlets" ||
+    serviceType === "Outlets Installation" ||
+    serviceType === "Outlet Installation"
+  ) {
+    if (completionPercentage <= 13)
       return "/(tabs)/quotes/quote/common/contact-details";
     if (completionPercentage <= 25)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 37)
+    if (completionPercentage <= 38)
       return "/(tabs)/quotes/quote/common/project-basics";
     if (completionPercentage <= 50)
       return "/(tabs)/quotes/quote/outlets/outlet-details";
-    if (completionPercentage <= 62)
-      return "/(tabs)/quotes/quote/outlets/outlet-type";
+    if (completionPercentage <= 63)
+      return "/(tabs)/quotes/quote/outlets/outlet-install";
     if (completionPercentage <= 75)
-      return "/(tabs)/quotes/quote/outlets/outlet-location";
-    if (completionPercentage <= 87)
-      return "/(tabs)/quotes/quote/outlets/outlet-photos";
-    if (completionPercentage <= 100)
+      return "/(tabs)/quotes/quote/outlets/outlet-type";
+    if (completionPercentage <= 88)
       return "/(tabs)/quotes/quote/outlets/outlet-additional";
 
     return "/(tabs)/quotes/quote/outlets/outlet-additional";

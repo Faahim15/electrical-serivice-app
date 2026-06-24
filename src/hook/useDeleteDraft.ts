@@ -64,6 +64,7 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
           await deleteAccessoryBuilding(id).unwrap();
           break;
         case "Hot tub installation":
+        case "Hot tub Installation":
           await deleteHotTub(id).unwrap();
           break;
         case "Dock Power":
@@ -88,9 +89,12 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
           await deleteDedicatedCircuit(id).unwrap();
           break;
         // ─── New Categories ────────────────────────────────────────────────────
+        case "Exhaust Fan":
         case "Exhaust Fan Installation":
           await deleteExhaustFan(id).unwrap();
           break;
+        case "Outlets":
+        case "Outlets Installation":
         case "Outlet Installation":
           await deleteOutlets(id).unwrap();
           break;

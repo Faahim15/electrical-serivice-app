@@ -18,6 +18,7 @@ import {
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { ExhaustFanRecord } from "@/src/types/quotes/exhaust-fan.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
@@ -37,10 +38,14 @@ const createFormData = (payload: Record<string, any>) => {
 export default function FanPhotos() {
   const dispatch = useDispatch();
   const [uploadingSection, setUploadingSection] = useState<
-    "area" | "panel" | null
+    "panelClose" | "panelWide" | null
   >(null);
-  const [localAreaPhotos, setLocalAreaPhotos] = useState<string[]>([]);
-  const [localPanelPhotos, setLocalPanelPhotos] = useState<string[]>([]);
+  const [localPanelClosePhotos, setLocalPanelClosePhotos] = useState<string[]>(
+    [],
+  );
+  const [localPanelWidePhotos, setLocalPanelWidePhotos] = useState<string[]>(
+    [],
+  );
   const isInitialMount = useRef(true);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
@@ -80,57 +85,56 @@ export default function FanPhotos() {
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
-  const reduxAreaPhotos =
+  const reduxPanelClosePhotos =
     categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.photosOfInstallationArea || []
+      ? (categoryData.details as any)?.panelClosePhotos || []
       : [];
-  const reduxPanelPhotos =
+  const reduxPanelWidePhotos =
     categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.panelPhotos || []
+      ? (categoryData.details as any)?.panelWidePhotos || []
       : [];
 
   // ─── Sync local state with Redux ────────────────────────────────────────────
   useEffect(() => {
     const photosChanged =
-      JSON.stringify(reduxAreaPhotos) !== JSON.stringify(localAreaPhotos);
+      JSON.stringify(reduxPanelClosePhotos) !==
+      JSON.stringify(localPanelClosePhotos);
     if (photosChanged && !isInitialMount.current) {
-      setLocalAreaPhotos(reduxAreaPhotos);
+      setLocalPanelClosePhotos(reduxPanelClosePhotos);
     }
-  }, [reduxAreaPhotos]);
+  }, [reduxPanelClosePhotos]);
 
   useEffect(() => {
     const photosChanged =
-      JSON.stringify(reduxPanelPhotos) !== JSON.stringify(localPanelPhotos);
+      JSON.stringify(reduxPanelWidePhotos) !==
+      JSON.stringify(localPanelWidePhotos);
     if (photosChanged && !isInitialMount.current) {
-      setLocalPanelPhotos(reduxPanelPhotos);
+      setLocalPanelWidePhotos(reduxPanelWidePhotos);
     }
-  }, [reduxPanelPhotos]);
+  }, [reduxPanelWidePhotos]);
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
 
-    // Use photosOfInstallationArea - matches both API and Redux
-    if (draft.photosOfInstallationArea?.length) {
-      setLocalAreaPhotos(draft.photosOfInstallationArea);
+    // Panel close-up photos - matches API field
+    if (draft.photosOfPanelCloseUp?.length) {
+      setLocalPanelClosePhotos(draft.photosOfPanelCloseUp);
       dispatch(
         updateExhaustFanDetails({
-          photosOfInstallationArea: draft.photosOfInstallationArea,
+          panelClosePhotos: draft.photosOfPanelCloseUp,
         }),
       );
     }
 
-    // Combine panel close-up and wide shot photos
-    if (
-      draft.photosOfPanelCloseUp?.length ||
-      draft.photosOfPanelWideShot?.length
-    ) {
-      const allPanelPhotos = [
-        ...(draft.photosOfPanelCloseUp || []),
-        ...(draft.photosOfPanelWideShot || []),
-      ];
-      setLocalPanelPhotos(allPanelPhotos);
-      dispatch(updateExhaustFanDetails({ panelPhotos: allPanelPhotos }));
+    // Panel wide shot photos - matches API field
+    if (draft.photosOfPanelWideShot?.length) {
+      setLocalPanelWidePhotos(draft.photosOfPanelWideShot);
+      dispatch(
+        updateExhaustFanDetails({
+          panelWidePhotos: draft.photosOfPanelWideShot,
+        }),
+      );
     }
     isInitialMount.current = false;
   }, [draft]);
@@ -147,9 +151,11 @@ export default function FanPhotos() {
     return res.data[0];
   };
 
-  const handleAreaUploadSingle = async (localUri: string): Promise<string> => {
+  const handlePanelCloseUploadSingle = async (
+    localUri: string,
+  ): Promise<string> => {
     try {
-      setUploadingSection("area");
+      setUploadingSection("panelClose");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
       return url;
@@ -161,9 +167,11 @@ export default function FanPhotos() {
     }
   };
 
-  const handlePanelUploadSingle = async (localUri: string): Promise<string> => {
+  const handlePanelWideUploadSingle = async (
+    localUri: string,
+  ): Promise<string> => {
     try {
-      setUploadingSection("panel");
+      setUploadingSection("panelWide");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
       return url;
@@ -180,12 +188,12 @@ export default function FanPhotos() {
   };
 
   // ─── Photo change handlers ──────────────────────────────────────────────────
-  const handleAreaPhotosChange = (photos: string[]) => {
-    setLocalAreaPhotos(photos);
+  const handlePanelClosePhotosChange = (photos: string[]) => {
+    setLocalPanelClosePhotos(photos);
   };
 
-  const handlePanelPhotosChange = (photos: string[]) => {
-    setLocalPanelPhotos(photos);
+  const handlePanelWidePhotosChange = (photos: string[]) => {
+    setLocalPanelWidePhotos(photos);
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
@@ -204,8 +212,11 @@ export default function FanPhotos() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      photosOfInstallationArea: localAreaPhotos || [],
-      panelPhotos: localPanelPhotos || [],
+
+      // ─── Panel photos - matches API fields ──────────────────────────────────
+      photosOfPanelCloseUp: localPanelClosePhotos || [],
+      photosOfPanelWideShot: localPanelWidePhotos || [],
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -231,15 +242,19 @@ export default function FanPhotos() {
 
   const handleContinue = () => {
     // Save final values to Redux before navigating
-    if (localAreaPhotos.length > 0) {
+    if (localPanelClosePhotos.length > 0) {
       dispatch(
         updateExhaustFanDetails({
-          photosOfInstallationArea: localAreaPhotos,
+          panelClosePhotos: localPanelClosePhotos,
         }),
       );
     }
-    if (localPanelPhotos.length > 0) {
-      dispatch(updateExhaustFanDetails({ panelPhotos: localPanelPhotos }));
+    if (localPanelWidePhotos.length > 0) {
+      dispatch(
+        updateExhaustFanDetails({
+          panelWidePhotos: localPanelWidePhotos,
+        }),
+      );
     }
     router.push({
       pathname: "/(tabs)/quotes/quote/exhaust-fan/fan-additional" as any,
@@ -264,7 +279,7 @@ export default function FanPhotos() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -273,26 +288,26 @@ export default function FanPhotos() {
           <CategoryTag title={serviceType} />
 
           <AuthHeading
-            title="Photos Needed"
-            subtitle="Upload photos of the installation area and electrical panel"
+            title="Panel Photos"
+            subtitle="Upload photos of your electrical panel"
           />
 
           <PhotoUploadSection
-            label="Upload photos of the installation area"
-            photos={localAreaPhotos}
-            onPhotosChange={handleAreaPhotosChange}
-            onUploadSingle={handleAreaUploadSingle}
+            label="Upload photos of your electrical panel up close so we can see the breakers / panel label"
+            photos={localPanelClosePhotos}
+            onPhotosChange={handlePanelClosePhotosChange}
+            onUploadSingle={handlePanelCloseUploadSingle}
             onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "area"}
+            isUploading={uploadingSection === "panelClose"}
           />
 
           <PhotoUploadSection
-            label="Upload photos of your electrical panel"
-            photos={localPanelPhotos}
-            onPhotosChange={handlePanelPhotosChange}
-            onUploadSingle={handlePanelUploadSingle}
+            label="Upload photos of your electrical panel about 10 ft away"
+            photos={localPanelWidePhotos}
+            onPhotosChange={handlePanelWidePhotosChange}
+            onUploadSingle={handlePanelWideUploadSingle}
             onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
+            isUploading={uploadingSection === "panelWide"}
           />
 
           <GradientButton

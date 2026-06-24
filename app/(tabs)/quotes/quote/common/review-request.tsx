@@ -74,6 +74,8 @@ export default function ReviewRequest() {
     (c) => c.id === selectedCategoryId,
   );
 
+  console.log(selectedCategory);
+
   const serviceType =
     serviceTypeParam || selectedCategory?.title || "Service Call";
   const totalSteps = CATEGORY_TOTAL_STEPS[selectedCategory?.id ?? ""] ?? 8;

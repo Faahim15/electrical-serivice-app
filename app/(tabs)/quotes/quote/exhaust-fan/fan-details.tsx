@@ -1,13 +1,10 @@
 import AuthHeading from "@/src/components/auth/AuthHeading";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
-import OptionGrid from "@/src/components/quote/OptionGrid";
-import PhotoUploadSection from "@/src/components/quote/PhotoUploadSection";
 import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
-import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hook/useDraftDetails";
 import { useDraftSave } from "@/src/hook/useDraftSave";
 import {
@@ -22,24 +19,38 @@ import { RootState } from "@/src/redux/store";
 import { ExhaustFanRecord } from "@/src/types/quotes/exhaust-fan.api.types";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+
+// ─── Import reusable components ──────────────────────────────────────────────
+import {
+  AnimatedOption,
+  ExhaustFanSections,
+  Label,
+  OtherInput,
+  RowOption,
+  SectionCard,
+} from "@/src/components/exhaust-fan";
+import { verticalScale } from "@/src/utils/Scaling";
 
 const CURRENT_STEP = 4;
 const TOTAL_STEPS = 6;
 
-const INSTALL_TYPES = ["New Installation", "Replacement"];
-const FAN_LOCATIONS = ["Attic", "Kitchen", "Bathroom"];
-const ATTIC_FAN_TYPES = ["Roof fan", "Gable (wall) fan"];
-const STORIES = ["1", "2"];
-const PANEL_LOCATIONS = [
-  "Basement (Finished)",
-  "Basement (Unfinished)",
-  "Garage (Finished)",
-  "Garage (Unfinished)",
-  "Other",
-];
+type InstallType = "New Installation" | "Replacement";
+type FanLocation = "Attic" | "Kitchen" | "Bathroom";
+type PanelLocation =
+  | "Basement (Finished)"
+  | "Basement (Unfinished)"
+  | "Garage (Finished)"
+  | "Garage (Unfinished)"
+  | "Other";
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
@@ -50,9 +61,7 @@ const createFormData = (payload: Record<string, any>) => {
 
 export default function FanDetails() {
   const dispatch = useDispatch();
-  const [uploadingSection, setUploadingSection] = useState<"panel" | null>(
-    null,
-  );
+  const [uploadingSection, setUploadingSection] = useState<string | null>(null);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -91,38 +100,60 @@ export default function FanDetails() {
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
-  const installType =
-    categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.installationType || ""
-      : "";
-  const fanLocation =
-    categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.fanType || ""
-      : "";
-  const existingFan =
-    categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.existingFan || ""
-      : "";
-  const atticFanType =
-    categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.atticFanType || ""
-      : "";
-  const stories =
-    categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.stories || ""
-      : "";
-  const panelLocation =
-    categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.panelLocation || ""
-      : "";
-  const panelPhotos =
-    categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.panelPhotos || []
-      : [];
-  const additionalNotes =
-    categoryData?.categoryId === "14"
-      ? (categoryData.details as any)?.additionalNotes || ""
-      : "";
+  const getValue = (field: string) => {
+    if (categoryData?.categoryId === "14") {
+      return (categoryData.details as any)?.[field] ?? "";
+    }
+    return "";
+  };
+
+  const getArrayValue = (field: string) => {
+    if (categoryData?.categoryId === "14") {
+      return (categoryData.details as any)?.[field] ?? [];
+    }
+    return [];
+  };
+
+  // Common fields
+  const installType = getValue("installationType");
+  const fanLocation = getValue("fanType");
+  const fanLocationText = getValue("fanLocation");
+  const additionalNotes = getValue("additionalNotes");
+
+  // Attic specific
+  const atticFanType = getValue("atticFanType");
+  const stories = getValue("stories");
+  const existingFan = getValue("existingFan");
+  const photosNewFan = getArrayValue("photosNewFan");
+  const photosAtticLocation = getArrayValue("photosAtticLocation");
+  const supplyingAtticFan = getValue("supplyingAtticFan");
+
+  // Kitchen specific
+  const kitchenDuctInfo = getValue("kitchenDuctInfo");
+  const kitchenYesNo = getValue("kitchenYesNo");
+  const kitchenFanType = getValue("kitchenFanType");
+  const kitchenAreas = getArrayValue("kitchenAreas");
+  const kitchenAreaOther = getValue("kitchenAreaOther");
+  const kitchenDist = getValue("kitchenDist");
+  const photosKitchenLocation = getArrayValue("photosKitchenLocation");
+  const photosKitchenCurrentFan = getArrayValue("photosKitchenCurrentFan");
+  const photosKitchenNewFan = getArrayValue("photosKitchenNewFan");
+
+  // Bathroom specific
+  const bathroomDuctInfo = getValue("bathroomDuctInfo");
+  const bathroomYesNo = getValue("bathroomYesNo");
+  const bathroomFanType = getValue("bathroomFanType");
+  const specialtyControl = getValue("specialtyControl");
+  const bathroomAreas = getArrayValue("bathroomAreas");
+  const bathroomAreaOther = getValue("bathroomAreaOther");
+  const bathroomDist = getValue("bathroomDist");
+  const photosBathromlocation = getArrayValue("photosBathromlocation");
+  const photosBathroomCurrentFan = getArrayValue("photosBathroomCurrentFan");
+  const photosBathroomNewFan = getArrayValue("photosBathroomNewFan");
+
+  // Panel location
+  const panelLocation = getValue("panelLocation");
+  const panelLocationOther = getValue("panelLocationOther");
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -179,9 +210,9 @@ export default function FanDetails() {
     return res.data[0];
   };
 
-  const handlePanelUploadSingle = async (localUri: string): Promise<string> => {
+  const handleUploadSingle = async (localUri: string): Promise<string> => {
     try {
-      setUploadingSection("panel");
+      setUploadingSection("uploading");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
       return url;
@@ -202,12 +233,101 @@ export default function FanDetails() {
     dispatch(updateExhaustFanDetails({ installationType: val as any }));
   };
 
-  const handleFanLocationSelect = (val: string) => {
-    dispatch(updateExhaustFanDetails({ fanType: val as any }));
+  const handleFanLocationSelect = (loc: FanLocation) => {
+    dispatch(updateExhaustFanDetails({ fanType: loc }));
+    // Clear location-specific fields when switching
+    if (loc === "Attic") {
+      dispatch(
+        updateExhaustFanDetails({
+          kitchenDuctInfo: "",
+          kitchenYesNo: "",
+          kitchenFanType: "",
+          kitchenAreas: [],
+          kitchenAreaOther: "",
+          kitchenDist: "",
+          photosKitchenLocation: [],
+          photosKitchenCurrentFan: [],
+          photosKitchenNewFan: [],
+          bathroomDuctInfo: "",
+          bathroomYesNo: "",
+          bathroomFanType: "",
+          specialtyControl: "",
+          bathroomAreas: [],
+          bathroomAreaOther: "",
+          bathroomDist: "",
+          photosBathromlocation: [],
+          photosBathroomCurrentFan: [],
+          photosBathroomNewFan: [],
+        }),
+      );
+    } else if (loc === "Kitchen") {
+      dispatch(
+        updateExhaustFanDetails({
+          atticFanType: "",
+          stories: "",
+          supplyingAtticFan: "",
+          photosNewFan: [],
+          photosAtticLocation: [],
+          bathroomDuctInfo: "",
+          bathroomYesNo: "",
+          bathroomFanType: "",
+          specialtyControl: "",
+          bathroomAreas: [],
+          bathroomAreaOther: "",
+          bathroomDist: "",
+          photosBathromlocation: [],
+          photosBathroomCurrentFan: [],
+          photosBathroomNewFan: [],
+        }),
+      );
+    } else if (loc === "Bathroom") {
+      dispatch(
+        updateExhaustFanDetails({
+          atticFanType: "",
+          stories: "",
+          supplyingAtticFan: "",
+          photosNewFan: [],
+          photosAtticLocation: [],
+          kitchenDuctInfo: "",
+          kitchenYesNo: "",
+          kitchenFanType: "",
+          kitchenAreas: [],
+          kitchenAreaOther: "",
+          kitchenDist: "",
+          photosKitchenLocation: [],
+          photosKitchenCurrentFan: [],
+          photosKitchenNewFan: [],
+        }),
+      );
+    }
+  };
+
+  const toggleKitchenArea = (area: any) => {
+    const current = kitchenAreas || [];
+    const newAreas = current.includes(area)
+      ? current.filter((a: string) => a !== area)
+      : [...current, area];
+    dispatch(updateExhaustFanDetails({ kitchenAreas: newAreas }));
+  };
+
+  const toggleBathroomArea = (area: any) => {
+    const current = bathroomAreas || [];
+    const newAreas = current.includes(area)
+      ? current.filter((a: string) => a !== area)
+      : [...current, area];
+    dispatch(updateExhaustFanDetails({ bathroomAreas: newAreas }));
+  };
+
+  // ─── Update field helper ─────────────────────────────────────────────────────
+  const updateField = (field: string, value: any) => {
+    dispatch(updateExhaustFanDetails({ [field]: value }));
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    const details =
+      categoryData?.categoryId === "14" ? (categoryData.details as any) : {};
+
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -222,14 +342,42 @@ export default function FanDetails() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
+
       newOrReplacement: installType || "",
-      locationOfExhaustFan: fanLocation || "",
+      locationOfExhaustFan: fanLocationText || fanLocation || "",
       isRoofOrGableFan: atticFanType || "",
+      willSupplyAtticFan: existingFan === "Yes" || supplyingAtticFan === "Yes",
       howManyStories: parseInt(stories) || 0,
-      willSupplyAtticFan: existingFan === "Yes",
-      whereElectricalPanelLocated: panelLocation || "",
-      panelPhotos: panelPhotos || [],
-      additionalNotes: additionalNotes || "",
+      whereElectricalPanelLocated:
+        panelLocation === "Other" ? panelLocationOther : panelLocation || "",
+      existingDuctAndVentDiameterLocation:
+        kitchenDuctInfo || bathroomDuctInfo || "",
+      willProvideKitchenExhaustFan: kitchenYesNo === "Yes",
+      willProvideBathroomExhaustFan: bathroomYesNo === "Yes",
+      typeOfExhaustFanWanted: kitchenFanType || bathroomFanType || "",
+      specialityControlsWanted: specialtyControl || "",
+      aboveBelowAreaOfExhaustFan:
+        kitchenAreas?.length > 0
+          ? kitchenAreas[0]
+          : bathroomAreas?.length > 0
+            ? bathroomAreas[0]
+            : "",
+      distanceOfElectricalPanelToExhaustFan: kitchenDist || bathroomDist || "",
+      additionalInformation: additionalNotes || "",
+
+      photosOfInstallationArea:
+        photosKitchenLocation.length > 0
+          ? photosKitchenLocation
+          : photosBathromlocation.length > 0
+            ? photosBathromlocation
+            : photosAtticLocation || [],
+      photoOfNewFan:
+        photosNewFan.length > 0
+          ? photosNewFan
+          : photosKitchenNewFan.length > 0
+            ? photosKitchenNewFan
+            : photosBathroomNewFan || [],
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -277,7 +425,7 @@ export default function FanDetails() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -286,96 +434,117 @@ export default function FanDetails() {
           <CategoryTag title={serviceType} />
 
           <AuthHeading
-            title="Exhaust Fan Details"
-            subtitle="Answer these exhaust-fan-specific questions"
+            title="Exhaust Fans"
+            subtitle="Answer these exhaust-fan-specific questions so we can estimate accurately."
           />
 
-          <OptionGrid
-            label="Is this a new installation or a replacement?"
-            options={INSTALL_TYPES}
-            selected={installType}
-            onSelect={handleInstallTypeSelect}
-            numColumns={1}
-          />
-
-          <OptionGrid
-            label="Where is the exhaust fan located?"
-            options={FAN_LOCATIONS}
-            selected={fanLocation}
-            onSelect={handleFanLocationSelect}
-            numColumns={1}
-          />
-
-          {fanLocation === "Attic" && (
-            <View>
-              <OptionGrid
-                label="Is it a roof or gable (wall) fan?"
-                options={ATTIC_FAN_TYPES}
-                selected={atticFanType}
-                onSelect={(val) =>
-                  dispatch(
-                    updateExhaustFanDetails({ atticFanType: val as any }),
-                  )
-                }
-                numColumns={1}
-              />
-              <OptionGrid
-                label="Will you be supplying the attic fan?"
-                options={["Yes", "No"]}
-                selected={existingFan}
-                onSelect={(val) =>
-                  dispatch(updateExhaustFanDetails({ existingFan: val as any }))
-                }
-                numColumns={1}
-              />
-              <OptionGrid
-                label="How many stories is your home?"
-                options={STORIES}
-                selected={stories}
-                onSelect={(val) =>
-                  dispatch(updateExhaustFanDetails({ stories: val }))
-                }
-                numColumns={1}
-              />
+          {/* ─── New or Replacement ───────────────────────────────────────────── */}
+          <SectionCard title="New or Replacement?">
+            <Text className="font-Inter_Regular text-sm text-[#717182] mb-3">
+              Is this a new installation or a replacement?
+            </Text>
+            <View className="flex-row gap-2.5">
+              {(["New Installation", "Replacement"] as InstallType[]).map(
+                (t) => (
+                  <AnimatedOption
+                    key={t}
+                    label={t}
+                    selected={installType === t}
+                    onPress={() => handleInstallTypeSelect(t)}
+                  />
+                ),
+              )}
             </View>
+          </SectionCard>
+
+          {/* ─── Fan Location ──────────────────────────────────────────────────── */}
+          <SectionCard title="Where is the exhaust fan located?">
+            {(["Attic", "Kitchen", "Bathroom"] as FanLocation[]).map((loc) => (
+              <RowOption
+                key={loc}
+                label={loc}
+                selected={fanLocation === loc}
+                onPress={() => handleFanLocationSelect(loc)}
+              />
+            ))}
+          </SectionCard>
+
+          {/* ─── Dynamic Section ──────────────────────────────────────────────── */}
+          {fanLocation && (
+            <ExhaustFanSections
+              fanLocation={fanLocation}
+              installType={installType}
+              // Attic
+              atticFanType={atticFanType}
+              supplyingAtticFan={supplyingAtticFan}
+              stories={stories}
+              photosNewFan={photosNewFan}
+              photosAtticLocation={photosAtticLocation}
+              // Kitchen
+              kitchenDuctInfo={kitchenDuctInfo}
+              kitchenYesNo={kitchenYesNo}
+              kitchenFanType={kitchenFanType}
+              kitchenAreas={kitchenAreas}
+              kitchenAreaOther={kitchenAreaOther}
+              kitchenDist={kitchenDist}
+              photosKitchenLocation={photosKitchenLocation}
+              photosKitchenCurrentFan={photosKitchenCurrentFan}
+              photosKitchenNewFan={photosKitchenNewFan}
+              // Bathroom
+              bathroomDuctInfo={bathroomDuctInfo}
+              bathroomYesNo={bathroomYesNo}
+              bathroomFanType={bathroomFanType}
+              specialtyControl={specialtyControl}
+              bathroomAreas={bathroomAreas}
+              bathroomAreaOther={bathroomAreaOther}
+              bathroomDist={bathroomDist}
+              photosBathromlocation={photosBathromlocation}
+              photosBathroomCurrentFan={photosBathroomCurrentFan}
+              photosBathroomNewFan={photosBathroomNewFan}
+              // Handlers
+              onUploadSingle={handleUploadSingle}
+              onDeleteSingle={deleteImageHandler}
+              isUploading={uploadingSection === "uploading"}
+              updateField={updateField}
+              toggleKitchenArea={toggleKitchenArea}
+              toggleBathroomArea={toggleBathroomArea}
+            />
           )}
 
-          <OptionGrid
-            label="Where is your electrical panel located?"
-            options={PANEL_LOCATIONS}
-            selected={panelLocation}
-            onSelect={(val) =>
-              dispatch(updateExhaustFanDetails({ panelLocation: val }))
-            }
-            numColumns={1}
-          />
+          {/* ─── Panel Location ────────────────────────────────────────────────── */}
+          <SectionCard title="Electrical Panel">
+            <Label text="Where is your electrical panel located?" />
+            {(
+              [
+                "Basement (Finished)",
+                "Basement (Unfinished)",
+                "Garage (Finished)",
+                "Garage (Unfinished)",
+                "Other",
+              ] as PanelLocation[]
+            ).map((p) => (
+              <RowOption
+                key={p}
+                label={p}
+                selected={panelLocation === p}
+                onPress={() => updateField("panelLocation", p)}
+              />
+            ))}
+            <OtherInput
+              visible={panelLocation === "Other"}
+              placeholder="Describe panel location..."
+              value={panelLocationOther}
+              onChangeText={(t) => updateField("panelLocationOther", t)}
+            />
+          </SectionCard>
 
-          <PhotoUploadSection
-            label="Upload photos of your electrical panel"
-            photos={panelPhotos}
-            onPhotosChange={(p) =>
-              dispatch(updateExhaustFanDetails({ panelPhotos: p }))
-            }
-            onUploadSingle={handlePanelUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
-          />
-
-          <TextAreaInput
-            label="Additional notes (optional)"
-            placeholder="Any additional information you'd like to share"
-            value={additionalNotes}
-            onChangeText={(text) =>
-              dispatch(updateExhaustFanDetails({ additionalNotes: text }))
-            }
-            minHeight={80}
-          />
-
-          <GradientButton
-            label="Continue"
-            onPress={handleContinue}
-            disabled={isSaving || uploadingSection !== null}
-          />
+          <View className="mt-6">
+            <GradientButton
+              label="Continue"
+              onPress={handleContinue}
+              disabled={isSaving || uploadingSection !== null}
+            />
+          </View>
           <SavedEditAction
             onPress={handleSaveForLater}
             title={isSaving ? "Saving..." : "Save for Later"}

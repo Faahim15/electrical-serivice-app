@@ -517,25 +517,96 @@ export interface DedicatedCircuitDetails {
 }
 
 // ============================================
-// id: "14" - Exhaust Fan
+// id: "14" - Exhaust Fan (Updated)
 // ============================================
 export type FanType = "Bathroom" | "Kitchen" | "Attic" | "Garage" | "";
 export type FanInstallationType = "Replacement" | "New Installation" | "";
 export type AtticFanType = "Roof fan" | "Gable (wall) fan" | "";
+export type Stories = "1" | "2";
+export type AreaOption =
+  | "Attic above"
+  | "Occupied space above"
+  | "Crawlspace (unfinished)"
+  | "Crawlspace (finished)"
+  | "Basement (unfinished)"
+  | "Basement (finished)"
+  | "Other"
+  | "";
+export type Distance =
+  | "Less than 25 ft"
+  | "25 – 50 ft"
+  | "50 – 100 ft"
+  | "More than 100 ft"
+  | "Unsure"
+  | "";
+export type BathroomFanType =
+  | "Standard"
+  | "Quiet operation"
+  | "Bluetooth speaker"
+  | "Light/fan combo"
+  | "Heater/light fan combo"
+  | "Heater/fan (no light) combo"
+  | "";
+export type SpecialtyControl =
+  | "No specialty control"
+  | "Speed control"
+  | "Humidity sensor"
+  | "Timer"
+  | "";
+export type KitchenFanType =
+  | "Hood fan over range / stove"
+  | "Over the range microwave"
+  | "Through the wall vent"
+  | "Through the ceiling (commonly over an Island)"
+  | "";
+
 export interface ExhaustFanDetails {
+  // ─── Common fields ──────────────────────────────────────────────────────────
   fanType: FanType;
   installationType: FanInstallationType;
-  existingFan: "Yes" | "No" | "";
   fanLocation: string;
   panelPhotos: string[];
   additionalNotes: string;
-  // ─── New fields ──────────────────────────────────────────────────────────────
+
+  // ─── Attic specific fields ──────────────────────────────────────────────────
   atticFanType: AtticFanType;
   stories: string;
-  panelLocation: string;
-  photosOfInstallationArea: string[]; // ← Add this
-}
+  existingFan: YesNo;
+  photosNewFan: string[];
+  photosAtticLocation: string[];
+  supplyingAtticFan: string;
 
+  // ─── Kitchen specific fields ─────────────────────────────────────────────────
+  kitchenDuctInfo: string;
+  kitchenYesNo: YesNo;
+  kitchenFanType: KitchenFanType;
+  kitchenAreas: AreaOption[];
+  kitchenAreaOther: string;
+  kitchenDist: Distance;
+  photosKitchenLocation: string[];
+  photosKitchenCurrentFan: string[];
+  photosKitchenNewFan: string[];
+
+  // ─── Bathroom specific fields ───────────────────────────────────────────────
+  bathroomDuctInfo: string;
+  bathroomYesNo: YesNo;
+  bathroomFanType: BathroomFanType;
+  specialtyControl: SpecialtyControl;
+  bathroomAreas: AreaOption[];
+  bathroomAreaOther: string;
+  bathroomDist: Distance;
+  photosBathromlocation: string[];
+  photosBathroomCurrentFan: string[];
+  photosBathroomNewFan: string[];
+
+  // ─── Panel location ──────────────────────────────────────────────────────────
+  panelLocation: string;
+  panelLocationOther: string;
+
+  // ─── Panel photos ────────────────────────────────────────────────────────────
+  panelClosePhotos: string[]; // ← Add this
+  panelWidePhotos: string[]; // ← Add this
+}
 // ============================================
 // id: "15" - Outlets
 // ============================================

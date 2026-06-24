@@ -230,20 +230,54 @@ export const initialDedicatedCircuitDetails: DedicatedCircuitDetails = {
 };
 
 // ============================================
-// id: "14" - Exhaust Fan
+// id: "14" - Exhaust Fan (Updated)
 // ============================================
 export const initialExhaustFanDetails: ExhaustFanDetails = {
+  // Common fields
   fanType: "",
   installationType: "",
-  existingFan: "",
   fanLocation: "",
   panelPhotos: [],
   additionalNotes: "",
-  // ─── New fields ──────────────────────────────────────────────────────────────
+
+  // Attic specific
   atticFanType: "",
   stories: "",
+  existingFan: "",
+  photosNewFan: [],
+  photosAtticLocation: [],
+  supplyingAtticFan: "",
+
+  // Kitchen specific
+  kitchenDuctInfo: "",
+  kitchenYesNo: "",
+  kitchenFanType: "",
+  kitchenAreas: [],
+  kitchenAreaOther: "",
+  kitchenDist: "",
+  photosKitchenLocation: [],
+  photosKitchenCurrentFan: [],
+  photosKitchenNewFan: [],
+
+  // Bathroom specific
+  bathroomDuctInfo: "",
+  bathroomYesNo: "",
+  bathroomFanType: "",
+  specialtyControl: "",
+  bathroomAreas: [],
+  bathroomAreaOther: "",
+  bathroomDist: "",
+  photosBathromlocation: [],
+  photosBathroomCurrentFan: [],
+  photosBathroomNewFan: [],
+
+  // Panel location
   panelLocation: "",
-  photosOfInstallationArea: [], // ← Add this
+  panelLocationOther: "",
+
+  // Panel photos
+  panelClosePhotos: [], // ← Add this
+  panelWidePhotos: [], // ← Add this
 };
 
 // ============================================

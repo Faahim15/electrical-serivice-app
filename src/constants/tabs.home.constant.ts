@@ -150,20 +150,19 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "11",
-    title: "Solar Installation",
-    description: "Electrical support for\nSolar system projects",
-    iconName: "sunny-outline",
-    iconBg: "#FEF9E8",
-    iconColor: "#F5C623",
-  },
-  // ─── New Categories (IDs 12-19) ──────────────────────────────────────────────
-  {
-    id: "12",
     title: "Whole Home Surge Protection",
     description: "Protect your entire electrical system",
     iconName: "shield-checkmark-outline",
     iconBg: "#E8F8F5",
     iconColor: "#2DC99C",
+  },
+  {
+    id: "12",
+    title: "Starlink Installation",
+    description: "Satellite internet setup",
+    iconName: "wifi-outline",
+    iconBg: "#E8F3FD",
+    iconColor: "#4A90D9",
   },
   {
     id: "13",
@@ -183,14 +182,6 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "15",
-    title: "Starlink Installation",
-    description: "Satellite internet setup",
-    iconName: "wifi-outline",
-    iconBg: "#E8F3FD",
-    iconColor: "#4A90D9",
-  },
-  {
-    id: "16",
     title: "Outlets",
     description: "Install or replace electrical outlets",
     iconName: "radio-outline",
@@ -198,7 +189,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     iconColor: "#888888",
   },
   {
-    id: "17",
+    id: "16",
     title: "Switches",
     description: "Light switches and controls",
     iconName: "toggle-outline",
@@ -206,7 +197,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     iconColor: "#F5C623",
   },
   {
-    id: "18",
+    id: "17",
     title: "Lighting",
     description: "Interior and exterior lighting",
     iconName: "bulb-outline",
@@ -214,11 +205,19 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     iconColor: "#F5C623",
   },
   {
-    id: "19",
+    id: "18",
     title: "Ceiling Fan",
     description: "Interior and exterior ceiling fan",
     iconName: "refresh-outline",
     iconBg: "#E8F3FD",
     iconColor: "#4A90D9",
+  },
+  {
+    id: "20",
+    title: "Solar Installation",
+    description: "Electrical support for\nSolar system projects",
+    iconName: "sunny-outline",
+    iconBg: "#FEF9E8",
+    iconColor: "#F5C623",
   },
 ];

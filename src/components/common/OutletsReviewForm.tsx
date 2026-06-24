@@ -186,6 +186,7 @@ const OutletsReviewForm = ({
         toast.error(result.message || "Failed to submit request");
       }
     } catch (error: any) {
+      console.log("show", error.data);
       toast.error(
         error?.data?.message || "Failed to submit request. Please try again.",
       );

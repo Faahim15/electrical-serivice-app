@@ -21,7 +21,7 @@ const CategoryItem = ({
     const categoryId = Number(item.id);
 
     // ─── Solar Installation (id: 11) - Single screen, no Redux slice ────────
-    if (categoryId === 11) {
+    if (categoryId === 20) {
       router.push("/(tabs)/quotes/quote/other/sollar-installation");
     }
     // ─── All other categories (1-10, 12-19) ──────────────────────────────────

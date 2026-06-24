@@ -25,8 +25,8 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
-const CURRENT_STEP = 2;
-const TOTAL_STEPS = 4;
+const CURRENT_STEP = 6;
+const TOTAL_STEPS = 8;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
@@ -186,7 +186,7 @@ export default function SwitchPhotos() {
         <BackButton
           onPress={() =>
             router.push({
-              pathname: "/(tabs)/quotes/quote/switches/switch-details",
+              pathname: "/(tabs)/quotes/quote/switches/switch-type",
               params: { serviceCallId, serviceType },
             })
           }
@@ -227,7 +227,7 @@ export default function SwitchPhotos() {
               label="Continue"
               onPress={() =>
                 router.push({
-                  pathname: "/(tabs)/quotes/quote/switches/switch-type",
+                  pathname: "/(tabs)/quotes/quote/switches/addtional-info",
                   params: { serviceCallId, serviceType },
                 })
               }

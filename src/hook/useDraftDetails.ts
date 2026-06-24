@@ -64,11 +64,14 @@ export type DraftResponse =
 export const useDraftDetails = (id?: string, serviceType?: string) => {
   const isServiceCall = !id || serviceType === "Service Call" || !serviceType;
   const isEvCharger = !!id && serviceType === "EV Charger Installation";
-  const isPanelUpgrade = !!id && serviceType === "Panel Upgrade / Replacement";
+  const isPanelUpgrade =
+    !!id &&
+    (serviceType === "Panel Upgrade / Replacement" ||
+      serviceType === "Panel Upgrade/Replacement");
   const isRemodeling = !!id && serviceType === "Remodeling";
   const isAccessoryBuilding =
     !!id && serviceType === "Accessory Building / Shed Power";
-  const isHotTub = !!id && serviceType === "Hot tub installation";
+  const isHotTub = !!id && serviceType === "Hot tub Installation";
   const isDockPower = !!id && serviceType === "Dock Power";
   const isElectric = !!id && serviceType === "Electric System";
   const isGenerator = !!id && serviceType === "Generator Installation";
@@ -79,8 +82,15 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
     !!id && serviceType === "Dedicated Circuit Installation";
 
   // ─── New Flags ──────────────────────────────────────────────────────────────
-  const isExhaustFan = !!id && serviceType === "Exhaust Fan";
-  const isOutlets = !!id && serviceType === "Outlets";
+  const isExhaustFan =
+    !!id &&
+    (serviceType === "Exhaust Fan" ||
+      serviceType === "Exhaust Fan Installation");
+  const isOutlets =
+    !!id &&
+    (serviceType === "Outlets" ||
+      serviceType === "Outlets Installation" ||
+      serviceType === "Outlet Installation");
   const isSwitches =
     !!id &&
     (serviceType === "Switches" || serviceType === "Switches Installation");
