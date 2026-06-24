@@ -15,7 +15,7 @@ const exhaustFanApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.ExhaustFan],
+      invalidatesTags: [TagTypes.ExhaustFan, TagTypes.Draft],
     }),
 
     // ─── Update Exhaust Fan ──────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const exhaustFanApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.ExhaustFan],
+      invalidatesTags: [TagTypes.ExhaustFan, TagTypes.Draft],
     }),
 
     // ─── Get My Exhaust Fans ─────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const exhaustFanApi = baseApi.injectEndpoints({
         url: `/exhaust-fans/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.ExhaustFan],
+      invalidatesTags: [TagTypes.ExhaustFan, TagTypes.Draft],
     }),
   }),
 });

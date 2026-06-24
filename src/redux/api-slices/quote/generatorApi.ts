@@ -15,7 +15,7 @@ const generatorApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Generator],
+      invalidatesTags: [TagTypes.Generator, TagTypes.Draft],
     }),
 
     // ─── Update Generator ────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const generatorApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Generator],
+      invalidatesTags: [TagTypes.Generator, TagTypes.Draft],
     }),
 
     // ─── Get My Generators ───────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const generatorApi = baseApi.injectEndpoints({
         url: `/generators/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.Generator],
+      invalidatesTags: [TagTypes.Generator, TagTypes.Draft],
     }),
   }),
 });

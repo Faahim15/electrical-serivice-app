@@ -15,7 +15,7 @@ const electricApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Electric],
+      invalidatesTags: [TagTypes.Electric, TagTypes.Draft],
     }),
 
     // ─── Update Electric ─────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const electricApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Electric],
+      invalidatesTags: [TagTypes.Electric, TagTypes.Draft],
     }),
 
     // ─── Get My Electrics ────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const electricApi = baseApi.injectEndpoints({
         url: `/electrics/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.Electric],
+      invalidatesTags: [TagTypes.Electric, TagTypes.Draft],
     }),
   }),
 });

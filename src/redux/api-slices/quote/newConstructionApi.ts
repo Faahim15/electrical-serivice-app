@@ -15,7 +15,7 @@ const newConstructionApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.NewConstruction],
+      invalidatesTags: [TagTypes.NewConstruction, TagTypes.Draft],
     }),
 
     // ─── Update New Construction ─────────────────────────────────────────────
@@ -28,7 +28,7 @@ const newConstructionApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.NewConstruction],
+      invalidatesTags: [TagTypes.NewConstruction, TagTypes.Draft],
     }),
 
     // ─── Get My New Constructions ────────────────────────────────────────────
@@ -58,7 +58,7 @@ const newConstructionApi = baseApi.injectEndpoints({
         url: `/new-constructions/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.NewConstruction],
+      invalidatesTags: [TagTypes.NewConstruction, TagTypes.Draft],
     }),
   }),
 });

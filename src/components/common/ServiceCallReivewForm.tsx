@@ -180,13 +180,10 @@ const ServiceCallReviewForm = ({
         );
         console.log("Updated existing draft:", result);
       } else {
-        // ✅ CREATE - new draft
+        // ✅ CREATE - new draft - Remove duplicate serviceType
         result = await createDraft(
           serviceType || "Service Call",
-          createFormData({
-            serviceType: serviceType || "Service Call",
-            ...payload,
-          }),
+          createFormData(payload), // ← Fixed: No duplicate serviceType
         );
         console.log("Created new draft:", result);
       }

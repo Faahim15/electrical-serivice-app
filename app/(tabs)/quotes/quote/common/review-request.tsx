@@ -107,7 +107,13 @@ export default function ReviewRequest() {
   const handleSubmitSuccess = () => {
     dispatch(clearServiceForm());
     toast.success("Service request submitted successfully!");
-    router.push("/(tabs)/home");
+    router.push({
+      pathname: "/(tabs)/quotes/quote/common/submit-quote",
+      params: {
+        serviceCallId: serviceCallId, // ← pass the ID
+        serviceType: serviceType, // ← pass the type
+      },
+    });
   };
 
   if (isLoadingDraft && serviceCallId) {

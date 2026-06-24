@@ -15,7 +15,7 @@ const hotTubApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.HotTub],
+      invalidatesTags: [TagTypes.HotTub, TagTypes.Draft],
     }),
 
     // ─── Update Hot Tub Installation ─────────────────────────────────────────
@@ -28,7 +28,7 @@ const hotTubApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.HotTub],
+      invalidatesTags: [TagTypes.HotTub, TagTypes.Draft],
     }),
 
     // ─── Get My Hot Tub Installations ────────────────────────────────────────
@@ -55,7 +55,7 @@ const hotTubApi = baseApi.injectEndpoints({
         url: `/hot-tub-installations/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.HotTub],
+      invalidatesTags: [TagTypes.HotTub, TagTypes.Draft],
     }),
   }),
 });

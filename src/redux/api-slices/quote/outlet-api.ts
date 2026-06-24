@@ -15,7 +15,7 @@ const outletApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Outlet],
+      invalidatesTags: [TagTypes.Outlet, TagTypes.Draft],
     }),
 
     // ─── Update Outlet ───────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const outletApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Outlet],
+      invalidatesTags: [TagTypes.Outlet, TagTypes.Draft],
     }),
 
     // ─── Get My Outlets ──────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const outletApi = baseApi.injectEndpoints({
         url: `/outlets/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.Outlet],
+      invalidatesTags: [TagTypes.Outlet, TagTypes.Draft],
     }),
   }),
 });

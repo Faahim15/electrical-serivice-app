@@ -18,7 +18,7 @@ const accessoryBuildingApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.AccessoryBuilding],
+      invalidatesTags: [TagTypes.AccessoryBuilding, TagTypes.Draft],
     }),
 
     // ─── Update Accessory Building ───────────────────────────────────────────
@@ -31,7 +31,7 @@ const accessoryBuildingApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.AccessoryBuilding],
+      invalidatesTags: [TagTypes.AccessoryBuilding, TagTypes.Draft],
     }),
 
     // ─── Get My Accessory Buildings ──────────────────────────────────────────
@@ -64,7 +64,7 @@ const accessoryBuildingApi = baseApi.injectEndpoints({
         url: `/accessory-building-powers/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.AccessoryBuilding],
+      invalidatesTags: [TagTypes.AccessoryBuilding, TagTypes.Draft],
     }),
   }),
 });

@@ -18,7 +18,7 @@ const dedicatedCircuitApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.DedicatedCircuit],
+      invalidatesTags: [TagTypes.DedicatedCircuit, TagTypes.Draft],
     }),
 
     // ─── Update Dedicated Circuit ────────────────────────────────────────────
@@ -31,7 +31,7 @@ const dedicatedCircuitApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.DedicatedCircuit],
+      invalidatesTags: [TagTypes.DedicatedCircuit, TagTypes.Draft],
     }),
 
     // ─── Get My Dedicated Circuits ───────────────────────────────────────────
@@ -63,7 +63,7 @@ const dedicatedCircuitApi = baseApi.injectEndpoints({
         url: `/dedicated-circuits/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.DedicatedCircuit],
+      invalidatesTags: [TagTypes.DedicatedCircuit, TagTypes.Draft],
     }),
   }),
 });

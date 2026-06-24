@@ -15,7 +15,7 @@ const remodelingApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Remodeling],
+      invalidatesTags: [TagTypes.Remodeling, TagTypes.Draft],
     }),
 
     // ─── Update Remodeling ───────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const remodelingApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Remodeling],
+      invalidatesTags: [TagTypes.Remodeling, TagTypes.Draft],
     }),
 
     // ─── Get My Remodelings ──────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const remodelingApi = baseApi.injectEndpoints({
         url: `/remodelings/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.Remodeling],
+      invalidatesTags: [TagTypes.Remodeling, TagTypes.Draft],
     }),
   }),
 });

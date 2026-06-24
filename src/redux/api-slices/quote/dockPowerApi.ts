@@ -15,7 +15,7 @@ const dockPowerApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.DockPower],
+      invalidatesTags: [TagTypes.DockPower, TagTypes.Draft],
     }),
 
     // ─── Update Dock Power ───────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const dockPowerApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.DockPower],
+      invalidatesTags: [TagTypes.DockPower, TagTypes.Draft],
     }),
 
     // ─── Get My Dock Powers ──────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const dockPowerApi = baseApi.injectEndpoints({
         url: `/dock-powers/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.DockPower],
+      invalidatesTags: [TagTypes.DockPower, TagTypes.Draft],
     }),
   }),
 });

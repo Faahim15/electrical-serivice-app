@@ -15,7 +15,7 @@ const switchesApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Switches],
+      invalidatesTags: [TagTypes.Switches, TagTypes.Draft],
     }),
 
     // ─── Update Switches ─────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const switchesApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Switches],
+      invalidatesTags: [TagTypes.Switches, TagTypes.Draft],
     }),
 
     // ─── Get My Switches ─────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const switchesApi = baseApi.injectEndpoints({
         url: `/switches/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.Switches],
+      invalidatesTags: [TagTypes.Switches, TagTypes.Draft],
     }),
   }),
 });

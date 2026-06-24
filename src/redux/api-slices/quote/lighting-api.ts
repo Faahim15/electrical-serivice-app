@@ -15,7 +15,7 @@ const lightingApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Lighting],
+      invalidatesTags: [TagTypes.Lighting, TagTypes.Draft],
     }),
 
     // ─── Update Lighting ─────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const lightingApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Lighting],
+      invalidatesTags: [TagTypes.Lighting, TagTypes.Draft],
     }),
 
     // ─── Get My Lightings ────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const lightingApi = baseApi.injectEndpoints({
         url: `/lighting/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.Lighting],
+      invalidatesTags: [TagTypes.Lighting, TagTypes.Draft],
     }),
   }),
 });

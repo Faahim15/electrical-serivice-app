@@ -26,7 +26,7 @@ const quoteApi = baseApi.injectEndpoints({
         url: "/service-calls/my",
         method: "GET",
       }),
-      providesTags: [TagTypes.User],
+      providesTags: [TagTypes.ServiceCall],
     }),
 
     // ─── Upload Profile Photo (form-data, PUT) ──────────────────────────────
@@ -62,7 +62,7 @@ const quoteApi = baseApi.injectEndpoints({
         url: `/service-calls/${id}`,
         method: "GET",
       }),
-      providesTags: [TagTypes.User],
+      providesTags: [TagTypes.ServiceCall],
     }),
 
     getDrafts: builder.query<GetDraftsResponse, void>({
@@ -70,7 +70,7 @@ const quoteApi = baseApi.injectEndpoints({
         url: "/drafts",
         method: "GET",
       }),
-      providesTags: [TagTypes.User],
+      providesTags: [TagTypes.Draft],
     }),
 
     createServiceCall: builder.mutation<
@@ -82,7 +82,7 @@ const quoteApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [TagTypes.User],
+      invalidatesTags: [TagTypes.ServiceCall, TagTypes.Draft],
     }),
 
     // ─── Update (PATCH) — Service Call ─────────────────────────────────────
@@ -95,7 +95,7 @@ const quoteApi = baseApi.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: [TagTypes.User],
+      invalidatesTags: [TagTypes.ServiceCall, TagTypes.Draft],
     }),
 
     // ─── EV Charger Installation ────────────────────────────────────────────
@@ -107,7 +107,7 @@ const quoteApi = baseApi.injectEndpoints({
         url: "/ev-charger-installations/my",
         method: "GET",
       }),
-      providesTags: [TagTypes.User],
+      providesTags: [TagTypes.EvCharger],
     }),
 
     getEvChargerInstallationById: builder.query<
@@ -118,7 +118,7 @@ const quoteApi = baseApi.injectEndpoints({
         url: `/ev-charger-installations/${id}`,
         method: "GET",
       }),
-      providesTags: [TagTypes.User],
+      providesTags: [TagTypes.EvCharger],
     }),
 
     createEvChargerInstallation: builder.mutation<
@@ -130,7 +130,7 @@ const quoteApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [TagTypes.User],
+      invalidatesTags: [TagTypes.EvCharger, TagTypes.Draft],
     }),
 
     updateEvChargerInstallation: builder.mutation<
@@ -142,7 +142,7 @@ const quoteApi = baseApi.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: [TagTypes.User],
+      invalidatesTags: [TagTypes.EvCharger, TagTypes.Draft],
     }),
 
     // ─── Delete mutations per draft type ───────────────────────────────────
@@ -151,7 +151,7 @@ const quoteApi = baseApi.injectEndpoints({
         url: `/service-calls/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.User],
+      invalidatesTags: [TagTypes.ServiceCall, TagTypes.Draft],
     }),
 
     deleteEvChargerInstallation: builder.mutation<void, string>({
@@ -159,7 +159,7 @@ const quoteApi = baseApi.injectEndpoints({
         url: `/ev-charger-installations/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.User],
+      invalidatesTags: [TagTypes.EvCharger, TagTypes.Draft],
     }),
   }),
 });

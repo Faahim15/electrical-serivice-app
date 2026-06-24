@@ -3,6 +3,8 @@ const TagTypes = {
   Auth: "Auth",
   User: "User",
   Quote: "Quote",
+  ServiceCall: "ServiceCall",
+  EvCharger: "EvCharger",
   PanelUpgrade: "PanelUpgrade",
   Remodeling: "Remodeling",
   AccessoryBuilding: "AccessoryBuilding",
@@ -19,6 +21,8 @@ const TagTypes = {
   Outlet: "Outlet",
   Switches: "Switches",
   CeilingFan: "CeilingFan",
+
+  Draft: "Draft",
 } as const;
 
 export default TagTypes;

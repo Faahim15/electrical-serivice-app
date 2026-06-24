@@ -18,7 +18,7 @@ const homeSurgeProtectionApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.HomeSurgeProtection],
+      invalidatesTags: [TagTypes.HomeSurgeProtection, TagTypes.Draft],
     }),
 
     // ─── Update Home Surge Protection ────────────────────────────────────────
@@ -31,7 +31,7 @@ const homeSurgeProtectionApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.HomeSurgeProtection],
+      invalidatesTags: [TagTypes.HomeSurgeProtection, TagTypes.Draft],
     }),
 
     // ─── Get My Home Surge Protections ───────────────────────────────────────
@@ -64,7 +64,7 @@ const homeSurgeProtectionApi = baseApi.injectEndpoints({
         url: `/home-surge-protections/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.HomeSurgeProtection],
+      invalidatesTags: [TagTypes.HomeSurgeProtection, TagTypes.Draft],
     }),
   }),
 });

@@ -15,7 +15,7 @@ const starlinkApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Starlink],
+      invalidatesTags: [TagTypes.Starlink, TagTypes.Draft],
     }),
 
     // ─── Update Starlink ─────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const starlinkApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.Starlink],
+      invalidatesTags: [TagTypes.Starlink, TagTypes.Draft],
     }),
 
     // ─── Get My Starlinks ────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const starlinkApi = baseApi.injectEndpoints({
         url: `/starlinks/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.Starlink],
+      invalidatesTags: [TagTypes.Starlink, TagTypes.Draft],
     }),
   }),
 });

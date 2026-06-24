@@ -15,7 +15,7 @@ const ceilingFanApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.CeilingFan],
+      invalidatesTags: [TagTypes.CeilingFan, TagTypes.Draft],
     }),
 
     // ─── Update Ceiling Fan ──────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const ceilingFanApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.CeilingFan],
+      invalidatesTags: [TagTypes.CeilingFan, TagTypes.Draft],
     }),
 
     // ─── Get My Ceiling Fans ─────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const ceilingFanApi = baseApi.injectEndpoints({
         url: `/ceiling-fans/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.CeilingFan],
+      invalidatesTags: [TagTypes.CeilingFan, TagTypes.Draft],
     }),
   }),
 });

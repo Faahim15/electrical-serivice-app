@@ -15,7 +15,7 @@ const quoteApiTwo = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.PanelUpgrade],
+      invalidatesTags: [TagTypes.PanelUpgrade, TagTypes.Draft],
     }),
 
     // ─── Update Panel Upgrade ────────────────────────────────────────────────
@@ -28,7 +28,7 @@ const quoteApiTwo = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: [TagTypes.PanelUpgrade],
+      invalidatesTags: [TagTypes.PanelUpgrade, TagTypes.Draft],
     }),
 
     // ─── Get My Panel Upgrades ───────────────────────────────────────────────
@@ -53,7 +53,7 @@ const quoteApiTwo = baseApi.injectEndpoints({
         url: `/panel-upgrade-replacements/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [TagTypes.PanelUpgrade],
+      invalidatesTags: [TagTypes.PanelUpgrade, TagTypes.Draft],
     }),
   }),
 });
