@@ -71,7 +71,7 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
   const isRemodeling = !!id && serviceType === "Remodeling";
   const isAccessoryBuilding =
     !!id && serviceType === "Accessory Building / Shed Power";
-  const isHotTub = !!id && serviceType === "Hot tub Installation";
+  const isHotTub = !!id && serviceType === "Hot tub installation";
   const isDockPower = !!id && serviceType === "Dock Power";
   const isElectric = !!id && serviceType === "Electric System";
   const isGenerator = !!id && serviceType === "Generator Installation";

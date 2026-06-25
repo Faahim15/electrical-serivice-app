@@ -27,7 +27,7 @@ export const quickActions: QuickAction[] = [
   },
   {
     id: "4",
-    route: "/(tabs)/quotes/my-quotes",
+    route: "/(tabs)/home/my-quotes",
     icon: "document-outline",
     title: "My Quotes",
     subtitle: "Get in touch quickly",
@@ -86,7 +86,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "3",
-    title: "Panel Upgrade/Replacement",
+    title: "Panel Upgrade / Replacement",
     description: "Upgrade your panel\nFor safer, stronger power",
     iconName: "cube-outline",
     iconBg: "#F0EDFB",
@@ -102,7 +102,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "5",
-    title: "Accessory Building /\nShed Power",
+    title: "Accessory Building / Shed Power",
     description: "Power for sheds and\nDetached buildings",
     iconName: "business-outline",
     iconBg: "#F5F5F5",
@@ -110,7 +110,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "6",
-    title: "Hot Tub Installation",
+    title: "Hot tub installation",
     description: "Safe electrical setup For\nhot tubs and swim spas",
     iconName: "water-outline",
     iconBg: "#E8F3FD",
@@ -126,7 +126,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "8",
-    title: "Electrical Systems Inspection",
+    title: "Electrical System",
     description: "Inspect your system\nFor safety and issues",
     iconName: "document-text-outline",
     iconBg: "#FDF0F8",
@@ -150,7 +150,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "11",
-    title: "Whole Home Surge Protection",
+    title: "Home Surge Protection",
     description: "Protect your entire electrical system",
     iconName: "shield-checkmark-outline",
     iconBg: "#E8F8F5",
@@ -166,7 +166,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "13",
-    title: "Dedicated Circuit",
+    title: "Dedicated Circuit Installation",
     description: "For RV and equipment/tools",
     iconName: "hardware-chip-outline",
     iconBg: "#F0EDFB",
@@ -174,7 +174,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "14",
-    title: "Exhaust Fan",
+    title: "Exhaust Fan Installation",
     description: "Kitchen, bathroom, or attic fans",
     iconName: "partly-sunny-outline",
     iconBg: "#FEF3E8",
@@ -182,7 +182,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "15",
-    title: "Outlets",
+    title: "Outlet Installation",
     description: "Install or replace electrical outlets",
     iconName: "radio-outline",
     iconBg: "#F5F5F5",
@@ -190,7 +190,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "16",
-    title: "Switches",
+    title: "Switches Installation",
     description: "Light switches and controls",
     iconName: "toggle-outline",
     iconBg: "#FEF9E8",
@@ -198,7 +198,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "17",
-    title: "Lighting",
+    title: "Lighting Installation",
     description: "Interior and exterior lighting",
     iconName: "bulb-outline",
     iconBg: "#FEF9E8",
@@ -206,7 +206,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     id: "18",
-    title: "Ceiling Fan",
+    title: "Ceiling Fan Installation",
     description: "Interior and exterior ceiling fan",
     iconName: "refresh-outline",
     iconBg: "#E8F3FD",

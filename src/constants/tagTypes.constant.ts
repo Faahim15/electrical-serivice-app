@@ -21,7 +21,7 @@ const TagTypes = {
   Outlet: "Outlet",
   Switches: "Switches",
   CeilingFan: "CeilingFan",
-
+  QUOTES: "Quotes",
   Draft: "Draft",
 } as const;
 

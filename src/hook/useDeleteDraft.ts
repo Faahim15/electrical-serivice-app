@@ -64,7 +64,7 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
           await deleteAccessoryBuilding(id).unwrap();
           break;
         case "Hot tub installation":
-        case "Hot tub Installation":
+        case "Hot Tub Installation":
           await deleteHotTub(id).unwrap();
           break;
         case "Dock Power":

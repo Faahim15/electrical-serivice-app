@@ -26,7 +26,6 @@ import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import { SERVICE_CATEGORIES } from "@/src/constants/tabs.home.constant";
 import { useDraftDetails } from "@/src/hook/useDraftDetails";
-import { clearServiceForm } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { CATEGORY_TOTAL_STEPS } from "@/src/utils/CategorySteps";
 import { verticalScale } from "@/src/utils/Scaling";
@@ -41,7 +40,6 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { toast } from "sonner-native";
 
 export default function ReviewRequest() {
   const dispatch = useDispatch();
@@ -53,7 +51,7 @@ export default function ReviewRequest() {
       serviceType?: string;
     }>();
 
-  // ─── Redux state ──────────────────────────────────────────────────────────────
+  // ─── Redux state ───────────────────────────────────────────────────────
   const selectedCategoryId = useSelector(
     (state: RootState) => state.serviceForm.selectedCategoryId,
   );
@@ -74,19 +72,17 @@ export default function ReviewRequest() {
     (c) => c.id === selectedCategoryId,
   );
 
-  console.log(selectedCategory);
-
   const serviceType =
     serviceTypeParam || selectedCategory?.title || "Service Call";
   const totalSteps = CATEGORY_TOTAL_STEPS[selectedCategory?.id ?? ""] ?? 8;
 
-  // ─── Get draft data from API ──────────────────────────────────────────────────
+  // ─── Draft data from API ───────────────────────────────────────────────
   const { data: draftData, isLoading: isLoadingDraft } = useDraftDetails(
     serviceCallId,
     serviceType,
   );
 
-  // ─── Use values from API (draft) or fallback to Redux ────────────────────────
+  // ─── draftData or Redux fallback ───────────────────────────────────────
   const finalValues = {
     fullName: draftData?.fullName || contactDetails.fullName,
     email: draftData?.emailAddress || contactDetails.email,
@@ -104,14 +100,13 @@ export default function ReviewRequest() {
     timeline: draftData?.timelineUrgency || projectBasics.timeline,
   };
 
+  // ─── onSuccess — কোনো API call নেই, শুধু navigate ─────────────────────
   const handleSubmitSuccess = () => {
-    dispatch(clearServiceForm());
-    toast.success("Service request submitted successfully!");
     router.push({
       pathname: "/(tabs)/quotes/quote/common/submit-quote",
       params: {
-        serviceCallId: serviceCallId, // ← pass the ID
-        serviceType: serviceType, // ← pass the type
+        serviceCallId: serviceCallId,
+        serviceType: serviceType,
       },
     });
   };
@@ -126,6 +121,17 @@ export default function ReviewRequest() {
       </ScreenWrapper>
     );
   }
+
+  // ─── Common props for all ReviewForms ──────────────────────────────────
+  const reviewFormProps = {
+    draftData,
+    categoryData,
+    onSuccess: handleSubmitSuccess,
+    setIsSubmitting,
+    isSubmitting,
+    serviceCallId,
+    serviceType,
+  };
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -150,250 +156,106 @@ export default function ReviewRequest() {
             Check your answers before sending
           </Text>
 
-          {/* ─── Common Review Section ────────────────────────────────────────── */}
+          {/* ─── Common Review Section ─────────────────────────────────── */}
           <ReviewSection
             contactDetails={finalValues}
             serviceAddress={finalValues}
             projectBasics={finalValues}
           />
 
-          {/* ─── Category Specific Review ─────────────────────────────────────── */}
+          {/* ─── Category Specific Review ──────────────────────────────── */}
 
-          {/* Service Call - ID 1 */}
+          {/* 1 - Service Call */}
           {categoryData?.categoryId === "1" && categoryData.details && (
-            <ServiceCallReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <ServiceCallReviewForm {...reviewFormProps} />
           )}
 
-          {/* EV Charger - ID 2 */}
+          {/* 2 - EV Charger */}
           {categoryData?.categoryId === "2" && categoryData.details && (
-            <EVChargerReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <EVChargerReviewForm {...reviewFormProps} />
           )}
 
-          {/* Panel Upgrade - ID 3 */}
+          {/* 3 - Panel Upgrade */}
           {categoryData?.categoryId === "3" && categoryData.details && (
-            <PanelUpgradeReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <PanelUpgradeReviewForm {...reviewFormProps} />
           )}
 
-          {/* Remodeling - ID 4 */}
+          {/* 4 - Remodeling */}
           {categoryData?.categoryId === "4" && categoryData.details && (
-            <RemodelingReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <RemodelingReviewForm {...reviewFormProps} />
           )}
 
-          {/* Accessory Building - ID 5 */}
+          {/* 5 - Accessory Building */}
           {categoryData?.categoryId === "5" && categoryData.details && (
-            <AccessoryBuildingReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <AccessoryBuildingReviewForm {...reviewFormProps} />
           )}
 
-          {/* Hot Tub - ID 6 */}
+          {/* 6 - Hot Tub */}
           {categoryData?.categoryId === "6" && categoryData.details && (
-            <HotTubReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <HotTubReviewForm {...reviewFormProps} />
           )}
 
-          {/* Dock Power - ID 7 */}
+          {/* 7 - Dock Power */}
           {categoryData?.categoryId === "7" && categoryData.details && (
-            <DockPowerReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <DockPowerReviewForm {...reviewFormProps} />
           )}
 
-          {/* Electrical Inspection - ID 8 */}
+          {/* 8 - Electrical Inspection */}
           {categoryData?.categoryId === "8" && categoryData.details && (
-            <ElectricalInspectionReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <ElectricalInspectionReviewForm {...reviewFormProps} />
           )}
 
-          {/* Generator - ID 9 */}
+          {/* 9 - Generator */}
           {categoryData?.categoryId === "9" && categoryData.details && (
-            <GeneratorReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <GeneratorReviewForm {...reviewFormProps} />
           )}
 
-          {/* New Construction - ID 10 */}
+          {/* 10 - New Construction */}
           {categoryData?.categoryId === "10" && categoryData.details && (
-            <NewConstructionReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <NewConstructionReviewForm {...reviewFormProps} />
           )}
 
-          {/* Whole Home Surge Protection - ID 11 */}
+          {/* 11 - Surge Protection */}
           {categoryData?.categoryId === "11" && categoryData.details && (
-            <SurgeProtectionReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <SurgeProtectionReviewForm {...reviewFormProps} />
           )}
 
-          {/* Starlink Installation - ID 12 */}
+          {/* 12 - Starlink */}
           {categoryData?.categoryId === "12" && categoryData.details && (
-            <StarlinkReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <StarlinkReviewForm {...reviewFormProps} />
           )}
 
-          {/* Dedicated Circuit - ID 13 */}
+          {/* 13 - Dedicated Circuit */}
           {categoryData?.categoryId === "13" && categoryData.details && (
-            <DedicatedCircuitReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <DedicatedCircuitReviewForm {...reviewFormProps} />
           )}
 
-          {/* Exhaust Fan - ID 14 */}
+          {/* 14 - Exhaust Fan */}
           {categoryData?.categoryId === "14" && categoryData.details && (
-            <ExhaustFanReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <ExhaustFanReviewForm {...reviewFormProps} />
           )}
 
-          {/* Outlets - ID 15 */}
+          {/* 15 - Outlets */}
           {categoryData?.categoryId === "15" && categoryData.details && (
-            <OutletsReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <OutletsReviewForm {...reviewFormProps} />
           )}
 
-          {/* Switches - ID 16 */}
+          {/* 16 - Switches */}
           {categoryData?.categoryId === "16" && categoryData.details && (
-            <SwitchesReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <SwitchesReviewForm {...reviewFormProps} />
           )}
 
-          {/* Lighting - ID 17 */}
+          {/* 17 - Lighting */}
           {categoryData?.categoryId === "17" && categoryData.details && (
-            <LightingReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <LightingReviewForm {...reviewFormProps} />
           )}
 
-          {/* Ceiling Fan - ID 18 */}
+          {/* 18 - Ceiling Fan */}
           {categoryData?.categoryId === "18" && categoryData.details && (
-            <CeilingFanReviewForm
-              draftData={draftData}
-              categoryData={categoryData}
-              onSuccess={handleSubmitSuccess}
-              setIsSubmitting={setIsSubmitting}
-              isSubmitting={isSubmitting}
-              serviceCallId={serviceCallId}
-              serviceType={serviceType}
-            />
+            <CeilingFanReviewForm {...reviewFormProps} />
           )}
 
-          {/* ─── Edit Button ──────────────────────────────────────────────────── */}
+          {/* ─── Edit Button ───────────────────────────────────────────── */}
           <SavedEditAction title="Edit" onPress={() => router.back()} />
         </ScrollView>
       </KeyboardAvoidingView>

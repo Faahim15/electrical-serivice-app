@@ -1,172 +1,12 @@
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import SkeletonElement from "@/src/components/skeleton/SkeletonElement";
+import { useGetQuoteDetailsQuery } from "@/src/redux/api-slices/quote/my-quotes-api";
 import { scale, verticalScale } from "@/src/utils/Scaling";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
-
-// ── Static updates config per activity id ──────────────────────────────────
-
-const UPDATES_MAP: Record<
-  string,
-  { id: string; icon: string; iconColor: string; label: string; time: string }[]
-> = {
-  "1": [
-    {
-      id: "1",
-      icon: "checkmark-circle",
-      iconColor: "#10B981",
-      label: "Quote submitted",
-      time: "Apr 8, 2024 at 2:50 PM",
-    },
-    {
-      id: "2",
-      icon: "image-outline",
-      iconColor: "#0EA5E9",
-      label: "Photos uploaded",
-      time: "Apr 8, 2024 at 3:22 PM",
-    },
-    {
-      id: "3",
-      icon: "time-outline",
-      iconColor: "#F59E0B",
-      label: "Pending team review",
-      time: "in progress",
-    },
-    {
-      id: "4",
-      icon: "calendar-outline",
-      iconColor: "#8B5CF6",
-      label: "Site assessment scheduled!",
-      time: "Pending",
-    },
-  ],
-  "2": [
-    {
-      id: "1",
-      icon: "checkmark-circle",
-      iconColor: "#10B981",
-      label: "Appointment confirmed",
-      time: "Apr 10, 2024 at 9:00 AM",
-    },
-    {
-      id: "2",
-      icon: "time-outline",
-      iconColor: "#F59E0B",
-      label: "Technician assigned",
-      time: "in progress",
-    },
-    {
-      id: "3",
-      icon: "calendar-outline",
-      iconColor: "#8B5CF6",
-      label: "Scheduled visit",
-      time: "Apr 13, 2024",
-    },
-  ],
-  "3": [
-    {
-      id: "1",
-      icon: "eye-outline",
-      iconColor: "#0EA5E9",
-      label: "Guide viewed",
-      time: "Yesterday at 6:30 PM",
-    },
-    {
-      id: "2",
-      icon: "checkmark-circle",
-      iconColor: "#10B981",
-      label: "Steps completed",
-      time: "Yesterday at 6:45 PM",
-    },
-  ],
-};
-
-const DETAILS_MAP: Record<string, { label: string; value: string }[]> = {
-  "1": [
-    {
-      label: "Services Required",
-      value: "Level 2 EV Charger Installation (240V)",
-    },
-    { label: "Property Type", value: "Residential – Single Family Home" },
-    {
-      label: "Current Progress",
-      value: "Pending final review and site assessment",
-    },
-    {
-      label: "Notes",
-      value:
-        "Photos installation in garage, near main panel. Existing 240V outlet available.",
-    },
-    { label: "Uploaded Photos", value: "3 photos attached" },
-    { label: "Estimated Follow-up", value: "Within 1-2 business days" },
-  ],
-  "2": [
-    { label: "Service Type", value: "Smoke Detector Inspection" },
-    { label: "Property Type", value: "Residential" },
-    { label: "Current Progress", value: "Technician assigned, visit upcoming" },
-    { label: "Estimated Follow-up", value: "Within 3 days" },
-  ],
-  "3": [
-    { label: "Guide", value: "GFCI Reset – Step by Step" },
-    { label: "Category", value: "Safety & Maintenance" },
-    { label: "Status", value: "Completed" },
-    { label: "Last Viewed", value: "Yesterday" },
-  ],
-};
-
-const MAIN_CARD_MAP: Record<
-  string,
-  {
-    requestId: string;
-    submitted: string;
-    lastUpdated: string;
-    serviceType: string;
-  }
-> = {
-  "1": {
-    requestId: "#EV-2048",
-    submitted: "Apr 8, 2026",
-    lastUpdated: "2 hours ago",
-    serviceType: "EV Charger Installation",
-  },
-  "2": {
-    requestId: "#SD-1032",
-    submitted: "Apr 10, 2026",
-    lastUpdated: "1 day ago",
-    serviceType: "Smoke Detector Check",
-  },
-  "3": {
-    requestId: "#PU-3091",
-    submitted: "Apr 3, 2026",
-    lastUpdated: "5 days ago",
-    serviceType: "Panel Upgrade",
-  },
-  "4": {
-    requestId: "#GD-4011",
-    submitted: "Apr 7, 2026",
-    lastUpdated: "Yesterday",
-    serviceType: "GFCI Reset Guide",
-  },
-  "5": {
-    requestId: "#PT-5022",
-    submitted: "Apr 5, 2026",
-    lastUpdated: "3 days ago",
-    serviceType: "Licensed Electricians",
-  },
-  "6": {
-    requestId: "#CB-6008",
-    submitted: "Apr 9, 2026",
-    lastUpdated: "3 days ago",
-    serviceType: "Circuit Breaker Test",
-  },
-};
-
-const ATTACHMENTS_MAP: Record<string, { id: string }[]> = {
-  "1": [{ id: "1" }, { id: "2" }, { id: "3" }],
-  "2": [{ id: "1" }],
-  "3": [],
-};
+import { toast } from "sonner-native";
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
@@ -203,7 +43,7 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
       {label}
     </Text>
     <Text className="text-[#1E293B] text-[13px] font-Inter_Medium">
-      {value}
+      {value || "—"}
     </Text>
   </View>
 );
@@ -221,6 +61,9 @@ export default function ActivityDetails() {
     icon,
     iconColor,
     iconBg,
+    qId,
+    submitted,
+    status,
   } = useLocalSearchParams<{
     id: string;
     title: string;
@@ -231,24 +74,220 @@ export default function ActivityDetails() {
     icon: string;
     iconColor: string;
     iconBg: string;
+    qId: string;
+    submitted: string;
+    status: string;
   }>();
 
-  const updates = UPDATES_MAP[id] ?? [];
-  const details = DETAILS_MAP[id] ?? [];
-  const attachments = ATTACHMENTS_MAP[id] ?? [];
-  const mainCard = MAIN_CARD_MAP[id] ?? {
-    requestId: `#ACT-${id}00${id}`,
-    submitted: "—",
-    lastUpdated: "—",
-    serviceType: title ?? "—",
-  };
+  const {
+    data: detailsData,
+    isLoading,
+    isError,
+    error,
+  } = useGetQuoteDetailsQuery(id);
+
+  // Show error toast if API fails
+  React.useEffect(() => {
+    if (isError) {
+      toast.error("Failed to load quote details. Please try again.");
+    }
+  }, [isError]);
+
+  const details = detailsData?.data;
 
   const cardIcon = icon ?? "flash-outline";
   const cardIconColor = iconColor ?? "#3B82F6";
   const cardIconBg = iconBg ?? "#EFF6FF";
-  const cardType = type ?? "Activity";
-
+  const cardType = type ?? "Quote";
   const badgeBg = badgeColor ? badgeColor + "20" : "#F1F5F9";
+
+  // Format status display
+  const getStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      pending: "Pending",
+      in_review: "In Review",
+      send: "Sent",
+      closed: "Closed",
+    };
+    return statusMap[status] || status;
+  };
+
+  // Skeleton Loader
+  const renderSkeleton = () => (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{
+        padding: 16,
+        gap: 12,
+        paddingBottom: verticalScale(120),
+      }}
+    >
+      {/* Main Card Skeleton */}
+      <View className="bg-white rounded-2xl px-4 py-4">
+        <SkeletonElement width={60} height={14} style={{ marginBottom: 12 }} />
+        <View className="flex-row items-center gap-3 mb-1">
+          <SkeletonElement
+            width={40}
+            height={40}
+            style={{ borderRadius: 20 }}
+          />
+          <SkeletonElement width={200} height={24} />
+        </View>
+        <SkeletonElement width={180} height={14} style={{ marginBottom: 16 }} />
+        {[1, 2, 3, 4].map((i) => (
+          <View key={i} className="py-[10px] border-b border-[#F1F5F9]">
+            <SkeletonElement
+              width={100}
+              height={12}
+              style={{ marginBottom: 4 }}
+            />
+            <SkeletonElement width={150} height={14} />
+          </View>
+        ))}
+      </View>
+
+      {/* Details Card Skeleton */}
+      <View className="bg-white rounded-2xl px-4 py-4">
+        <SkeletonElement width={80} height={18} style={{ marginBottom: 12 }} />
+        {[1, 2, 3, 4].map((i) => (
+          <View key={i} className="py-[10px] border-b border-[#F1F5F9]">
+            <SkeletonElement
+              width={120}
+              height={12}
+              style={{ marginBottom: 4 }}
+            />
+            <SkeletonElement width={180} height={14} />
+          </View>
+        ))}
+      </View>
+
+      {/* Recent Updates Skeleton */}
+      <View className="bg-white rounded-2xl px-4 py-4">
+        <SkeletonElement width={120} height={18} style={{ marginBottom: 12 }} />
+        {[1, 2, 3].map((i) => (
+          <View key={i} className="flex-row items-start mb-3">
+            <SkeletonElement
+              width={20}
+              height={20}
+              style={{ borderRadius: 10, marginRight: 12 }}
+            />
+            <View className="flex-1">
+              <SkeletonElement
+                width={150}
+                height={14}
+                style={{ marginBottom: 4 }}
+              />
+              <SkeletonElement width={100} height={12} />
+            </View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+
+  if (isLoading) {
+    return (
+      <ScreenWrapper paddingHorizontal={0}>
+        <View className="flex-1">
+          {/* Header Skeleton */}
+          <View className="bg-white px-[4%] pt-[10%] pb-4">
+            <SkeletonElement
+              width={24}
+              height={24}
+              style={{ marginBottom: 12 }}
+            />
+            <View className="flex-row items-center justify-between">
+              <SkeletonElement width={150} height={24} />
+              <SkeletonElement
+                width={80}
+                height={28}
+                style={{ borderRadius: 20 }}
+              />
+            </View>
+            <SkeletonElement width={200} height={14} style={{ marginTop: 8 }} />
+          </View>
+          {renderSkeleton()}
+        </View>
+      </ScreenWrapper>
+    );
+  }
+
+  if (isError || !details) {
+    return (
+      <ScreenWrapper paddingHorizontal={0}>
+        <View className="flex-1">
+          {/* Header */}
+          <View className="bg-white px-[4%] pt-[10%] pb-4">
+            <Pressable onPress={() => router.back()} className="mb-3">
+              <Ionicons name="arrow-back" size={22} color="#1E293B" />
+            </Pressable>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-[#1E293B] text-[20px] font-Inter_Bold flex-1">
+                Activity Details
+              </Text>
+            </View>
+          </View>
+          <View className="items-center mt-16">
+            <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+            <Text className="font-Inter_Regular text-[14px] text-red-500 mt-3 text-center px-8">
+              Failed to load quote details. Please try again.
+            </Text>
+            <Pressable
+              onPress={() => router.back()}
+              className="mt-4 bg-[#0EA5E9] px-6 py-2 rounded-full"
+            >
+              <Text className="text-white font-Inter_SemiBold">Go Back</Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScreenWrapper>
+    );
+  }
+
+  // Build updates array from details
+  const updates = [
+    {
+      id: "1",
+      icon: "checkmark-circle",
+      iconColor: "#10B981",
+      label: "Quote submitted",
+      time: details.Submitted,
+    },
+    {
+      id: "2",
+      icon: "time-outline",
+      iconColor: "#F59E0B",
+      label: "Current status",
+      time: getStatusLabel(status || details.Details.currentProgress || ""),
+    },
+    {
+      id: "3",
+      icon: "calendar-outline",
+      iconColor: "#8B5CF6",
+      label: "Last updated",
+      time: details.LastUpdated,
+    },
+  ];
+
+  // Build details rows
+  const detailRows = [
+    {
+      label: "Service Requested",
+      value: details.Details.ServiceRequested || "Not specified",
+    },
+    {
+      label: "Property Type",
+      value: details.Details.propertyType || "Not specified",
+    },
+    {
+      label: "Current Progress",
+      value: details.Details.currentProgress || "Not specified",
+    },
+    {
+      label: "Notes",
+      value: details.Details.notes || "No additional notes",
+    },
+  ];
 
   return (
     <ScreenWrapper paddingHorizontal={0}>
@@ -315,109 +354,101 @@ export default function ActivityDetails() {
                 />
               </View>
               <Text className="text-[#1E293B] text-[18px] font-Inter_Bold flex-1">
-                {title}
+                {details.ServiceType || title}
               </Text>
             </View>
             <Text className="text-[#94A3B8] text-[12px] font-Inter_Regular mb-4">
-              {subtitle}
+              {subtitle || details.Details.notes || "No additional notes"}
             </Text>
             <InfoRow
               label="Request ID"
-              value={mainCard.requestId}
+              value={details.qId || qId || "—"}
               icon="document-text-outline"
             />
             <InfoRow
               label="Submitted"
-              value={mainCard.submitted}
+              value={details.Submitted || submitted || "—"}
               icon="calendar-outline"
             />
             <InfoRow
               label="Last Updated"
-              value={mainCard.lastUpdated}
+              value={details.LastUpdated || "—"}
               icon="time-outline"
             />
             <InfoRow
               label="Service Type"
-              value={mainCard.serviceType}
+              value={details.ServiceType || title || "—"}
               icon="person-outline"
             />
           </View>
 
           {/* Details Card */}
-          {details.length > 0 && (
-            <View
-              className="bg-white rounded-2xl px-4 py-4"
-              style={{
-                shadowColor: "#94A3B8",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.08,
-                shadowRadius: 6,
-                elevation: 2,
-              }}
-            >
-              <Text className="text-[#1E293B] text-[15px] font-Inter_Bold mb-3">
-                Details
-              </Text>
-              {details.map((row) => (
-                <DetailRow
-                  key={row.label}
-                  label={row.label}
-                  value={row.value}
-                />
-              ))}
-            </View>
-          )}
+          <View
+            className="bg-white rounded-2xl px-4 py-4"
+            style={{
+              shadowColor: "#94A3B8",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              elevation: 2,
+            }}
+          >
+            <Text className="text-[#1E293B] text-[15px] font-Inter_Bold mb-3">
+              Details
+            </Text>
+            {detailRows.map((row) => (
+              <DetailRow key={row.label} label={row.label} value={row.value} />
+            ))}
+          </View>
 
           {/* Recent Updates */}
-          {updates.length > 0 && (
-            <View
-              className="bg-white rounded-2xl px-4 py-4"
-              style={{
-                shadowColor: "#94A3B8",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.08,
-                shadowRadius: 6,
-                elevation: 2,
-              }}
-            >
-              <Text className="text-[#1E293B] text-[15px] font-Inter_Bold mb-3">
-                Recent Updates
-              </Text>
-              {updates.map((update, index) => (
-                <View key={update.id} className="flex-row items-start mb-3">
-                  <View className="items-center mr-3">
-                    <Ionicons
-                      name={update.icon as any}
-                      size={20}
-                      color={update.iconColor}
+          <View
+            className="bg-white rounded-2xl px-4 py-4"
+            style={{
+              shadowColor: "#94A3B8",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              elevation: 2,
+            }}
+          >
+            <Text className="text-[#1E293B] text-[15px] font-Inter_Bold mb-3">
+              Recent Updates
+            </Text>
+            {updates.map((update, index) => (
+              <View key={update.id} className="flex-row items-start mb-3">
+                <View className="items-center mr-3">
+                  <Ionicons
+                    name={update.icon as any}
+                    size={20}
+                    color={update.iconColor}
+                  />
+                  {index < updates.length - 1 && (
+                    <View
+                      style={{
+                        width: 1.5,
+                        flex: 1,
+                        marginTop: 4,
+                        backgroundColor: "#E2E8F0",
+                        minHeight: 20,
+                      }}
                     />
-                    {index < updates.length - 1 && (
-                      <View
-                        style={{
-                          width: 1.5,
-                          flex: 1,
-                          marginTop: 4,
-                          backgroundColor: "#E2E8F0",
-                          minHeight: 20,
-                        }}
-                      />
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-[#1E293B] text-[13px] font-Inter_SemiBold">
-                      {update.label}
-                    </Text>
-                    <Text className="text-[#94A3B8] text-[11.5px] font-Inter_Regular mt-[2px]">
-                      {update.time}
-                    </Text>
-                  </View>
+                  )}
                 </View>
-              ))}
-            </View>
-          )}
+                <View className="flex-1">
+                  <Text className="text-[#1E293B] text-[13px] font-Inter_SemiBold">
+                    {update.label}
+                  </Text>
+                  <Text className="text-[#94A3B8] text-[11.5px] font-Inter_Regular mt-[2px]">
+                    {update.time}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
 
           {/* Attachments */}
-          {attachments.length > 0 && (
+          {details.UploadedPhotos.count > 0 && (
             <View
               className="bg-white rounded-2xl px-4 py-4"
               style={{
@@ -429,15 +460,15 @@ export default function ActivityDetails() {
               }}
             >
               <Text className="text-[#1E293B] text-[15px] font-Inter_Bold mb-3">
-                Attachments
+                Attachments ({details.UploadedPhotos.count})
               </Text>
               <FlatList
-                data={attachments}
+                data={details.UploadedPhotos.url}
                 horizontal
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item, index) => `photo-${index}`}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ gap: 10 }}
-                renderItem={() => (
+                renderItem={({ item }) => (
                   <View
                     className="rounded-xl bg-[#F1F5F9] items-center justify-center"
                     style={{

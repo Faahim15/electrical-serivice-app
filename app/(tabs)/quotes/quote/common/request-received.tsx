@@ -262,7 +262,7 @@ const RequestReceived = () => {
               <Pressable
                 className="flex-1 rounded-full py-[14px] items-center bg-white"
                 onPress={() => {
-                  router.push("/(tabs)/quotes/quote/my-quotes");
+                  router.push("/(tabs)/quotes/my-quotes");
                 }}
                 style={{
                   shadowColor: "#0EA5E9",
