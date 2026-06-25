@@ -23,6 +23,10 @@ const TagTypes = {
   CeilingFan: "CeilingFan",
   QUOTES: "Quotes",
   Draft: "Draft",
+  Partner: "Partner",
+  FAQ: "FAQ",
+  AboutUs: "AboutUs",
+  Terms: "Terms",
 } as const;
 
 export default TagTypes;

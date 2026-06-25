@@ -1,4 +1,6 @@
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import AboutUsSkeleton from "@/src/components/skeleton/AboutUsSkeleton";
+import { useGetAboutUsQuery } from "@/src/redux/api-slices/profile/about-api";
 import Feather from "@expo/vector-icons/build/Feather";
 import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
@@ -6,6 +8,9 @@ import { Animated, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Aboutus = () => {
+  const { data, isLoading, isError, refetch } = useGetAboutUsQuery();
+  const aboutContent = data?.data?.content ?? "";
+
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(-16)).current;
 
@@ -30,7 +35,6 @@ const Aboutus = () => {
   });
 
   useEffect(() => {
-    // Header
     Animated.parallel([
       Animated.timing(headerFade, {
         toValue: 1,
@@ -44,7 +48,6 @@ const Aboutus = () => {
       }),
     ]).start();
 
-    // Logo pop
     Animated.parallel([
       Animated.spring(logoScale, {
         toValue: 1,
@@ -61,7 +64,6 @@ const Aboutus = () => {
       }),
     ]).start();
 
-    // Cards staggered
     Animated.stagger(100, [
       Animated.timing(card1Anim, {
         toValue: 1,
@@ -90,7 +92,7 @@ const Aboutus = () => {
   return (
     <ScreenWrapper>
       <SafeAreaView edges={["top"]} className="flex-1">
-        {/* header */}
+        {/* ── Header ── */}
         <Animated.View
           style={{
             opacity: headerFade,
@@ -112,100 +114,119 @@ const Aboutus = () => {
           className="flex-1"
           contentContainerStyle={{ paddingBottom: 32, paddingTop: 8, gap: 12 }}
         >
-          {/* ── Brand Card ── */}
-          <Animated.View
-            style={makeSlide(card1Anim)}
-            className="bg-white rounded-2xl px-5 py-6 items-center"
-          >
-            {/* Logo */}
-            <Animated.View
-              style={{
-                opacity: logoOpacity,
-                transform: [{ scale: logoScale }],
-              }}
-              className="w-20 h-20 rounded-2xl bg-teal-500 items-center justify-center mb-4"
-            >
-              <Text className="text-white text-2xl font-Inter_Bold">FE</Text>
-            </Animated.View>
+          {/* ── Loading ── */}
+          {isLoading && <AboutUsSkeleton />}
 
-            <Text className="text-xl text-[#111827] font-Inter_Bold mb-1 text-center">
-              Four Elements Electric
-            </Text>
-            <Text className="text-sm text-gray-400 font-Inter_Regular text-center">
-              Your trusted partner for all electrical services
-            </Text>
-          </Animated.View>
-
-          {/* ── About Our Company ── */}
-          <Animated.View
-            style={makeSlide(card2Anim)}
-            className="bg-white rounded-2xl px-5 py-5"
-          >
-            <Text className="text-base text-[#111827] font-Inter_Bold mb-3">
-              About Our Company
-            </Text>
-            <Text className="text-sm text-gray-500 font-Inter_Regular leading-5">
-              Four Elements Electric has been serving the community with
-              professional electrical services for over 20 years. Our commitment
-              to safety, quality, and customer satisfaction sets us apart.
-            </Text>
-            <Text className="text-sm text-gray-500 font-Inter_Regular leading-5 mt-1">
-              We specialize in residential and commercial electrical
-              installations, repairs, maintenance, and emergency services. Our
-              licensed electricians are here to help with all your electrical
-              needs.
-            </Text>
-          </Animated.View>
-
-          {/* ── App Information ── */}
-          <Animated.View
-            style={makeSlide(card3Anim)}
-            className="bg-white rounded-2xl px-5 py-5"
-          >
-            <Text className="text-base text-[#111827] font-Inter_Bold mb-3">
-              App Information
-            </Text>
-
-            {/* Version row */}
-            <View className="flex-row justify-between items-center py-2 border-b border-gray-100">
-              <Text className="text-sm text-gray-500 font-Inter_Regular">
-                Version
+          {/* ── Error ── */}
+          {isError && (
+            <View className="items-center justify-center mt-16">
+              <Feather name="alert-circle" size={48} color="#EF4444" />
+              <Text className="text-base font-Inter_SemiBold text-gray-800 mt-3 mb-1">
+                Failed to load
               </Text>
-              <Text className="text-sm text-[#111827] font-Inter_SemiBold">
-                1.0.0
+              <Text className="text-sm font-Inter_Regular text-gray-500 mb-4 text-center">
+                Please check your connection and try again.
               </Text>
+              <Pressable
+                onPress={refetch}
+                className="bg-[#0EA5E9] px-6 py-3 rounded-xl"
+              >
+                <Text className="text-white font-Inter_SemiBold text-sm">
+                  Retry
+                </Text>
+              </Pressable>
             </View>
+          )}
 
-            {/* Build row */}
-            <View className="flex-row justify-between items-center pt-2">
-              <Text className="text-sm text-gray-500 font-Inter_Regular">
-                Build
-              </Text>
-              <Text className="text-sm text-[#111827] font-Inter_SemiBold">
-                2026.04.06
-              </Text>
-            </View>
-          </Animated.View>
+          {/* ── Content ── */}
+          {!isLoading && !isError && (
+            <>
+              {/* ── Brand Card ── */}
+              <Animated.View
+                style={makeSlide(card1Anim)}
+                className="bg-white rounded-2xl px-5 py-6 items-center"
+              >
+                <Animated.View
+                  style={{
+                    opacity: logoOpacity,
+                    transform: [{ scale: logoScale }],
+                  }}
+                  className="w-20 h-20 rounded-2xl bg-teal-500 items-center justify-center mb-4"
+                >
+                  <Text className="text-white text-2xl font-Inter_Bold">
+                    FE
+                  </Text>
+                </Animated.View>
 
-          {/* ── Contact Information ── */}
-          <Animated.View
-            style={makeSlide(card4Anim)}
-            className="bg-white rounded-2xl px-5 py-5"
-          >
-            <Text className="text-base text-[#111827] font-Inter_Bold mb-3">
-              Contact Information
-            </Text>
+                <Text className="text-xl text-[#111827] font-Inter_Bold mb-1 text-center">
+                  Four Elements Electric
+                </Text>
+                <Text className="text-sm text-gray-400 font-Inter_Regular text-center">
+                  Your trusted partner for all electrical services
+                </Text>
+              </Animated.View>
 
-            <Text className="text-sm text-gray-500 font-Inter_Regular mb-1.5">
-              Email: theAteam@feecva.com
-            </Text>
-            <Text className="text-sm text-gray-500 font-Inter_Regular mb-1.5">
-              Phone: 540-623-7599
-            </Text>
-            <Text className="text-sm text-gray-500 font-Inter_Regular">
-              Website: www.feecva.com
-            </Text>
-          </Animated.View>
+              {/* ── About Our Company ── */}
+              <Animated.View
+                style={makeSlide(card2Anim)}
+                className="bg-white rounded-2xl px-5 py-5"
+              >
+                <Text className="text-base text-[#111827] font-Inter_Bold mb-3">
+                  About Our Company
+                </Text>
+                <Text className="text-sm text-gray-500 font-Inter_Regular leading-5">
+                  {aboutContent}
+                </Text>
+              </Animated.View>
+
+              {/* ── App Information ── */}
+              <Animated.View
+                style={makeSlide(card3Anim)}
+                className="bg-white rounded-2xl px-5 py-5"
+              >
+                <Text className="text-base text-[#111827] font-Inter_Bold mb-3">
+                  App Information
+                </Text>
+
+                <View className="flex-row justify-between items-center py-2 border-b border-gray-100">
+                  <Text className="text-sm text-gray-500 font-Inter_Regular">
+                    Version
+                  </Text>
+                  <Text className="text-sm text-[#111827] font-Inter_SemiBold">
+                    1.0.0
+                  </Text>
+                </View>
+
+                <View className="flex-row justify-between items-center pt-2">
+                  <Text className="text-sm text-gray-500 font-Inter_Regular">
+                    Build
+                  </Text>
+                  <Text className="text-sm text-[#111827] font-Inter_SemiBold">
+                    2026.04.06
+                  </Text>
+                </View>
+              </Animated.View>
+
+              {/* ── Contact Information ── */}
+              <Animated.View
+                style={makeSlide(card4Anim)}
+                className="bg-white rounded-2xl px-5 py-5"
+              >
+                <Text className="text-base text-[#111827] font-Inter_Bold mb-3">
+                  Contact Information
+                </Text>
+                <Text className="text-sm text-gray-500 font-Inter_Regular mb-1.5">
+                  Email: theAteam@feecva.com
+                </Text>
+                <Text className="text-sm text-gray-500 font-Inter_Regular mb-1.5">
+                  Phone: 540-623-7599
+                </Text>
+                <Text className="text-sm text-gray-500 font-Inter_Regular">
+                  Website: www.feecva.com
+                </Text>
+              </Animated.View>
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </ScreenWrapper>

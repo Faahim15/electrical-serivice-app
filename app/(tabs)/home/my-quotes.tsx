@@ -153,7 +153,7 @@ const TITLE_ICON_MAP: {
   },
   {
     keyword: "exhaust fan",
-    icon: "fan-outline",
+    icon: "repeat-outline",
     iconColor: "#0EA5E9",
     iconBg: "#E0F2FE",
   },

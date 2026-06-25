@@ -1,21 +1,36 @@
-import { getPartnersByCategory } from "@/data/Partnersdatabase";
 import PartnerCard from "@/src/components/pratner/PartnerCard";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
-
-import { RootState } from "@/src/redux/store";
+import PartnerCardSkeleton from "@/src/components/skeleton/PartnerCardSkeleton";
+import { useGetPartnersByCategoryQuery } from "@/src/redux/api-slices/profile/partners-api";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import React, { useEffect, useMemo, useRef } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSelector } from "react-redux";
 
 const Partnercategorie = () => {
   const headerSlide = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const heroBannerSlide = useRef(new Animated.Value(20)).current;
   const heroBannerOpacity = useRef(new Animated.Value(0)).current;
+
+  // ── Params from Partners.tsx ─────────────────────────────────────────────
+  const { categoryId, categoryName, categoryDescription, partnerCount } =
+    useLocalSearchParams<{
+      categoryId: string;
+      categoryName: string;
+      categoryDescription: string;
+      partnerCount: string;
+    }>();
+
+  // ── API ──────────────────────────────────────────────────────────────────
+  const { data, isLoading, isError } = useGetPartnersByCategoryQuery(
+    categoryId ?? "",
+    { skip: !categoryId },
+  );
+
+  const partners = data?.data?.filter((p) => p.isActive) ?? [];
 
   useEffect(() => {
     Animated.parallel([
@@ -44,23 +59,10 @@ const Partnercategorie = () => {
     ]).start();
   }, []);
 
-  const category = useSelector(
-    (state: RootState) => state.partners.selectedCategory,
-  );
-
-  // ── Filter partners from database by selected category ──────
-  const categoryPartners = useMemo(() => {
-    if (!category?.title) return [];
-    return getPartnersByCategory(category.title as any);
-  }, [category?.title]);
-
-  console.log("Selected Category in PartnerCard:", category);
-  console.log("Selected Category in PartnerCard:", categoryPartners);
-
   return (
     <ScreenWrapper>
       <SafeAreaView edges={["top"]} className="flex-1">
-        {/* ── Header ── */}
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <Animated.View
           style={{
             transform: [{ translateY: headerSlide }],
@@ -72,7 +74,7 @@ const Partnercategorie = () => {
             <Feather name="arrow-left" size={24} color="#111827" />
           </Pressable>
           <Text className="text-xl text-[#111827] font-Inter_Bold">
-            {category?.title}
+            {categoryName}
           </Text>
           <View />
         </Animated.View>
@@ -81,9 +83,9 @@ const Partnercategorie = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          {/* ── Hero Banner ── */}
+          {/* ── Hero Banner ─────────────────────────────────────────────── */}
           <Animated.View
-            className=" mb-4 bg-white rounded-2xl px-4 py-4 mt-3"
+            className="mb-4 bg-white rounded-2xl px-4 py-4 mt-3"
             style={[
               {
                 transform: [{ translateY: heroBannerSlide }],
@@ -111,22 +113,48 @@ const Partnercategorie = () => {
                   justifyContent: "center",
                 }}
               >
-                <Text style={{ fontSize: 26 }}>{category?.emoji}</Text>
+                <Text className="text-white text-sm font-Inter_Bold">
+                  {partnerCount}
+                </Text>
               </LinearGradient>
 
               <Text className="text-[17px] font-Inter_Bold text-[#0F172A] flex-1 leading-snug">
-                {category?.title}
+                {categoryName}
               </Text>
             </View>
             <Text className="text-[13px] font-Inter_Regular text-[#64748B] leading-relaxed">
-              {category?.description}
+              {categoryDescription}
             </Text>
           </Animated.View>
 
-          {/* ── Partner Cards ── */}
-          {categoryPartners.map((item, index) => (
-            <PartnerCard key={item.id} item={item} index={index} />
-          ))}
+          {/* ── Loading ──────────────────────────────────────────────────── */}
+          {isLoading && <PartnerCardSkeleton />}
+
+          {/* ── Error ────────────────────────────────────────────────────── */}
+          {isError && (
+            <View className="items-center justify-center mt-10">
+              <Text className="text-[#64748B] font-Inter_Regular text-sm">
+                Failed to load partners. Please try again.
+              </Text>
+            </View>
+          )}
+
+          {/* ── Empty ────────────────────────────────────────────────────── */}
+          {!isLoading && !isError && partners.length === 0 && (
+            <View className="items-center justify-center mt-10">
+              <Text className="text-[#64748B] font-Inter_Regular text-sm">
+                No partners available in this category.
+              </Text>
+            </View>
+          )}
+
+          {/* ── Partner Cards ─────────────────────────────────────────────── */}
+          {!isLoading &&
+            !isError &&
+            partners.map((item, index) => (
+              <PartnerCard key={item.id} item={item} index={index} />
+            ))}
+
           <View className="h-40" />
         </ScrollView>
       </SafeAreaView>

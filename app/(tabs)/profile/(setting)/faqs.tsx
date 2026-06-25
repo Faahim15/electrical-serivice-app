@@ -1,57 +1,18 @@
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import FAQSkeleton from "@/src/components/skeleton/FAQSkeleton";
+import { useGetFAQsQuery } from "@/src/redux/api-slices/profile/faq-api";
+import { FAQ } from "@/src/types/faq.types";
 import Feather from "@expo/vector-icons/build/Feather";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const faqData = [
-  {
-    id: 1,
-    question: "How do I start a quote?",
-    answer:
-      "Choose a service category, review the intro page, and tap Start Quote to begin.",
-    defaultOpen: true,
-  },
-  {
-    id: 2,
-    question: "Can I save my quote and finish later?",
-    answer:
-      "Yes, your quote is automatically saved. You can return anytime and continue from where you left off.",
-    defaultOpen: false,
-  },
-  {
-    id: 3,
-    question: "What information do I need to provide for a quote?",
-    answer:
-      "You will need to provide details about your property, the service required, and your contact information.",
-    defaultOpen: false,
-  },
-  {
-    id: 4,
-    question: "How long does it take to complete a quote request?",
-    answer:
-      "Most quote requests take just a few minutes to complete depending on the complexity of the service.",
-    defaultOpen: false,
-  },
-];
-
-const FAQCard = ({
-  item,
-  index,
-}: {
-  item: (typeof faqData)[0];
-  index: number;
-}) => {
-  const [isOpen, setIsOpen] = useState(item.defaultOpen);
+const FAQCard = ({ item, index }: { item: FAQ; index: number }) => {
+  const [isOpen, setIsOpen] = useState(index === 0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(24)).current;
-  const answerHeight = useRef(
-    new Animated.Value(item.defaultOpen ? 1 : 0),
-  ).current;
-  const rotateAnim = useRef(
-    new Animated.Value(item.defaultOpen ? 1 : 0),
-  ).current;
+  const answerHeight = useRef(new Animated.Value(index === 0 ? 1 : 0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -74,20 +35,12 @@ const FAQCard = ({
   const toggle = () => {
     const toValue = isOpen ? 0 : 1;
     setIsOpen(!isOpen);
-    Animated.parallel([
-      Animated.spring(answerHeight, {
-        toValue,
-        useNativeDriver: false,
-        tension: 60,
-        friction: 10,
-      }),
-      Animated.spring(rotateAnim, {
-        toValue,
-        useNativeDriver: false,
-        tension: 60,
-        friction: 10,
-      }),
-    ]).start();
+    Animated.spring(answerHeight, {
+      toValue,
+      useNativeDriver: false,
+      tension: 60,
+      friction: 10,
+    }).start();
   };
 
   const maxHeight = answerHeight.interpolate({
@@ -143,12 +96,15 @@ const FAQCard = ({
   );
 };
 
-const faqs = () => {
+const Faqs = () => {
+  const { data, isLoading, isError, refetch } = useGetFAQsQuery();
+  const faqs = data?.data ?? [];
+
   return (
     <ScreenWrapper>
       <SafeAreaView edges={["top"]} className="flex-1">
-        {/* header */}
-        <View className="flex-row justify-between items-center pb-2 ">
+        {/* ── Header ── */}
+        <View className="flex-row justify-between items-center pb-2">
           <Pressable onPress={() => router.back()} className="">
             <Feather name="arrow-left" size={24} color="#111827" />
           </Pressable>
@@ -158,17 +114,56 @@ const faqs = () => {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          className="flex-1 "
+          className="flex-1"
           contentContainerStyle={{ paddingBottom: 32, paddingTop: 8 }}
         >
-          {/* content  */}
-          {faqData.map((item, index) => (
-            <FAQCard key={item.id} item={item} index={index} />
-          ))}
+          {/* ── Loading ── */}
+          {isLoading && <FAQSkeleton />}
+
+          {/* ── Error ── */}
+          {isError && (
+            <View className="items-center justify-center mt-16">
+              <Feather name="alert-circle" size={48} color="#EF4444" />
+              <Text className="text-base font-Inter_SemiBold text-gray-800 mt-3 mb-1">
+                Failed to load FAQs
+              </Text>
+              <Text className="text-sm font-Inter_Regular text-gray-500 mb-4 text-center">
+                Please check your connection and try again.
+              </Text>
+              <Pressable
+                onPress={refetch}
+                className="bg-[#0EA5E9] px-6 py-3 rounded-xl"
+              >
+                <Text className="text-white font-Inter_SemiBold text-sm">
+                  Retry
+                </Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* ── Empty ── */}
+          {!isLoading && !isError && faqs.length === 0 && (
+            <View className="items-center justify-center mt-16">
+              <Feather name="help-circle" size={48} color="#9CA3AF" />
+              <Text className="text-base font-Inter_SemiBold text-gray-700 mt-3">
+                No FAQs Available
+              </Text>
+              <Text className="text-sm font-Inter_Regular text-gray-500 mt-1">
+                Check back later for updates.
+              </Text>
+            </View>
+          )}
+
+          {/* ── FAQ List ── */}
+          {!isLoading &&
+            !isError &&
+            faqs.map((item, index) => (
+              <FAQCard key={item._id} item={item} index={index} />
+            ))}
         </ScrollView>
       </SafeAreaView>
     </ScreenWrapper>
   );
 };
 
-export default faqs;
+export default Faqs;

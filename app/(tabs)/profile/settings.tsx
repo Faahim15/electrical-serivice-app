@@ -1,6 +1,7 @@
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import Feather from "@expo/vector-icons/build/Feather";
 import { Href, router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -12,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 interface SettingsItem {
   id: string;
   route: Href;
@@ -29,20 +29,20 @@ const settingsItems: SettingsItem[] = [
     title: "Notification Settings",
     subtitle: "Manage app notifications",
   },
-  {
-    id: "2",
-    route: "/(tabs)/profile/(setting)/permissions",
-    icon: "lock",
-    title: "Permissions",
-    subtitle: "App access permissions",
-  },
-  {
-    id: "3",
-    route: "/(tabs)/profile/(setting)/language" as any,
-    icon: "globe",
-    title: "Language",
-    subtitle: "English",
-  },
+  // {
+  //   id: "2",
+  //   route: "/(tabs)/profile/(setting)/permissions",
+  //   icon: "lock",
+  //   title: "Permissions",
+  //   subtitle: "App access permissions",
+  // },
+  // {
+  //   id: "3",
+  //   route: "/(tabs)/profile/(setting)/language" as any,
+  //   icon: "globe",
+  //   title: "Language",
+  //   subtitle: "English",
+  // },
   {
     id: "8",
     route: "/(tabs)/profile/(setting)/change-password",
@@ -257,7 +257,12 @@ const Settings = () => {
   const headerSlide = useRef(new Animated.Value(-16)).current;
   const logoutFade = useRef(new Animated.Value(0)).current;
   const logoutSlide = useRef(new Animated.Value(20)).current;
-
+  const handleLogout = async () => {
+    setShowLogoutModal(false);
+    await SecureStore.deleteItemAsync("token");
+    await SecureStore.deleteItemAsync("refreshToken");
+    router.replace("/auth/sign-in");
+  };
   useEffect(() => {
     Animated.parallel([
       Animated.timing(headerFade, {
@@ -343,10 +348,7 @@ const Settings = () => {
       <LogoutModal
         visible={showLogoutModal}
         onCancel={() => setShowLogoutModal(false)}
-        onConfirm={() => {
-          setShowLogoutModal(false);
-          router.replace("/auth/sign-in");
-        }}
+        onConfirm={handleLogout}
       />
     </ScreenWrapper>
   );

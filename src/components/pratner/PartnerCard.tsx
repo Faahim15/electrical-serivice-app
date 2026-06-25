@@ -1,30 +1,21 @@
-import { setSelectedDetail } from "@/src/redux/slices/parnerDetailsSlice";
+import { useAddFavoritePartnerMutation } from "@/src/redux/api-slices/profile/partners-api";
+import type { Partner } from "@/src/types/partners.types";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Linking, Pressable, Text, View } from "react-native";
+import { toast } from "sonner-native";
 
-import { useDispatch } from "react-redux";
-
-interface PartnerItem {
-  id: string;
-  name: string;
-  category: string;
-  shortDescription: string;
-  tagline: string;
-  trustedPartnerVerified: boolean;
-  whyWeRecommendThem: string[];
-  contact: {
-    phone?: string;
-    website?: string;
-  };
-}
-
-const PartnerCard = ({ item, index }: { item: PartnerItem; index: number }) => {
+const PartnerCard = ({ item, index }: { item: Partner; index: number }) => {
   const slideAnim = useRef(new Animated.Value(40)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [islove, setIslove] = useState(false);
+  const [isLove, setIsLove] = useState(false);
+
+  // ── API ──────────────────────────────────────────────────────────────────
+  const [addFavorite, { isLoading: isAddingFavorite }] =
+    useAddFavoritePartnerMutation();
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(slideAnim, {
@@ -41,18 +32,45 @@ const PartnerCard = ({ item, index }: { item: PartnerItem; index: number }) => {
       }),
     ]).start();
   }, []);
-  const dispatch = useDispatch();
+
   const handleView = () => {
-    dispatch(setSelectedDetail(item));
-    router.push("/(tabs)/partners/partner-details");
+    router.push({
+      pathname: "/(tabs)/partners/partner-details",
+      params: {
+        partnerId: item.id,
+        companyName: item.companyName,
+        category: item.category,
+        description: item.description,
+        phoneNumber: item.phoneNumber,
+        websiteUrl: item.websiteUrl,
+        isVerified: String(item.isVerified),
+      },
+    });
   };
 
   const handleWebsite = (url: string | undefined) => {
     if (!url) return;
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      url = "https://www." + url;
+    const finalUrl =
+      url.startsWith("http://") || url.startsWith("https://")
+        ? url
+        : "https://" + url;
+    Linking.openURL(finalUrl);
+  };
+
+  // ── Favourite toggle ──────────────────────────────────────────────────────
+  const handleFavorite = async () => {
+    if (!item.id || isAddingFavorite) return;
+    try {
+      await addFavorite({ partnerId: item.id, isFavourite: !isLove }).unwrap();
+      setIsLove((prev) => !prev);
+      toast.success(
+        isLove
+          ? "Partner removed from favorites!"
+          : "Partner saved to favorites!",
+      );
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to update favorite.");
     }
-    Linking.openURL(url);
   };
 
   return (
@@ -70,16 +88,23 @@ const PartnerCard = ({ item, index }: { item: PartnerItem; index: number }) => {
           elevation: 5,
         }}
       >
-        {/* Name + Favourite */}
+        {/* ── Name + Verified badge + Favourite ───────────────────────────── */}
         <View className="flex-row items-start justify-between mb-0.5">
-          <Text className="text-base font-Inter_Bold text-[#0F172A] flex-1 mr-2">
-            {item.name}
-          </Text>
+          <View className="flex-1 mr-2 flex-row items-center gap-2">
+            <Text className="text-base font-Inter_Bold text-[#0F172A]">
+              {item.companyName}
+            </Text>
+            {item.isVerified && (
+              <AntDesign name="check-circle" size={14} color="#14B8A6" />
+            )}
+          </View>
           <Pressable
-            onPress={() => setIslove(!islove)}
+            onPress={handleFavorite}
+            disabled={isAddingFavorite}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ opacity: isAddingFavorite ? 0.5 : 1 }}
           >
-            {islove ? (
+            {isLove ? (
               <AntDesign name="heart" size={22} color="#991b1b" />
             ) : (
               <Feather name="heart" size={22} color="#9CA3AF" />
@@ -87,47 +112,45 @@ const PartnerCard = ({ item, index }: { item: PartnerItem; index: number }) => {
           </Pressable>
         </View>
 
-        {/* Category */}
+        {/* ── Category ────────────────────────────────────────────────────── */}
         <Text className="text-sm font-Inter_Regular text-[#64748B] mb-3">
           {item.category}
         </Text>
 
-        {/* Phone */}
+        {/* ── Phone ───────────────────────────────────────────────────────── */}
         <Pressable
           className="flex-row items-center mb-1.5"
-          onPress={() => Linking.openURL(`tel:${item.contact.phone}`)}
+          onPress={() => Linking.openURL(`tel:${item.phoneNumber}`)}
         >
           <Feather name="phone" size={14} color="#64748B" />
           <Text className="text-sm font-Inter_Regular text-[#0F172A] ml-2">
-            {item.contact.phone}
+            {item.phoneNumber}
           </Text>
         </Pressable>
 
-        {/* Website (conditional) */}
-        {item?.contact?.website && (
+        {/* ── Website ─────────────────────────────────────────────────────── */}
+        {item.websiteUrl && (
           <Pressable
             className="flex-row items-center mb-3"
-            onPress={() => Linking.openURL(item?.contact?.website!)}
+            onPress={() => handleWebsite(item.websiteUrl)}
           >
-            <View>
-              <Feather name="globe" size={14} color="#64748B" />
-            </View>
+            <Feather name="globe" size={14} color="#64748B" />
             <View className="flex-1 flex-row flex-wrap">
               <Text className="text-sm font-Inter_Regular text-[#0F172A] ml-2 flex-shrink flex-wrap">
-                {item?.contact?.website}
+                {item.websiteUrl}
               </Text>
             </View>
           </Pressable>
         )}
 
-        {/* Divider */}
+        {/* ── Divider ─────────────────────────────────────────────────────── */}
         <View className="h-px bg-slate-100 my-3" />
 
-        {/* Action buttons */}
+        {/* ── Action Buttons ──────────────────────────────────────────────── */}
         <View className="flex-row gap-2">
           <Pressable
             className="flex-row items-center justify-center border border-slate-200 rounded-xl px-4 py-4 gap-1.5"
-            onPress={() => Linking.openURL(`tel:${item.contact.phone}`)}
+            onPress={() => Linking.openURL(`tel:${item.phoneNumber}`)}
           >
             <Feather name="phone" size={14} color="#0F172A" />
             <Text className="text-sm font-Inter_SemiBold text-[#0F172A]">
@@ -135,7 +158,7 @@ const PartnerCard = ({ item, index }: { item: PartnerItem; index: number }) => {
             </Text>
           </Pressable>
 
-          <Pressable className="flex-1 " onPress={handleView}>
+          <Pressable className="flex-1" onPress={handleView}>
             <LinearGradient
               colors={["#0EA5E9", "#14B8A6"]}
               start={{ x: 0, y: 0 }}
@@ -144,14 +167,15 @@ const PartnerCard = ({ item, index }: { item: PartnerItem; index: number }) => {
               className="py-4 items-center"
             >
               <Text className="font-Inter_SemiBold text-sm text-white">
-                View Detais
+                View Details
               </Text>
             </LinearGradient>
           </Pressable>
         </View>
-        {item?.contact?.website && (
+
+        {item.websiteUrl && (
           <Pressable
-            onPress={() => handleWebsite(item?.contact?.website)}
+            onPress={() => handleWebsite(item.websiteUrl)}
             className="flex-row items-center justify-center border border-slate-200 rounded-xl px-4 py-4 gap-1.5 mt-3"
           >
             <Feather name="globe" size={14} color="#0F172A" />

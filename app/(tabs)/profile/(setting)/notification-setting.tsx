@@ -1,10 +1,11 @@
-import LinearButton from "@/src/components/shared/LinearButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import Feather from "@expo/vector-icons/build/Feather";
+import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Linking,
   Pressable,
   ScrollView,
   Switch,
@@ -19,18 +20,14 @@ const notificationItems = [
     title: "Reminder Alerts",
     description: "Get notified about upcoming maintenance reminders",
     defaultValue: true,
+    isStatic: true,
   },
-  // {
-  //   id: 2,
-  //   title: "Maintenance Notices",
-  //   description: "Safety and maintenance",
-  //   defaultValue: false,
-  // },
   {
     id: 3,
     title: "App Notifications",
     description: "General app notifications and updates",
     defaultValue: true,
+    isStatic: false,
   },
 ];
 
@@ -81,7 +78,6 @@ const NotificationCard = ({
           elevation: 2,
         }}
       >
-        {/* Text */}
         <View className="flex-1 mr-4">
           <Text className="text-[15px] font-Inter_Bold text-[#111827] mb-0.5">
             {item.title}
@@ -91,13 +87,13 @@ const NotificationCard = ({
           </Text>
         </View>
 
-        {/* Toggle */}
         <Switch
           value={value}
           onValueChange={(val) => onToggle(item.id, val)}
           trackColor={{ false: "#D1D5DB", true: "#06B6D4" }}
           thumbColor="#ffffff"
           ios_backgroundColor="#D1D5DB"
+          disabled={item.isStatic}
         />
       </View>
     </Animated.View>
@@ -109,46 +105,46 @@ const Notificationsetting = () => {
     Object.fromEntries(notificationItems.map((n) => [n.id, n.defaultValue])),
   );
 
-  const buttonAnim = useRef(new Animated.Value(0)).current;
-  const buttonScale = useRef(new Animated.Value(1)).current;
-
   useEffect(() => {
-    Animated.timing(buttonAnim, {
+    Animated.timing(new Animated.Value(0), {
       toValue: 1,
       duration: 500,
-      delay: notificationItems.length * 110 + 100,
       useNativeDriver: true,
     }).start();
   }, []);
 
-  const handleToggle = (id: number, val: boolean) => {
+  const handleToggle = async (id: number, val: boolean) => {
+    const item = notificationItems.find((n) => n.id === id);
+    if (item?.isStatic) return;
+
+    // ── App Notifications toggle ──
+    if (id === 3) {
+      if (val) {
+        // ── Off → On: permission চাও ──
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === "granted") {
+          setSettings((prev) => ({ ...prev, [id]: true }));
+        } else {
+          // permission denied — toggle false থাকবে
+          setSettings((prev) => ({ ...prev, [id]: false }));
+        }
+      } else {
+        // ── On → Off: phone settings এ নিয়ে যাও ──
+        setSettings((prev) => ({ ...prev, [id]: false }));
+        Linking.openSettings();
+      }
+      return;
+    }
+
     setSettings((prev) => ({ ...prev, [id]: val }));
-  };
-
-  const handlePressIn = () => {
-    Animated.spring(buttonScale, {
-      toValue: 0.97,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 5,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(buttonScale, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 5,
-    }).start();
   };
 
   return (
     <ScreenWrapper>
       <SafeAreaView edges={["top"]} className="flex-1">
-        {/* header */}
-        <View className="flex-row justify-between items-center pb-2 ">
-          <Pressable onPress={() => router.back()} className="">
+        {/* ── Header ── */}
+        <View className="flex-row justify-between items-center pb-2">
+          <Pressable onPress={() => router.back()}>
             <Feather name="arrow-left" size={24} color="#111827" />
           </Pressable>
           <Text className="text-2xl text-[#111827] font-Inter_Bold">
@@ -159,10 +155,9 @@ const Notificationsetting = () => {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          className="flex-1 "
+          className="flex-1"
           contentContainerStyle={{ paddingBottom: 32, paddingTop: 8 }}
         >
-          {/* content  */}
           {notificationItems.map((item, index) => (
             <NotificationCard
               key={item.id}
@@ -173,18 +168,6 @@ const Notificationsetting = () => {
             />
           ))}
         </ScrollView>
-
-        {/* Save Button */}
-        <Animated.View
-          style={{ opacity: buttonAnim, transform: [{ scale: buttonScale }] }}
-          className="px-4 pb-6"
-        >
-          <LinearButton
-            title="Save Preferences"
-            onPress={() => console.log("Saved")}
-            variant="primary"
-          />
-        </Animated.View>
       </SafeAreaView>
     </ScreenWrapper>
   );
