@@ -62,47 +62,57 @@ export type DraftResponse =
   | CeilingFanRecord;
 
 export const useDraftDetails = (id?: string, serviceType?: string) => {
-  const isServiceCall = !id || serviceType === "Service Call" || !serviceType;
-  const isEvCharger = !!id && serviceType === "EV Charger Installation";
+  const normalizedType = serviceType?.replace(/\s+/g, " ").trim();
+
+  // ─── Flags ────────────────────────────────────────────────────────────────────
+  const isServiceCall =
+    !id || normalizedType === "Service Call" || !normalizedType;
+  const isEvCharger = !!id && normalizedType === "EV Charger Installation";
   const isPanelUpgrade =
     !!id &&
-    (serviceType === "Panel Upgrade / Replacement" ||
-      serviceType === "Panel Upgrade/Replacement");
-  const isRemodeling = !!id && serviceType === "Remodeling";
+    (normalizedType === "Panel Upgrade / Replacement" ||
+      normalizedType === "Panel Upgrade/Replacement");
+  const isRemodeling = !!id && normalizedType === "Remodeling";
   const isAccessoryBuilding =
-    !!id && serviceType === "Accessory Building / Shed Power";
-  const isHotTub = !!id && serviceType === "Hot tub installation";
-  const isDockPower = !!id && serviceType === "Dock Power";
-  const isElectric = !!id && serviceType === "Electric System";
-  const isGenerator = !!id && serviceType === "Generator Installation";
-  const isNewConstruction = !!id && serviceType === "New Construction";
-  const isHomeSurgeProtection = !!id && serviceType === "Home Surge Protection";
-  const isStarlink = !!id && serviceType === "Starlink Installation";
+    !!id && normalizedType === "Accessory Building / Shed Power";
+  const isHotTub =
+    !!id &&
+    (normalizedType === "Hot Tub Installation" ||
+      normalizedType === "Hot tub installation");
+  const isDockPower = !!id && normalizedType === "Dock Power";
+  const isElectric = !!id && normalizedType === "Electric System";
+  const isGenerator = !!id && normalizedType === "Generator Installation";
+  const isNewConstruction = !!id && normalizedType === "New Construction";
+  const isHomeSurgeProtection =
+    !!id && normalizedType === "Home Surge Protection";
+  const isStarlink = !!id && normalizedType === "Starlink Installation";
   const isDedicatedCircuit =
-    !!id && serviceType === "Dedicated Circuit Installation";
+    !!id && normalizedType === "Dedicated Circuit Installation";
 
-  // ─── New Flags ──────────────────────────────────────────────────────────────
+  // ─── New Flags ────────────────────────────────────────────────────────────────
   const isExhaustFan =
     !!id &&
-    (serviceType === "Exhaust Fan" ||
-      serviceType === "Exhaust Fan Installation");
+    (normalizedType === "Exhaust Fan" ||
+      normalizedType === "Exhaust Fan Installation");
   const isOutlets =
     !!id &&
-    (serviceType === "Outlets" ||
-      serviceType === "Outlets Installation" ||
-      serviceType === "Outlet Installation");
+    (normalizedType === "Outlets" ||
+      normalizedType === "Outlets Installation" ||
+      normalizedType === "Outlet Installation");
   const isSwitches =
     !!id &&
-    (serviceType === "Switches" || serviceType === "Switches Installation");
+    (normalizedType === "Switches" ||
+      normalizedType === "Switches Installation");
   const isLighting =
     !!id &&
-    (serviceType === "Lighting" || serviceType === "Lighting Installation");
+    (normalizedType === "Lighting" ||
+      normalizedType === "Lighting Installation");
   const isCeilingFan =
     !!id &&
-    (serviceType === "Ceiling Fan" ||
-      serviceType === "Ceiling Fan Installation");
+    (normalizedType === "Ceiling Fan" ||
+      normalizedType === "Ceiling Fan Installation");
 
-  // ─── Queries ─────────────────────────────────────────────────────────────────
+  // ─── Queries ──────────────────────────────────────────────────────────────────
   const serviceCallResult = useGetServiceCallByIdQuery(id as string, {
     skip: !id || !isServiceCall,
   });
@@ -149,7 +159,7 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
     skip: !id || !isDedicatedCircuit,
   });
 
-  // ─── New Queries ─────────────────────────────────────────────────────────────
+  // ─── New Queries ──────────────────────────────────────────────────────────────
   const exhaustFanResult = useGetExhaustFanByIdQuery(id as string, {
     skip: !id || !isExhaustFan,
   });
@@ -250,7 +260,7 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
     };
   }
 
-  // ─── New Returns ─────────────────────────────────────────────────────────────
+  // ─── New Returns ──────────────────────────────────────────────────────────────
   if (isExhaustFan) {
     return {
       data: exhaustFanResult.data?.data as ExhaustFanRecord | undefined,
@@ -282,7 +292,7 @@ export const useDraftDetails = (id?: string, serviceType?: string) => {
     };
   }
 
-  // ─── Default: Service Call ───────────────────────────────────────────────────
+  // ─── Default: Service Call ────────────────────────────────────────────────────
   return {
     data: serviceCallResult.data?.data as ServiceCallResponse | undefined,
     isLoading: serviceCallResult.isLoading,

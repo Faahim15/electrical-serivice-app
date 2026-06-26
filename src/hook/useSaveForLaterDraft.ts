@@ -54,7 +54,7 @@ export const useSaveForLaterDraft = (onSuccess?: () => void) => {
   const [updateStarlink] = useUpdateStarlinkMutation();
   const [updateDedicatedCircuit] = useUpdateDedicatedCircuitMutation();
 
-  // ─── New Mutations ──────────────────────────────────────────────────────────
+  // ─── New Mutations ────────────────────────────────────────────────────────────
   const [updateExhaustFan] = useUpdateExhaustFanMutation();
   const [updateOutlet] = useUpdateOutletMutation();
   const [updateSwitches] = useUpdateSwitchesMutation();
@@ -68,11 +68,14 @@ export const useSaveForLaterDraft = (onSuccess?: () => void) => {
   ) => {
     setIsSaving(true);
     try {
-      switch (serviceType) {
+      const normalizedType = serviceType.replace(/\s+/g, " ").trim();
+
+      switch (normalizedType) {
         case "EV Charger Installation":
           await updateEvCharger({ id, body }).unwrap();
           break;
         case "Panel Upgrade / Replacement":
+        case "Panel Upgrade/Replacement":
           await updatePanelUpgrade({
             recordId: id,
             formData: body as any,
@@ -90,6 +93,7 @@ export const useSaveForLaterDraft = (onSuccess?: () => void) => {
             formData: body as any,
           }).unwrap();
           break;
+        case "Hot Tub Installation":
         case "Hot tub installation":
           await updateHotTub({ recordId: id, formData: body as any }).unwrap();
           break;
@@ -135,18 +139,17 @@ export const useSaveForLaterDraft = (onSuccess?: () => void) => {
             formData: body as any,
           }).unwrap();
           break;
-        // ─── New Cases ────────────────────────────────────────────────────────
         case "Exhaust Fan":
+        case "Exhaust Fan Installation":
           await updateExhaustFan({
             recordId: id,
             formData: body as any,
           }).unwrap();
           break;
         case "Outlets":
-          await updateOutlet({
-            recordId: id,
-            formData: body as any,
-          }).unwrap();
+        case "Outlets Installation":
+        case "Outlet Installation":
+          await updateOutlet({ recordId: id, formData: body as any }).unwrap();
           break;
         case "Switches":
         case "Switches Installation":
@@ -156,6 +159,7 @@ export const useSaveForLaterDraft = (onSuccess?: () => void) => {
           }).unwrap();
           break;
         case "Lighting":
+        case "Lighting Installation":
           await updateLighting({
             recordId: id,
             formData: body as any,

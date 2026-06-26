@@ -2,6 +2,7 @@ import TagTypes from "@/src/constants/tagTypes.constant";
 import { baseApi } from "@/src/redux/services/base-api";
 import type {
   AddFavoriteResponse,
+  FavoritePartnersResponse,
   PartnerCategoriesResponse,
   PartnersResponse,
 } from "@/src/types/partners.types";
@@ -16,7 +17,6 @@ const partnersApi = baseApi.injectEndpoints({
       providesTags: [TagTypes.Partner],
     }),
 
-    // ── New ───────────────────────────────────────────────────────────────
     getPartnersByCategory: builder.query<PartnersResponse, string>({
       query: (categoryId) => ({
         url: `/quotes/categories/${categoryId}/partners`,
@@ -25,6 +25,14 @@ const partnersApi = baseApi.injectEndpoints({
       providesTags: (result, error, categoryId) => [
         { type: TagTypes.Partner, id: categoryId },
       ],
+    }),
+
+    getFavoritePartners: builder.query<FavoritePartnersResponse, void>({
+      query: () => ({
+        url: "/quotes/favorites",
+        method: "GET",
+      }),
+      providesTags: [TagTypes.Partner],
     }),
 
     addFavoritePartner: builder.mutation<
@@ -43,6 +51,7 @@ const partnersApi = baseApi.injectEndpoints({
 export const {
   useGetPartnerCategoriesQuery,
   useGetPartnersByCategoryQuery,
+  useGetFavoritePartnersQuery,
   useAddFavoritePartnerMutation,
 } = partnersApi;
 

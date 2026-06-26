@@ -26,6 +26,7 @@ export const getResumeRoute = (
 
   // ─── Panel Upgrade / Replacement ─────────────────────────────────────────────
   if (
+    serviceType.replace(/\s+/g, " ").includes("Panel Upgrade / Replacement") ||
     serviceType === "Panel Upgrade / Replacement" ||
     serviceType === "Panel Upgrade/Replacement"
   ) {
@@ -160,7 +161,10 @@ export const getResumeRoute = (
   }
 
   // ─── Generator Installation ──────────────────────────────────────────────────
-  if (serviceType === "Generator Installation") {
+  if (
+    serviceType.replace(/\s+/g, " ").includes("Generator Installation") ||
+    serviceType === "Generator Installation"
+  ) {
     if (completionPercentage <= 14)
       return "/(tabs)/quotes/quote/common/contact-details";
     if (completionPercentage <= 29)

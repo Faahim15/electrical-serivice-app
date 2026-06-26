@@ -60,7 +60,7 @@ const popularServices: Category[] = [
   },
   {
     id: "2",
-    title: "EV Charger\nInstallation",
+    title: "EV Charger\n Installation",
     description: "EV charging station setup.",
     iconName: "flash-outline",
     iconColor: "#0EA5E9",
@@ -68,7 +68,7 @@ const popularServices: Category[] = [
   },
   {
     id: "3",
-    title: "Panel Upgrade",
+    title: "Panel Upgrade\n/ Replacement",
     description: "Modernize electrical panel.",
     iconName: "cube-outline",
     iconColor: "#F59E0B",
@@ -76,7 +76,7 @@ const popularServices: Category[] = [
   },
   {
     id: "9",
-    title: "Generator\nInstallation",
+    title: "Generator\n Installation",
     description: "Backup power solutions.",
     iconName: "battery-charging-outline",
     iconColor: "#8B5CF6",

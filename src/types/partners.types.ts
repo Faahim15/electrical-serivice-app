@@ -35,3 +35,22 @@ export interface AddFavoriteResponse {
   success: boolean;
   message: string;
 }
+export interface FavoritePartner {
+  id: string;
+  companyName: string;
+  category: string;
+  description: string;
+  phoneNumber: string;
+  websiteUrl: string;
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  favoritedAt: string;
+}
+
+export interface FavoritePartnersResponse {
+  success: boolean;
+  message: string;
+  data: FavoritePartner[];
+}

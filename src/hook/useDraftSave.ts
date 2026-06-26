@@ -54,28 +54,25 @@ import {
 
 // ─── New Imports ──────────────────────────────────────────────────────────────
 import {
-  useCreateExhaustFanMutation,
-  useUpdateExhaustFanMutation,
-} from "../redux/api-slices/quote/exhaust-fan-api";
-
-import {
-  useCreateOutletMutation,
-  useUpdateOutletMutation,
-} from "../redux/api-slices/quote/outlet-api";
-
-import {
-  useCreateSwitchesMutation,
-  useUpdateSwitchesMutation,
-} from "../redux/api-slices/quote/switches-api";
-
-import {
   useCreateCeilingFanMutation,
   useUpdateCeilingFanMutation,
 } from "../redux/api-slices/quote/ceiling-fan-api";
 import {
+  useCreateExhaustFanMutation,
+  useUpdateExhaustFanMutation,
+} from "../redux/api-slices/quote/exhaust-fan-api";
+import {
   useCreateLightingMutation,
   useUpdateLightingMutation,
 } from "../redux/api-slices/quote/lighting-api";
+import {
+  useCreateOutletMutation,
+  useUpdateOutletMutation,
+} from "../redux/api-slices/quote/outlet-api";
+import {
+  useCreateSwitchesMutation,
+  useUpdateSwitchesMutation,
+} from "../redux/api-slices/quote/switches-api";
 
 import { useState } from "react";
 
@@ -191,32 +188,31 @@ export const useDraftSave = () => {
   const [updateDedicatedCircuit, { isLoading: isUpdatingDedicatedCircuit }] =
     useUpdateDedicatedCircuitMutation();
 
-  // ─── New Mutations ──────────────────────────────────────────────────────────
-  // Exhaust Fan
+  // ─── Exhaust Fan ─────────────────────────────────────────────────────────────
   const [createExhaustFan, { isLoading: isCreatingExhaustFan }] =
     useCreateExhaustFanMutation();
   const [updateExhaustFan, { isLoading: isUpdatingExhaustFan }] =
     useUpdateExhaustFanMutation();
 
-  // Outlets
+  // ─── Outlets ─────────────────────────────────────────────────────────────────
   const [createOutlets, { isLoading: isCreatingOutlets }] =
     useCreateOutletMutation();
   const [updateOutlets, { isLoading: isUpdatingOutlets }] =
     useUpdateOutletMutation();
 
-  // Switches
+  // ─── Switches ────────────────────────────────────────────────────────────────
   const [createSwitches, { isLoading: isCreatingSwitches }] =
     useCreateSwitchesMutation();
   const [updateSwitches, { isLoading: isUpdatingSwitches }] =
     useUpdateSwitchesMutation();
 
-  // Lighting
+  // ─── Lighting ────────────────────────────────────────────────────────────────
   const [createLighting, { isLoading: isCreatingLighting }] =
     useCreateLightingMutation();
   const [updateLighting, { isLoading: isUpdatingLighting }] =
     useUpdateLightingMutation();
 
-  // Ceiling Fan
+  // ─── Ceiling Fan ─────────────────────────────────────────────────────────────
   const [createCeilingFan, { isLoading: isCreatingCeilingFan }] =
     useCreateCeilingFanMutation();
   const [updateCeilingFan, { isLoading: isUpdatingCeilingFan }] =
@@ -251,7 +247,6 @@ export const useDraftSave = () => {
     isUpdatingStarlink ||
     isCreatingDedicatedCircuit ||
     isUpdatingDedicatedCircuit ||
-    // ─── New Loading States ──────────────────────────────────────────────────
     isCreatingExhaustFan ||
     isUpdatingExhaustFan ||
     isCreatingOutlets ||
@@ -266,16 +261,19 @@ export const useDraftSave = () => {
 
   // ─── Create (no existing draft yet) ─────────────────────────────────────────
   const createDraft = async (serviceType: string, body: DraftPayload) => {
-    console.log("from crateDraft", serviceType);
-    switch (serviceType) {
+    const normalizedType = serviceType.replace(/\s+/g, " ").trim();
+
+    switch (normalizedType) {
       case "EV Charger Installation":
         return createEvCharger(body as any).unwrap();
       case "Panel Upgrade / Replacement":
+      case "Panel Upgrade/Replacement":
         return createPanelUpgrade(body as any).unwrap();
       case "Remodeling":
         return createRemodeling(body as any).unwrap();
       case "Accessory Building / Shed Power":
         return createAccessoryBuilding(body as any).unwrap();
+      case "Hot Tub Installation":
       case "Hot tub installation":
         return createHotTub(body as any).unwrap();
       case "Dock Power":
@@ -292,7 +290,6 @@ export const useDraftSave = () => {
         return createStarlink(body as any).unwrap();
       case "Dedicated Circuit Installation":
         return createDedicatedCircuit(body as any).unwrap();
-      // ─── New Create Cases ──────────────────────────────────────────────────
       case "Exhaust Fan":
       case "Exhaust Fan Installation":
         return createExhaustFan(body as any).unwrap();
@@ -304,6 +301,7 @@ export const useDraftSave = () => {
       case "Switches Installation":
         return createSwitches(body as any).unwrap();
       case "Lighting":
+      case "Lighting Installation":
         return createLighting(body as any).unwrap();
       case "Ceiling Fan":
       case "Ceiling Fan Installation":
@@ -320,10 +318,13 @@ export const useDraftSave = () => {
     serviceType: string,
     body: DraftPayload,
   ) => {
-    switch (serviceType) {
+    const normalizedType = serviceType.replace(/\s+/g, " ").trim();
+
+    switch (normalizedType) {
       case "EV Charger Installation":
         return updateEvCharger({ id, body: body as FormData }).unwrap();
       case "Panel Upgrade / Replacement":
+      case "Panel Upgrade/Replacement":
         return updatePanelUpgrade({
           recordId: id,
           formData: body as FormData,
@@ -338,6 +339,7 @@ export const useDraftSave = () => {
           recordId: id,
           formData: body as FormData,
         }).unwrap();
+      case "Hot Tub Installation":
       case "Hot tub installation":
         return updateHotTub({
           recordId: id,
@@ -378,7 +380,6 @@ export const useDraftSave = () => {
           recordId: id,
           formData: body as FormData,
         }).unwrap();
-      // ─── New Update Cases ──────────────────────────────────────────────────
       case "Exhaust Fan":
       case "Exhaust Fan Installation":
         return updateExhaustFan({

@@ -1,5 +1,10 @@
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import { useAddFavoritePartnerMutation } from "@/src/redux/api-slices/profile/partners-api";
+import {
+  selectIsFavorite,
+  setFavorite,
+  toggleFavorite,
+} from "@/src/redux/slices/favouritePartnerSlice";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -13,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const Partnerdetails = () => {
@@ -27,7 +33,8 @@ const Partnerdetails = () => {
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
   const buttonsSlide = useRef(new Animated.Value(40)).current;
 
-  const [isLove, setIsLove] = useState(false);
+  const dispatch = useDispatch();
+  const [isSaved, setIsSaved] = useState(false);
 
   // ── Params from PartnerCard ──────────────────────────────────────────────
   const {
@@ -47,6 +54,11 @@ const Partnerdetails = () => {
     websiteUrl: string;
     isVerified: string;
   }>();
+
+  // ── Redux favourite state ────────────────────────────────────────────────
+  const isLove = useSelector((state: any) =>
+    selectIsFavorite(state, partnerId ?? ""),
+  );
 
   // ── API ──────────────────────────────────────────────────────────────────
   const [addFavorite, { isLoading: isAddingFavorite }] =
@@ -119,9 +131,7 @@ const Partnerdetails = () => {
     ]).start();
   }, []);
 
-  const handleCall = () => {
-    Linking.openURL(`tel:${phoneNumber}`);
-  };
+  const handleCall = () => Linking.openURL(`tel:${phoneNumber}`);
 
   const handleWebsite = () => {
     if (!websiteUrl) return;
@@ -132,13 +142,21 @@ const Partnerdetails = () => {
     Linking.openURL(finalUrl);
   };
 
-  const handleSavePartner = async () => {
+  // ── Heart icon — Redux only, no API ─────────────────────────────────────
+  const handleToggleFavorite = () => {
     if (!partnerId) return;
+    dispatch(toggleFavorite(partnerId));
+  };
+
+  // ── Save Partner button — API call + sync Redux ──────────────────────────
+  const handleSavePartner = async () => {
+    if (!partnerId || isAddingFavorite) return;
     try {
-      await addFavorite({ partnerId, isFavourite: !isLove }).unwrap();
-      setIsLove((prev) => !prev);
+      await addFavorite({ partnerId, isFavourite: !isSaved }).unwrap();
+      dispatch(setFavorite({ partnerId, value: !isSaved }));
+      setIsSaved((prev) => !prev);
       toast.success(
-        isLove
+        isSaved
           ? "Partner removed from favorites!"
           : "Partner saved to favorites!",
       );
@@ -216,12 +234,8 @@ const Partnerdetails = () => {
                 </View>
               </View>
 
-              {/* ── Heart Toggle ── */}
-              <Pressable
-                onPress={handleSavePartner}
-                disabled={isAddingFavorite}
-                className="p-1"
-              >
+              {/* ── Heart Toggle — Redux only, no API ── */}
+              <Pressable onPress={handleToggleFavorite} className="p-1">
                 {isLove ? (
                   <AntDesign name="heart" size={24} color="#991b1b" />
                 ) : (
@@ -230,12 +244,10 @@ const Partnerdetails = () => {
               </Pressable>
             </View>
 
-            {/* Description */}
             <Text className="text-sm text-gray-500 mt-3 font-Inter_Regular">
               {description}
             </Text>
 
-            {/* Badge */}
             <View className="mt-3 bg-[#EFF6FF] rounded-xl px-3 py-2">
               <Text className="text-sm text-[#155DFC] font-Inter_Regular leading-5">
                 Trusted partner verified by Four Elements Electric
@@ -326,7 +338,7 @@ const Partnerdetails = () => {
               </Pressable>
             )}
 
-            {/* Save Partner */}
+            {/* Save Partner — API call only here */}
             <Pressable
               onPress={handleSavePartner}
               disabled={isAddingFavorite}
@@ -336,12 +348,12 @@ const Partnerdetails = () => {
               <Feather
                 name="heart"
                 size={18}
-                color={isLove ? "#991b1b" : "#374151"}
+                color={isSaved ? "#991b1b" : "#374151"}
               />
               <Text className="text-[#374151] font-Inter_SemiBold text-base">
                 {isAddingFavorite
                   ? "Saving..."
-                  : isLove
+                  : isSaved
                     ? "Saved!"
                     : "Save Partner"}
               </Text>

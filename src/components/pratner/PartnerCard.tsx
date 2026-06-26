@@ -1,20 +1,21 @@
-import { useAddFavoritePartnerMutation } from "@/src/redux/api-slices/profile/partners-api";
+import {
+  selectIsFavorite,
+  toggleFavorite,
+} from "@/src/redux/slices/favouritePartnerSlice";
 import type { Partner } from "@/src/types/partners.types";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Animated, Linking, Pressable, Text, View } from "react-native";
-import { toast } from "sonner-native";
+import { useDispatch, useSelector } from "react-redux";
 
 const PartnerCard = ({ item, index }: { item: Partner; index: number }) => {
   const slideAnim = useRef(new Animated.Value(40)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [isLove, setIsLove] = useState(false);
 
-  // ── API ──────────────────────────────────────────────────────────────────
-  const [addFavorite, { isLoading: isAddingFavorite }] =
-    useAddFavoritePartnerMutation();
+  const dispatch = useDispatch();
+  const isLove = useSelector((state: any) => selectIsFavorite(state, item.id));
 
   useEffect(() => {
     Animated.parallel([
@@ -57,20 +58,8 @@ const PartnerCard = ({ item, index }: { item: Partner; index: number }) => {
     Linking.openURL(finalUrl);
   };
 
-  // ── Favourite toggle ──────────────────────────────────────────────────────
-  const handleFavorite = async () => {
-    if (!item.id || isAddingFavorite) return;
-    try {
-      await addFavorite({ partnerId: item.id, isFavourite: !isLove }).unwrap();
-      setIsLove((prev) => !prev);
-      toast.success(
-        isLove
-          ? "Partner removed from favorites!"
-          : "Partner saved to favorites!",
-      );
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to update favorite.");
-    }
+  const handleFavorite = () => {
+    dispatch(toggleFavorite(item.id));
   };
 
   return (
@@ -100,9 +89,7 @@ const PartnerCard = ({ item, index }: { item: Partner; index: number }) => {
           </View>
           <Pressable
             onPress={handleFavorite}
-            disabled={isAddingFavorite}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ opacity: isAddingFavorite ? 0.5 : 1 }}
           >
             {isLove ? (
               <AntDesign name="heart" size={22} color="#991b1b" />

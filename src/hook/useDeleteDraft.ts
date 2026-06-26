@@ -49,12 +49,14 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
   const deleteDraft = async (id: string, serviceType: string) => {
     setIsDeleting(true);
     try {
-      console.log("useDeleteDraft screens", serviceType, id);
-      switch (serviceType) {
+      const normalizedType = serviceType.replace(/\s+/g, " ").trim();
+
+      switch (normalizedType) {
         case "EV Charger Installation":
           await deleteEvCharger(id).unwrap();
           break;
         case "Panel Upgrade / Replacement":
+        case "Panel Upgrade/Replacement":
           await deletePanelUpgrade(id).unwrap();
           break;
         case "Remodeling":
@@ -88,7 +90,6 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
         case "Dedicated Circuit Installation":
           await deleteDedicatedCircuit(id).unwrap();
           break;
-        // ─── New Categories ────────────────────────────────────────────────────
         case "Exhaust Fan":
         case "Exhaust Fan Installation":
           await deleteExhaustFan(id).unwrap();
@@ -113,7 +114,12 @@ export const useDeleteDraft = (onSuccess?: () => void) => {
         case "Service Call":
           await deleteServiceCall(id).unwrap();
           break;
+        default:
+          console.warn(`Unknown serviceType: "${normalizedType}"`);
+          toast.error("Unknown service type. Cannot delete draft.");
+          return;
       }
+
       toast.success("Draft deleted successfully.");
       onSuccess?.();
     } catch (err: any) {

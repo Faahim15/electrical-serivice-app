@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { baseApi } from "./services/base-api";
 import categoryRouteReducer from "./slices/categoryRouteSlice";
 
+import favoritePartnersReducer from "./slices/favouritePartnerSlice";
 import ceilingFanDataReducer from "./slices/globalstore/cellingfanDataSlice";
 import commonContractdetails from "./slices/globalstore/commonContractdetailsStoreSlice";
 import dedicatedCircuitDataReducer from "./slices/globalstore/dedicatedCircuitDataSlice";
@@ -20,7 +21,6 @@ import safetyMaintenanceReducer from "./slices/seftymaintanceSlice";
 import serviceFormReducer from "./slices/serviceFormSlice";
 import starlinkRouteReducer from "./slices/starlinkTheRouteSlice";
 import troubleshootRouteReducer from "./slices/troubleshootRouteSlice";
-
 export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
@@ -44,6 +44,7 @@ export const store = configureStore({
     ceilingFanData: ceilingFanDataReducer,
     dedicatedCircuitData: dedicatedCircuitDataReducer,
     outletsData: outletsDataReducer,
+    favoritePartners: favoritePartnersReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(baseApi.middleware),
