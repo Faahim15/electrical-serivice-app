@@ -1,6 +1,6 @@
 import { nemaChart } from "@/assets/images/svg/tabs-svg";
 import CustomSvg from "@/src/components/shared/CustomSvg";
-import { useImagePicker } from "@/src/hook/useImagePicker";
+import { useImagePicker } from "@/src/hooks/useImagePicker";
 // import {
 
 // } from "@/src/store/outletsDataSlice";

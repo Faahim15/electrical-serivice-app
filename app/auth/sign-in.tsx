@@ -13,7 +13,7 @@ import SocialButton from "@/src/components/auth/SocialButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import CustomInput from "@/src/components/shared/CustomInput";
 import CustomSvg from "@/src/components/shared/CustomSvg";
-import { useFCMToken } from "@/src/hook/useFCMToken";
+import { useFCMToken } from "@/src/hooks/useFCMToken";
 import { useSigninMutation } from "@/src/redux/api-slices/auth/auth-api";
 import {
   signInSchema,

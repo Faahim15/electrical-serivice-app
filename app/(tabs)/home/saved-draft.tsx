@@ -2,7 +2,7 @@ import DeleteConfirmModal from "@/src/components/drafts/DeleteConfirmModal";
 import DraftCard from "@/src/components/drafts/DraftCard";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import DraftCardSkeleton from "@/src/components/skeleton/DraftCardSkeleton";
-import { useDeleteDraft } from "@/src/hook/useDeleteDraft";
+import { useDeleteDraft } from "@/src/hooks/useDeleteDraft";
 import { useGetDraftsQuery } from "@/src/redux/api-slices/quote/quote-api";
 import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { verticalScale } from "@/src/utils/Scaling";

@@ -6,8 +6,8 @@ import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
-import { useDraftDetails } from "@/src/hook/useDraftDetails";
-import { useDraftSave } from "@/src/hook/useDraftSave";
+import { useDraftDetails } from "@/src/hooks/useDraftDetails";
+import { useDraftSave } from "@/src/hooks/useDraftSave";
 import {
   useDeleteImageMutation,
   useUploadImagesMutation,

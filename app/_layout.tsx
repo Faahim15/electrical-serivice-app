@@ -7,7 +7,7 @@ initFirebase();
 import {
   handleNotificationNavigation,
   useNotificationHandler,
-} from "@/src/hook/useNotificationHandler";
+} from "@/src/hooks/useNotificationHandler";
 import { store } from "@/src/redux/store";
 import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";

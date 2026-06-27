@@ -1,4 +1,4 @@
-import { useImagePicker } from "@/src/hook/useImagePicker";
+import { useImagePicker } from "@/src/hooks/useImagePicker";
 import {
   FixtureKind,
   FixtureWeight,

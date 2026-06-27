@@ -25,7 +25,7 @@ import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import { SERVICE_CATEGORIES } from "@/src/constants/tabs.home.constant";
-import { useDraftDetails } from "@/src/hook/useDraftDetails";
+import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { RootState } from "@/src/redux/store";
 import { CATEGORY_TOTAL_STEPS } from "@/src/utils/CategorySteps";
 import { verticalScale } from "@/src/utils/Scaling";
