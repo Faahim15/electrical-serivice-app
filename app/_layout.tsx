@@ -1,4 +1,9 @@
 import "@/global.css";
+import { initFirebase } from "@/src/lib/firebase";
+
+// ✅ Initialize Firebase immediately at module level
+initFirebase();
+
 import {
   handleNotificationNavigation,
   useNotificationHandler,
@@ -33,7 +38,6 @@ export default function RootLayout() {
     prepare();
   }, [fontsLoaded]);
 
-  // ✅ Handle quit state notification tap
   useEffect(() => {
     const checkInitialNotification = async () => {
       const response = await Notifications.getLastNotificationResponse();
@@ -44,7 +48,6 @@ export default function RootLayout() {
         }, 500);
       }
     };
-
     checkInitialNotification();
   }, []);
 

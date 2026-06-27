@@ -1,4 +1,9 @@
-import messaging from "@react-native-firebase/messaging";
+import { getApp } from "@react-native-firebase/app";
+import {
+  getMessaging,
+  getToken,
+  onTokenRefresh,
+} from "@react-native-firebase/messaging";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { useEffect, useState } from "react";
@@ -9,14 +14,21 @@ export function useFCMToken() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
     fetchToken();
 
-    const unsubscribe = messaging().onTokenRefresh((newToken) => {
-      setFcmToken(newToken);
-      // TODO: send newToken to your backend
-    });
+    try {
+      const messagingInstance = getMessaging(getApp());
+      unsubscribe = onTokenRefresh(messagingInstance, (newToken) => {
+        console.log("FCM token refreshed:", newToken);
+        setFcmToken(newToken);
+      });
+    } catch (err) {
+      console.log("Token refresh listener error:", err);
+    }
 
-    return () => unsubscribe();
+    return () => unsubscribe?.();
   }, []);
 
   async function fetchToken() {
@@ -29,7 +41,6 @@ export function useFCMToken() {
         return;
       }
 
-      // ✅ Use expo-notifications for permission (no deprecation)
       const { status: existingStatus } =
         await Notifications.getPermissionsAsync();
 
@@ -45,16 +56,17 @@ export function useFCMToken() {
         return;
       }
 
-      // ✅ Use Firebase just for the FCM token
-      const token = await messaging().getToken();
+      const messagingInstance = getMessaging(getApp());
+      const token = await getToken(messagingInstance);
 
       if (token) {
+        console.log("✅ FCM Token:", token);
         setFcmToken(token);
       } else {
         setError("Failed to retrieve FCM token");
       }
     } catch (err: any) {
-      console.error("FCM Error:", err);
+      console.log("FCM Error:", err);
       setError(err.message);
     } finally {
       setLoading(false);

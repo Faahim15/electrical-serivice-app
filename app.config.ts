@@ -13,7 +13,7 @@ const config: ExpoConfig = {
 
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.fahim15.ashleyelectricalserviceapp",
+    bundleIdentifier: "com.fourelements.electric",
     googleServicesFile: "./GoogleService-Info.plist",
   },
 
@@ -28,7 +28,7 @@ const config: ExpoConfig = {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    package: "com.fahim15.ashleyelectricalserviceapp",
+    package: "com.fourelements.electric",
     permissions: [
       "android.permission.RECEIVE_BOOT_COMPLETED",
       "android.permission.VIBRATE",
@@ -46,17 +46,17 @@ const config: ExpoConfig = {
 
   plugins: [
     "expo-router",
-    "@react-native-firebase/app", // ✅ works in newer versions
-    "@react-native-firebase/messaging", // ✅ works in newer versions
+    "@react-native-firebase/app",
+    "@react-native-firebase/messaging",
     [
       "expo-notifications",
       {
         icon: "./assets/images/icon.png",
-        color: "#E6F4FE",
         androidMode: "default",
         androidCollapsedTitle: "Ashley Electrical",
       },
     ],
+    "./plugins/withFirebaseMessagingFix.js",
     [
       "expo-splash-screen",
       {
@@ -79,7 +79,7 @@ const config: ExpoConfig = {
 
   extra: {
     eas: {
-      projectId: "YOUR_EAS_PROJECT_ID", // ✅ replace with yours
+      projectId: "93ec76c2-e0b1-4d8e-9981-46e0e8b1be01", // ✅
     },
   },
 };

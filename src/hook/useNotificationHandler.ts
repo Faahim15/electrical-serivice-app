@@ -1,4 +1,10 @@
-import messaging from "@react-native-firebase/messaging";
+import { getApp } from "@react-native-firebase/app";
+import {
+  getInitialNotification,
+  getMessaging,
+  onMessage,
+  onNotificationOpenedApp,
+} from "@react-native-firebase/messaging";
 import * as Notifications from "expo-notifications";
 import { useEffect } from "react";
 import { Platform } from "react-native";
@@ -16,11 +22,6 @@ export const handleNotificationNavigation = (data: any) => {
   if (!data || !data.type) return;
 
   switch (data.type) {
-    // Add your electrical service app notification types here
-    // Example:
-    // case "Job Assigned":
-    //   router.push("/(tabs)/jobs");
-    //   break;
     default:
       console.log("Unknown notification type:", data.type);
       break;
@@ -29,68 +30,68 @@ export const handleNotificationNavigation = (data: any) => {
 
 export const useNotificationHandler = () => {
   useEffect(() => {
-    const setup = async () => {
-      // ✅ Android notification channel
-      if (Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync("service-updates", {
-          name: "Service Updates",
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: "#E6F4FE",
-          sound: "default",
-          showBadge: true,
-          enableVibrate: true,
-        });
-      }
-
-      // ✅ Firebase foreground message listener
-      const unsubscribe = messaging().onMessage(async (remoteMessage) => {
-        console.log("Firebase foreground message:", remoteMessage);
-
-        const { notification, data } = remoteMessage;
-
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: notification?.title ?? "Service Update",
-            body: notification?.body ?? "",
-            data: data ?? {},
-            sound: "default",
-          },
-          trigger: null,
-        });
-      });
-
-      return unsubscribe;
-    };
-
     let unsubscribeFn: (() => void) | undefined;
 
-    setup().then((unsub) => {
-      unsubscribeFn = unsub;
-    });
+    const setup = async () => {
+      try {
+        const messagingInstance = getMessaging(getApp());
 
-    // ✅ Handle notification tap
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("service-updates", {
+            name: "Service Updates",
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: "#E6F4FE",
+            sound: "default",
+            showBadge: true,
+            enableVibrate: true,
+          });
+        }
+
+        const unsubscribe = onMessage(
+          messagingInstance,
+          async (remoteMessage) => {
+            console.log("Firebase foreground message:", remoteMessage);
+            const { notification, data } = remoteMessage;
+
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: notification?.title ?? "Service Update",
+                body: notification?.body ?? "",
+                data: data ?? {},
+                sound: "default",
+              },
+              trigger: null,
+            });
+          },
+        );
+
+        onNotificationOpenedApp(messagingInstance, (remoteMessage) => {
+          console.log("Notification opened app:", remoteMessage.data);
+          handleNotificationNavigation(remoteMessage.data);
+        });
+
+        const initialMessage = await getInitialNotification(messagingInstance);
+        if (initialMessage) {
+          console.log("Initial notification:", initialMessage.data);
+          setTimeout(() => {
+            handleNotificationNavigation(initialMessage.data);
+          }, 500);
+        }
+
+        unsubscribeFn = unsubscribe;
+      } catch (error) {
+        console.log("Notification setup error:", error);
+      }
+    };
+
+    setup();
+
     const responseListener =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data;
         console.log("Notification tapped:", data);
         handleNotificationNavigation(data);
-      });
-
-    // ✅ Handle background/quit notification tap
-    messaging().onNotificationOpenedApp((remoteMessage) => {
-      console.log("Notification opened app:", remoteMessage.data);
-      handleNotificationNavigation(remoteMessage.data);
-    });
-
-    // ✅ Handle quit state notification tap
-    messaging()
-      .getInitialNotification()
-      .then((remoteMessage) => {
-        if (remoteMessage) {
-          console.log("Initial notification:", remoteMessage.data);
-          handleNotificationNavigation(remoteMessage.data);
-        }
       });
 
     return () => {
