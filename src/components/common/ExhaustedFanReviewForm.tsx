@@ -1,8 +1,6 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useDraftSave } from "@/src/hook/useDraftSave";
-import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
   ScrollView as HorizontalScroll,
@@ -10,8 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
-import { toast } from "sonner-native";
 
 interface ExhaustFanReviewFormProps {
   draftData: any;
@@ -22,13 +18,6 @@ interface ExhaustFanReviewFormProps {
   serviceCallId?: string;
   serviceType?: string;
 }
-
-// ─── Helper to build FormData ────────────────────────────────────────────────
-const createFormData = (payload: Record<string, any>) => {
-  const formData = new FormData();
-  formData.append("data", JSON.stringify(payload));
-  return formData;
-};
 
 // ─── Photos Row Component ────────────────────────────────────────────────────
 const PhotosRow = ({ label, photos }: { label: string; photos: string[] }) => (
@@ -75,60 +64,82 @@ const ExhaustFanReviewForm = ({
   draftData,
   categoryData,
   onSuccess,
-  setIsSubmitting,
   isSubmitting,
-  serviceCallId,
-  serviceType,
 }: ExhaustFanReviewFormProps) => {
-  const { createDraft, updateDraft } = useDraftSave();
-
-  // ─── Get values from Redux ────────────────────────────────────────────────────
-  const contactDetails = useSelector(
-    (state: RootState) => state.serviceForm.contactDetails,
-  );
-  const serviceAddress = useSelector(
-    (state: RootState) => state.serviceForm.serviceAddress,
-  );
-  const projectBasics = useSelector(
-    (state: RootState) => state.serviceForm.projectBasics,
-  );
-
-  // ─── Get Exhaust Fan Details ─────────────────────────────────────────────────
+  // ─── Get Exhaust Fan Details ──────────────────────────────────────────────
   const getExhaustFanDetails = () => {
     if (categoryData?.categoryId === "14" && categoryData.details) {
       const details = categoryData.details as any;
+
+      // ⭐ Priority: draftData first, then Redux (categoryData.details)
       return {
-        installationType: details.installationType || "",
-        fanType: details.fanType || "",
-        fanLocation: details.fanLocation || "",
-        atticFanType: details.atticFanType || "",
-        stories: details.stories || "",
-        existingFan: details.existingFan || "",
-        supplyingAtticFan: details.supplyingAtticFan || "",
-        kitchenDuctInfo: details.kitchenDuctInfo || "",
-        kitchenYesNo: details.kitchenYesNo || "",
-        kitchenFanType: details.kitchenFanType || "",
-        kitchenAreas: details.kitchenAreas || [],
-        kitchenDist: details.kitchenDist || "",
-        bathroomDuctInfo: details.bathroomDuctInfo || "",
-        bathroomYesNo: details.bathroomYesNo || "",
-        bathroomFanType: details.bathroomFanType || "",
-        specialtyControl: details.specialtyControl || "",
-        bathroomAreas: details.bathroomAreas || [],
-        bathroomDist: details.bathroomDist || "",
-        panelLocation: details.panelLocation || "",
-        panelLocationOther: details.panelLocationOther || "",
-        panelClosePhotos: details.panelClosePhotos || [],
-        panelWidePhotos: details.panelWidePhotos || [],
-        photosKitchenLocation: details.photosKitchenLocation || [],
-        photosKitchenCurrentFan: details.photosKitchenCurrentFan || [],
-        photosKitchenNewFan: details.photosKitchenNewFan || [],
-        photosBathromlocation: details.photosBathromlocation || [],
-        photosBathroomCurrentFan: details.photosBathroomCurrentFan || [],
-        photosBathroomNewFan: details.photosBathroomNewFan || [],
-        photosNewFan: details.photosNewFan || [],
-        photosAtticLocation: details.photosAtticLocation || [],
-        additionalNotes: details.additionalNotes || "",
+        installationType:
+          draftData?.installationType || details.installationType || "",
+        fanType: draftData?.fanType || details.fanType || "",
+        fanLocation: draftData?.fanLocation || details.fanLocation || "",
+        atticFanType: draftData?.atticFanType || details.atticFanType || "",
+        stories: draftData?.stories || details.stories || "",
+        existingFan: draftData?.existingFan || details.existingFan || "",
+        supplyingAtticFan:
+          draftData?.supplyingAtticFan || details.supplyingAtticFan || "",
+        kitchenDuctInfo:
+          draftData?.kitchenDuctInfo || details.kitchenDuctInfo || "",
+        kitchenYesNo: draftData?.kitchenYesNo || details.kitchenYesNo || "",
+        kitchenFanType:
+          draftData?.kitchenFanType || details.kitchenFanType || "",
+        kitchenAreas: draftData?.kitchenAreas?.length
+          ? draftData.kitchenAreas
+          : details.kitchenAreas || [],
+        kitchenDist: draftData?.kitchenDist || details.kitchenDist || "",
+        bathroomDuctInfo:
+          draftData?.bathroomDuctInfo || details.bathroomDuctInfo || "",
+        bathroomYesNo: draftData?.bathroomYesNo || details.bathroomYesNo || "",
+        bathroomFanType:
+          draftData?.bathroomFanType || details.bathroomFanType || "",
+        specialtyControl:
+          draftData?.specialtyControl || details.specialtyControl || "",
+        bathroomAreas: draftData?.bathroomAreas?.length
+          ? draftData.bathroomAreas
+          : details.bathroomAreas || [],
+        bathroomDist: draftData?.bathroomDist || details.bathroomDist || "",
+        panelLocation: draftData?.panelLocation || details.panelLocation || "",
+        panelLocationOther:
+          draftData?.panelLocationOther || details.panelLocationOther || "",
+        panelClosePhotos: draftData?.panelClosePhotos?.length
+          ? draftData.panelClosePhotos
+          : details.panelClosePhotos || [],
+        panelWidePhotos: draftData?.panelWidePhotos?.length
+          ? draftData.panelWidePhotos
+          : details.panelWidePhotos || [],
+        photosKitchenLocation: draftData?.photosKitchenLocation?.length
+          ? draftData.photosKitchenLocation
+          : details.photosKitchenLocation || [],
+        photosKitchenCurrentFan: draftData?.photosKitchenCurrentFan?.length
+          ? draftData.photosKitchenCurrentFan
+          : details.photosKitchenCurrentFan || [],
+        photosKitchenNewFan: draftData?.photosKitchenNewFan?.length
+          ? draftData.photosKitchenNewFan
+          : details.photosKitchenNewFan || [],
+        photosBathromlocation: draftData?.photosBathromlocation?.length
+          ? draftData.photosBathromlocation
+          : details.photosBathromlocation || [],
+        photosBathroomCurrentFan: draftData?.photosBathroomCurrentFan?.length
+          ? draftData.photosBathroomCurrentFan
+          : details.photosBathroomCurrentFan || [],
+        photosBathroomNewFan: draftData?.photosBathroomNewFan?.length
+          ? draftData.photosBathroomNewFan
+          : details.photosBathroomNewFan || [],
+        photosNewFan: draftData?.photosNewFan?.length
+          ? draftData.photosNewFan
+          : details.photosNewFan || [],
+        photosAtticLocation: draftData?.photosAtticLocation?.length
+          ? draftData.photosAtticLocation
+          : details.photosAtticLocation || [],
+        additionalNotes:
+          draftData?.additionalNotes ||
+          draftData?.additionalInformation ||
+          details.additionalNotes ||
+          "",
       };
     }
     return {
@@ -166,139 +177,11 @@ const ExhaustFanReviewForm = ({
     };
   };
 
-  const handleSubmit = async () => {
-    const details = getExhaustFanDetails();
-
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    if (!finalFullName) {
-      toast.error("Please enter your full name");
-      return;
-    }
-
-    // ─── Build payload matching API fields ────────────────────────────────────
-    const payload = {
-      fullName: finalFullName,
-      phoneNumber: finalPhone,
-      emailAddress: finalEmail,
-      preferredContactMethod: finalPreferredContact,
-      streetAddress: finalStreetAddress,
-      apartmentUnit: finalApartment,
-      city: finalCity,
-      state: finalState,
-      zipCode: finalZipCode,
-      propertyType: finalPropertyType,
-      ownershipStatus: finalOwnershipStatus,
-      timelineUrgency: finalTimeline,
-
-      newOrReplacement: details.installationType || "",
-      locationOfExhaustFan: details.fanLocation || details.fanType || "",
-      isRoofOrGableFan: details.atticFanType || "",
-      willSupplyAtticFan:
-        details.existingFan === "Yes" || details.supplyingAtticFan === "Yes",
-      howManyStories: parseInt(details.stories) || 0,
-      whereElectricalPanelLocated:
-        details.panelLocation === "Other"
-          ? details.panelLocationOther
-          : details.panelLocation || "",
-      existingDuctAndVentDiameterLocation:
-        details.kitchenDuctInfo || details.bathroomDuctInfo || "",
-      willProvideKitchenExhaustFan: details.kitchenYesNo === "Yes",
-      willProvideBathroomExhaustFan: details.bathroomYesNo === "Yes",
-      typeOfExhaustFanWanted:
-        details.kitchenFanType || details.bathroomFanType || "",
-      specialityControlsWanted: details.specialtyControl || "",
-      aboveBelowAreaOfExhaustFan:
-        details.kitchenAreas?.length > 0
-          ? details.kitchenAreas[0]
-          : details.bathroomAreas?.length > 0
-            ? details.bathroomAreas[0]
-            : "",
-      distanceOfElectricalPanelToExhaustFan:
-        details.kitchenDist || details.bathroomDist || "",
-      additionalInformation: details.additionalNotes || "",
-
-      // ─── Photos ──────────────────────────────────────────────────────────────
-      photosOfInstallationArea:
-        details.photosKitchenLocation?.length > 0
-          ? details.photosKitchenLocation
-          : details.photosBathromlocation?.length > 0
-            ? details.photosBathromlocation
-            : details.photosAtticLocation || [],
-      photoOfNewFan:
-        details.photosNewFan?.length > 0
-          ? details.photosNewFan
-          : details.photosKitchenNewFan?.length > 0
-            ? details.photosKitchenNewFan
-            : details.photosBathroomNewFan || [],
-      photosOfPanelCloseUp: details.panelClosePhotos || [],
-      photosOfPanelWideShot: details.panelWidePhotos || [],
-      photosOfCurrentKitchenExhaustFan: details.photosKitchenCurrentFan || [],
-      photosOfCurrentBathroomExhaustFan: details.photosBathroomCurrentFan || [],
-
-      status: "pending" as const,
-      completionPercentage: 100,
-    };
-
-    console.log("Submitting Exhaust Fan payload:", payload);
-
-    setIsSubmitting(true);
-    try {
-      let result;
-
-      if (serviceCallId) {
-        result = await updateDraft(
-          serviceCallId,
-          serviceType || "Exhaust Fan",
-          createFormData(payload),
-        );
-        console.log("Updated existing draft:", result);
-      } else {
-        result = await createDraft(
-          serviceType || "Exhaust Fan",
-          createFormData({
-            serviceType: serviceType || "Exhaust Fan",
-            ...payload,
-          }),
-        );
-        console.log("Created new draft:", result);
-      }
-
-      if (result.success) {
-        onSuccess();
-      } else {
-        toast.error(result.message || "Failed to submit request");
-      }
-    } catch (error: any) {
-      console.error("Submit error:", error);
-      toast.error(
-        error?.data?.message || "Failed to submit request. Please try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const details = getExhaustFanDetails();
 
   return (
     <View>
-      {/* ─── Installation Details ─────────────────────────────────────────────── */}
+      {/* ─── Installation Details ───────────────────────────────────────────── */}
       <ReviewSectionTitle title="Installation Details" />
       <ReviewRow
         label="Install Type"
@@ -309,7 +192,7 @@ const ExhaustFanReviewForm = ({
         value={details.fanLocation || details.fanType || "Not specified"}
       />
 
-      {/* ─── Attic Details ────────────────────────────────────────────────────── */}
+      {/* ─── Attic Fan ──────────────────────────────────────────────────────── */}
       {details.fanType === "Attic" && (
         <>
           <ReviewSectionTitle title="Attic Details" />
@@ -333,7 +216,7 @@ const ExhaustFanReviewForm = ({
         </>
       )}
 
-      {/* ─── Kitchen Details ───────────────────────────────────────────────────── */}
+      {/* ─── Kitchen Fan ────────────────────────────────────────────────────── */}
       {details.fanType === "Kitchen" && (
         <>
           <ReviewSectionTitle title="Kitchen Details" />
@@ -360,7 +243,7 @@ const ExhaustFanReviewForm = ({
         </>
       )}
 
-      {/* ─── Bathroom Details ─────────────────────────────────────────────────── */}
+      {/* ─── Bathroom Fan ───────────────────────────────────────────────────── */}
       {details.fanType === "Bathroom" && (
         <>
           <ReviewSectionTitle title="Bathroom Details" />
@@ -391,56 +274,116 @@ const ExhaustFanReviewForm = ({
         </>
       )}
 
-      {/* ─── Panel Location ───────────────────────────────────────────────────── */}
+      {/* ─── Panel Location ────────────────────────────────────────────────── */}
       <ReviewSectionTitle title="Panel Location" />
       <ReviewRow
         label="Panel Location"
         value={
           details.panelLocation === "Other"
-            ? details.panelLocationOther
+            ? details.panelLocationOther || "Other"
             : details.panelLocation || "Not specified"
         }
       />
 
-      {/* ─── Photos ───────────────────────────────────────────────────────────── */}
-      {(details.panelClosePhotos?.length > 0 ||
-        details.panelWidePhotos?.length > 0 ||
-        details.photosKitchenLocation?.length > 0 ||
-        details.photosBathromlocation?.length > 0 ||
-        details.photosAtticLocation?.length > 0) && (
+      {/* ─── Photos ─────────────────────────────────────────────────────────── */}
+      {(details.panelClosePhotos.length > 0 ||
+        details.panelWidePhotos.length > 0 ||
+        details.photosKitchenLocation.length > 0 ||
+        details.photosBathromlocation.length > 0 ||
+        details.photosAtticLocation.length > 0) && (
         <ReviewSectionTitle title="Photos" />
       )}
 
-      <PhotosRow
-        label="Panel Close-Up Photos"
-        photos={details.panelClosePhotos || []}
-      />
-      <PhotosRow
-        label="Panel Wide Shot Photos"
-        photos={details.panelWidePhotos || []}
-      />
-      <PhotosRow
-        label="Installation Area Photos"
-        photos={
-          details.photosKitchenLocation?.length > 0
-            ? details.photosKitchenLocation
-            : details.photosBathromlocation?.length > 0
-              ? details.photosBathromlocation
-              : details.photosAtticLocation || []
-        }
-      />
+      {details.panelClosePhotos.length > 0 && (
+        <PhotosRow
+          label="Panel Close-Up Photos"
+          photos={details.panelClosePhotos}
+        />
+      )}
 
-      {/* ─── Additional Information ───────────────────────────────────────────── */}
-      <ReviewSectionTitle title="Additional Information" />
-      <ReviewRow
-        label="Additional Notes"
-        value={details.additionalNotes || "None provided"}
-      />
+      {details.panelWidePhotos.length > 0 && (
+        <PhotosRow
+          label="Panel Wide Shot Photos"
+          photos={details.panelWidePhotos}
+        />
+      )}
+
+      {/* Conditionally show location photos based on fan type */}
+      {details.fanType === "Kitchen" &&
+        details.photosKitchenLocation.length > 0 && (
+          <PhotosRow
+            label="Kitchen Location Photos"
+            photos={details.photosKitchenLocation}
+          />
+        )}
+
+      {details.fanType === "Kitchen" &&
+        details.photosKitchenCurrentFan.length > 0 && (
+          <PhotosRow
+            label="Current Kitchen Fan Photos"
+            photos={details.photosKitchenCurrentFan}
+          />
+        )}
+
+      {details.fanType === "Kitchen" &&
+        details.photosKitchenNewFan.length > 0 && (
+          <PhotosRow
+            label="New Kitchen Fan Photos"
+            photos={details.photosKitchenNewFan}
+          />
+        )}
+
+      {details.fanType === "Bathroom" &&
+        details.photosBathromlocation.length > 0 && (
+          <PhotosRow
+            label="Bathroom Location Photos"
+            photos={details.photosBathromlocation}
+          />
+        )}
+
+      {details.fanType === "Bathroom" &&
+        details.photosBathroomCurrentFan.length > 0 && (
+          <PhotosRow
+            label="Current Bathroom Fan Photos"
+            photos={details.photosBathroomCurrentFan}
+          />
+        )}
+
+      {details.fanType === "Bathroom" &&
+        details.photosBathroomNewFan.length > 0 && (
+          <PhotosRow
+            label="New Bathroom Fan Photos"
+            photos={details.photosBathroomNewFan}
+          />
+        )}
+
+      {details.fanType === "Attic" &&
+        details.photosAtticLocation.length > 0 && (
+          <PhotosRow
+            label="Attic Location Photos"
+            photos={details.photosAtticLocation}
+          />
+        )}
+
+      {details.fanType === "Attic" && details.photosNewFan.length > 0 && (
+        <PhotosRow label="New Fan Photos" photos={details.photosNewFan} />
+      )}
+
+      {/* ─── Additional Information ─────────────────────────────────────────── */}
+      {details.additionalNotes && (
+        <>
+          <ReviewSectionTitle title="Additional Information" />
+          <ReviewRow
+            label="Additional Notes"
+            value={details.additionalNotes || "None provided"}
+          />
+        </>
+      )}
 
       {/* ─── Submit ───────────────────────────────────────────────────────────── */}
       <GradientButton
         label={isSubmitting ? "Submitting..." : "Submit"}
-        onPress={handleSubmit}
+        onPress={onSuccess}
         disabled={isSubmitting}
       />
     </View>

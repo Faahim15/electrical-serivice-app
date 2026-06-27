@@ -81,7 +81,9 @@ export default function ReviewRequest() {
     serviceCallId,
     serviceType,
   );
-
+  const ownershipStatusRaw =
+    draftData?.ownershipStatus || projectBasics.ownershipStatus;
+  const ownershipStatusOther = projectBasics.ownershipStatusOther;
   // ─── draftData or Redux fallback ───────────────────────────────────────
   const finalValues = {
     fullName: draftData?.fullName || contactDetails.fullName,
@@ -96,7 +98,9 @@ export default function ReviewRequest() {
     zipCode: draftData?.zipCode || serviceAddress.zipCode,
     propertyType: draftData?.propertyType || projectBasics.propertyType,
     ownershipStatus:
-      draftData?.ownershipStatus || projectBasics.ownershipStatus,
+      ownershipStatusRaw === "Other" && ownershipStatusOther
+        ? ownershipStatusOther // "Other" হলে actual text দেখাও
+        : ownershipStatusRaw,
     timeline: draftData?.timelineUrgency || projectBasics.timeline,
   };
 

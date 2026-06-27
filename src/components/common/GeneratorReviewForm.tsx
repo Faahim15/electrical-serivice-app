@@ -1,8 +1,6 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useDraftSave } from "@/src/hook/useDraftSave";
-import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
   ScrollView as HorizontalScroll,
@@ -10,8 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
-import { toast } from "sonner-native";
 
 interface GeneratorReviewFormProps {
   draftData: any;
@@ -22,13 +18,6 @@ interface GeneratorReviewFormProps {
   serviceCallId?: string;
   serviceType?: string;
 }
-
-// ─── Helper to build FormData ────────────────────────────────────────────────
-const createFormData = (payload: Record<string, any>) => {
-  const formData = new FormData();
-  formData.append("data", JSON.stringify(payload));
-  return formData;
-};
 
 // ─── Photos Row Component ────────────────────────────────────────────────────
 const PhotosRow = ({ label, photos }: { label: string; photos: string[] }) => (
@@ -75,29 +64,14 @@ const GeneratorReviewForm = ({
   draftData,
   categoryData,
   onSuccess,
-  setIsSubmitting,
   isSubmitting,
-  serviceCallId,
-  serviceType,
 }: GeneratorReviewFormProps) => {
-  const { createDraft, updateDraft } = useDraftSave();
-
-  // ─── Get values from Redux ────────────────────────────────────────────────────
-  const contactDetails = useSelector(
-    (state: RootState) => state.serviceForm.contactDetails,
-  );
-  const serviceAddress = useSelector(
-    (state: RootState) => state.serviceForm.serviceAddress,
-  );
-  const projectBasics = useSelector(
-    (state: RootState) => state.serviceForm.projectBasics,
-  );
-
   // ─── Get Generator Details ──────────────────────────────────────────────────
   const getGeneratorDetails = () => {
     if (categoryData?.categoryId === "9" && categoryData.details) {
       const details = categoryData.details as any;
 
+      // ⭐ Priority: draftData first, then Redux (categoryData.details)
       return {
         generatorType: draftData?.generatorType || details.generatorType || "",
         isAlreadyHaveGenerator:
@@ -123,18 +97,20 @@ const GeneratorReviewForm = ({
           draftData?.isHavePropane !== undefined
             ? draftData.isHavePropane
             : details.hasPropane === "Yes",
-        electricPanelPhotos:
-          draftData?.electricPanelPhotos || details.panelPhotos || [],
-        photosOfWhereGeneratorWillBeInlet:
-          draftData?.photosOfWhereGeneratorWillBeInlet ||
-          details.generatorPhotos ||
-          [],
-        generatorInstallationLocationPhotos:
-          draftData?.generatorInstallationLocationPhotos ||
-          details.installLocationPhotos ||
-          [],
-        photosOfElectricalMeter:
-          draftData?.photosOfElectricalMeter || details.meterPhotos || [],
+        electricPanelPhotos: draftData?.electricPanelPhotos?.length
+          ? draftData.electricPanelPhotos
+          : details.panelPhotos || [],
+        photosOfWhereGeneratorWillBeInlet: draftData
+          ?.photosOfWhereGeneratorWillBeInlet?.length
+          ? draftData.photosOfWhereGeneratorWillBeInlet
+          : details.generatorPhotos || [],
+        generatorInstallationLocationPhotos: draftData
+          ?.generatorInstallationLocationPhotos?.length
+          ? draftData.generatorInstallationLocationPhotos
+          : details.installLocationPhotos || [],
+        photosOfElectricalMeter: draftData?.photosOfElectricalMeter?.length
+          ? draftData.photosOfElectricalMeter
+          : details.meterPhotos || [],
       };
     }
     return {
@@ -154,155 +130,26 @@ const GeneratorReviewForm = ({
     };
   };
 
-  const handleSubmit = async () => {
-    const details = getGeneratorDetails();
-
-    // ─── Get values from draftData (API) or fallback to Redux ────────────────
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    // ─── Validate required fields ─────────────────────────────────────────────
-    if (!finalFullName) {
-      toast.error("Please enter your full name");
-      return;
-    }
-    if (!finalEmail) {
-      toast.error("Please enter your email address");
-      return;
-    }
-    if (!finalPhone) {
-      toast.error("Please enter your phone number");
-      return;
-    }
-    if (!finalStreetAddress) {
-      toast.error("Please enter your street address");
-      return;
-    }
-    if (!finalCity) {
-      toast.error("Please enter your city");
-      return;
-    }
-    if (!finalState) {
-      toast.error("Please enter your state");
-      return;
-    }
-    if (!finalZipCode) {
-      toast.error("Please enter your zip code");
-      return;
-    }
-    if (!finalPropertyType) {
-      toast.error("Please select property type");
-      return;
-    }
-
-    // ─── Build payload matching GeneratorPayload ─────────────────────────────
-    const payload = {
-      fullName: finalFullName,
-      phoneNumber: finalPhone,
-      emailAddress: finalEmail,
-      preferredContactMethod: finalPreferredContact,
-      streetAddress: finalStreetAddress,
-      apartmentUnit: finalApartment,
-      city: finalCity,
-      state: finalState,
-      zipCode: finalZipCode,
-      propertyType: finalPropertyType,
-      ownershipStatus: finalOwnershipStatus,
-      timelineUrgency: finalTimeline,
-      generatorType: details.generatorType,
-      isAlreadyHaveGenerator: details.isAlreadyHaveGenerator,
-      generatorOutputPower: details.generatorOutputPower,
-      preferredBackupInstallation: details.preferredBackupInstallation,
-      generatorDistanceFromInletLocation:
-        details.generatorDistanceFromInletLocation,
-      electricPanelLocation: details.electricPanelLocation,
-      sizeOfGeneratorWanted: details.sizeOfGeneratorWanted,
-      backupNeeds: details.backupNeeds,
-      isHavePropane: details.isHavePropane,
-      electricPanelPhotos: details.electricPanelPhotos,
-      photosOfWhereGeneratorWillBeInlet:
-        details.photosOfWhereGeneratorWillBeInlet,
-      generatorInstallationLocationPhotos:
-        details.generatorInstallationLocationPhotos,
-      photosOfElectricalMeter: details.photosOfElectricalMeter,
-      status: "pending" as const,
-      completionPercentage: 100,
-    };
-
-    console.log("Submitting Generator payload:", payload);
-
-    setIsSubmitting(true);
-    try {
-      let result;
-
-      // ─── Check if we have an ID (existing draft) or not ─────────────────────
-      if (serviceCallId) {
-        // ✅ UPDATE - existing draft
-        result = await updateDraft(
-          serviceCallId,
-          serviceType || "Generator Installation",
-          createFormData(payload),
-        );
-        console.log("Updated existing draft:", result);
-      } else {
-        // ✅ CREATE - new draft
-        result = await createDraft(
-          serviceType || "Generator Installation",
-          createFormData({
-            serviceType: serviceType || "Generator Installation",
-            ...payload,
-          }),
-        );
-        console.log("Created new draft:", result);
-      }
-
-      if (result.success) {
-        onSuccess();
-      } else {
-        toast.error(result.message || "Failed to submit request");
-      }
-    } catch (error: any) {
-      console.error("Submit error:", error);
-      toast.error(
-        error?.data?.message || "Failed to submit request. Please try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const details = getGeneratorDetails();
+
+  // ─── Helper to format display values ────────────────────────────────────────
+  const formatYesNo = (value: boolean) => (value ? "Yes" : "No");
 
   return (
     <View>
-      {/* ─── Generator Type ────────────────────────────────────────────────────── */}
+      {/* ─── Generator Type ──────────────────────────────────────────────────── */}
       <ReviewSectionTitle title="Generator Type" />
       <ReviewRow
         label="Generator Type"
         value={details.generatorType || "Not specified"}
       />
 
-      {/* ─── Generator Ownership ───────────────────────────────────────────────── */}
+      {/* ─── Generator Ownership ────────────────────────────────────────────── */}
       <ReviewSectionTitle title="Generator Ownership" />
       <ReviewRow
         label="Already Have Generator"
-        value={details.isAlreadyHaveGenerator ? "Yes" : "No"}
+        value={formatYesNo(details.isAlreadyHaveGenerator)}
       />
-
       {details.isAlreadyHaveGenerator ? (
         <>
           <ReviewRow
@@ -322,7 +169,6 @@ const GeneratorReviewForm = ({
           value={details.sizeOfGeneratorWanted || "Not specified"}
         />
       )}
-
       <ReviewRow
         label="Preferred Backup Installation"
         value={details.preferredBackupInstallation || "Not specified"}
@@ -332,7 +178,7 @@ const GeneratorReviewForm = ({
         value={details.electricPanelLocation || "Not specified"}
       />
 
-      {/* ─── Backup Needs ──────────────────────────────────────────────────────── */}
+      {/* ─── Backup Needs ────────────────────────────────────────────────────── */}
       <ReviewSectionTitle title="Backup Needs" />
       <ReviewRow
         label="Backup Needs"
@@ -340,29 +186,46 @@ const GeneratorReviewForm = ({
       />
       <ReviewRow
         label="Has Propane"
-        value={details.isHavePropane ? "Yes" : "No"}
+        value={formatYesNo(details.isHavePropane)}
       />
 
       {/* ─── Photos ───────────────────────────────────────────────────────────── */}
-      <ReviewSectionTitle title="Photos" />
-      <PhotosRow label="Panel Photos" photos={details.electricPanelPhotos} />
-      <PhotosRow
-        label="Generator Inlet Photos"
-        photos={details.photosOfWhereGeneratorWillBeInlet}
-      />
-      <PhotosRow
-        label="Installation Location Photos"
-        photos={details.generatorInstallationLocationPhotos}
-      />
-      <PhotosRow
-        label="Electrical Meter Photos"
-        photos={details.photosOfElectricalMeter}
-      />
+      {(details.electricPanelPhotos.length > 0 ||
+        details.photosOfWhereGeneratorWillBeInlet.length > 0 ||
+        details.generatorInstallationLocationPhotos.length > 0 ||
+        details.photosOfElectricalMeter.length > 0) && (
+        <ReviewSectionTitle title="Photos" />
+      )}
+
+      {details.electricPanelPhotos.length > 0 && (
+        <PhotosRow label="Panel Photos" photos={details.electricPanelPhotos} />
+      )}
+
+      {details.photosOfWhereGeneratorWillBeInlet.length > 0 && (
+        <PhotosRow
+          label="Generator Inlet Photos"
+          photos={details.photosOfWhereGeneratorWillBeInlet}
+        />
+      )}
+
+      {details.generatorInstallationLocationPhotos.length > 0 && (
+        <PhotosRow
+          label="Installation Location Photos"
+          photos={details.generatorInstallationLocationPhotos}
+        />
+      )}
+
+      {details.photosOfElectricalMeter.length > 0 && (
+        <PhotosRow
+          label="Electrical Meter Photos"
+          photos={details.photosOfElectricalMeter}
+        />
+      )}
 
       {/* ─── Submit ───────────────────────────────────────────────────────────── */}
       <GradientButton
         label={isSubmitting ? "Submitting..." : "Submit"}
-        onPress={handleSubmit}
+        onPress={onSuccess}
         disabled={isSubmitting}
       />
     </View>

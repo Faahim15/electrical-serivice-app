@@ -13,6 +13,7 @@ import SocialButton from "@/src/components/auth/SocialButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import CustomInput from "@/src/components/shared/CustomInput";
 import CustomSvg from "@/src/components/shared/CustomSvg";
+import { useFCMToken } from "@/src/hook/useFCMToken";
 import { useSigninMutation } from "@/src/redux/api-slices/auth/auth-api";
 import {
   signInSchema,
@@ -28,6 +29,9 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { toast } from "sonner-native";
 export default function LoginScreen() {
   const [signin, { isLoading }] = useSigninMutation();
+  const { fcmToken } = useFCMToken();
+
+  console.log({ fcmToken });
 
   const {
     control,
@@ -44,6 +48,7 @@ export default function LoginScreen() {
       const res = await signin({
         email: formData.email,
         password: formData.password,
+        fcmToken: fcmToken ?? "using emulator",
       }).unwrap();
 
       await SecureStore.setItemAsync("token", res.data.accessToken);

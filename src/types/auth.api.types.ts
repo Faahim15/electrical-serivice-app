@@ -41,6 +41,7 @@ export interface ResendOtpResponse {
 export interface SigninRequest {
   email: string;
   password: string;
+  fcmToken?: string;
 }
 
 export interface AuthUser {

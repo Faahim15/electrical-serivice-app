@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1909475438",
+    "project_id": "ashley-5441e",
+    "storage_bucket": "ashley-5441e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1909475438:android:4b4e929146292bdbe2be7f",
+        "android_client_info": {
+          "package_name": "com.fourelements.electric"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkTf4pqOozwqj_x2s_v90nDx5CebuVcaE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,3 +1,4 @@
+import { verticalScale } from "@/src/utils/Scaling";
 import React from "react";
 import { Animated, Pressable, Text } from "react-native";
 
@@ -19,7 +20,7 @@ const SubmitButton = ({
   loadingLabel = "Submitting...",
 }: SubmitButtonProps) => {
   return (
-    <Animated.View style={{ opacity: btnAnim }}>
+    <Animated.View style={{ opacity: btnAnim, marginTop: verticalScale(20) }}>
       <Pressable
         onPress={onPress}
         disabled={isDisabled}

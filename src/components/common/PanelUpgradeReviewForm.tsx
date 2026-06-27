@@ -1,8 +1,6 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useDraftSave } from "@/src/hook/useDraftSave";
-import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
   ScrollView as HorizontalScroll,
@@ -10,8 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
-import { toast } from "sonner-native";
 
 interface PanelUpgradeReviewFormProps {
   draftData: any;
@@ -22,13 +18,6 @@ interface PanelUpgradeReviewFormProps {
   serviceCallId?: string;
   serviceType?: string;
 }
-
-// ─── Helper to build FormData ────────────────────────────────────────────────
-const createFormData = (payload: Record<string, any>) => {
-  const formData = new FormData();
-  formData.append("data", JSON.stringify(payload));
-  return formData;
-};
 
 // ─── Photos Row Component ────────────────────────────────────────────────────
 const PhotosRow = ({ label, photos }: { label: string; photos: string[] }) => (
@@ -75,25 +64,8 @@ const PanelUpgradeReviewForm = ({
   draftData,
   categoryData,
   onSuccess,
-  setIsSubmitting,
   isSubmitting,
-  serviceCallId,
-  serviceType,
 }: PanelUpgradeReviewFormProps) => {
-  const { createDraft, updateDraft } = useDraftSave();
-
-  // ─── Get values from Redux ────────────────────────────────────────────────────
-  const contactDetails = useSelector(
-    (state: RootState) => state.serviceForm.contactDetails,
-  );
-  const serviceAddress = useSelector(
-    (state: RootState) => state.serviceForm.serviceAddress,
-  );
-  const projectBasics = useSelector(
-    (state: RootState) => state.serviceForm.projectBasics,
-  );
-
-  // ─── Get Panel Upgrade Details ────────────────────────────────────────────────
   const getPanelUpgradeDetails = () => {
     if (categoryData?.categoryId === "3" && categoryData.details) {
       const details = categoryData.details as any;
@@ -130,134 +102,6 @@ const PanelUpgradeReviewForm = ({
       panelPhotos: [],
       additionalInformation: "",
     };
-  };
-
-  const handleSubmit = async () => {
-    const details = getPanelUpgradeDetails();
-
-    // ─── Get values from draftData (API) or fallback to Redux ────────────────
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    // ─── Validate required fields ─────────────────────────────────────────────
-    if (!finalFullName) {
-      toast.error("Please enter your full name");
-      return;
-    }
-    if (!finalEmail) {
-      toast.error("Please enter your email address");
-      return;
-    }
-    if (!finalPhone) {
-      toast.error("Please enter your phone number");
-      return;
-    }
-    if (!finalStreetAddress) {
-      toast.error("Please enter your street address");
-      return;
-    }
-    if (!finalCity) {
-      toast.error("Please enter your city");
-      return;
-    }
-    if (!finalState) {
-      toast.error("Please enter your state");
-      return;
-    }
-    if (!finalZipCode) {
-      toast.error("Please enter your zip code");
-      return;
-    }
-    if (!finalPropertyType) {
-      toast.error("Please select property type");
-      return;
-    }
-
-    const payload = {
-      fullName: finalFullName,
-      phoneNumber: finalPhone,
-      emailAddress: finalEmail,
-      preferredContactMethod: finalPreferredContact,
-      streetAddress: finalStreetAddress,
-      apartmentUnit: finalApartment,
-      city: finalCity,
-      state: finalState,
-      zipCode: finalZipCode,
-      propertyType: finalPropertyType,
-      ownershipStatus: finalOwnershipStatus,
-      timelineUrgency: finalTimeline,
-      panelServiceType: details.panelServiceType,
-      desiredPanelAmperage: details.desiredPanelAmperage,
-      currentPanelAmperage:
-        details.currentPanelAmperage === "Other"
-          ? details.currentAmperageOther
-          : details.currentPanelAmperage,
-      powerFeedType: details.powerFeedType,
-      panelLocation:
-        details.panelLocation === "Other (please specify)"
-          ? details.panelLocationOther
-          : details.panelLocation,
-      meterPhotos: details.meterPhotos,
-      panelPhotos: details.panelPhotos,
-      additionalInformation: details.additionalInformation,
-      status: "pending" as const,
-      completionPercentage: 100,
-    };
-
-    console.log("Submitting Panel Upgrade payload:", payload);
-
-    setIsSubmitting(true);
-    try {
-      let result;
-
-      // ─── Check if we have an ID (existing draft) or not ─────────────────────
-      if (serviceCallId) {
-        // ✅ UPDATE - existing draft
-        result = await updateDraft(
-          serviceCallId,
-          serviceType || "Panel Upgrade / Replacement",
-          createFormData(payload),
-        );
-        console.log("Updated existing draft:", result);
-      } else {
-        // ✅ CREATE - new draft
-        result = await createDraft(
-          serviceType || "Panel Upgrade / Replacement",
-          createFormData({
-            serviceType: serviceType || "Panel Upgrade / Replacement",
-            ...payload,
-          }),
-        );
-        console.log("Created new draft:", result);
-      }
-
-      if (result.success) {
-        onSuccess();
-      } else {
-        toast.error(result.message || "Failed to submit request");
-      }
-    } catch (error: any) {
-      console.error("Submit error:", error);
-      toast.error(
-        error?.data?.message || "Failed to submit request. Please try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const details = getPanelUpgradeDetails();
@@ -312,7 +156,7 @@ const PanelUpgradeReviewForm = ({
       {/* ─── Submit ───────────────────────────────────────────────────────────── */}
       <GradientButton
         label={isSubmitting ? "Submitting..." : "Submit"}
-        onPress={handleSubmit}
+        onPress={onSuccess}
         disabled={isSubmitting}
       />
     </View>

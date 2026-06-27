@@ -17,10 +17,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
   return formData;
+};
+
+// ─── Helper to normalize service type ──────────────────────────────────────
+const normalizeServiceType = (type?: string | null): string => {
+  if (!type) return "Service Call";
+  // Remove extra spaces, tabs, newlines and trim
+  return type.replace(/\s+/g, " ").trim();
 };
 
 const SubmitQuoteRequest = () => {
@@ -43,12 +51,15 @@ const SubmitQuoteRequest = () => {
     serviceType?: string;
   }>();
 
+  // ⭐ Normalize service type
+  const normalizedServiceType = normalizeServiceType(serviceType);
+
   const { updateDraft, createDraft } = useDraftSave();
 
   // ── draftData fetch ─────────────────────────────────────────────────────
   const { data: draftData, isLoading: isDraftLoading } = useDraftDetails(
     serviceCallId,
-    serviceType,
+    normalizedServiceType,
   );
 
   // ── Redux ───────────────────────────────────────────────────────────────
@@ -81,7 +92,7 @@ const SubmitQuoteRequest = () => {
   const infoRows = [
     {
       label: "Selected Service",
-      value: serviceType ?? selectedCategory?.title ?? "—",
+      value: normalizedServiceType ?? selectedCategory?.title ?? "—",
     },
     {
       label: "Expected Response",
@@ -153,7 +164,8 @@ const SubmitQuoteRequest = () => {
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const resolvedServiceType = serviceType || "Service Call";
+      // ⭐ Use normalized service type
+      const resolvedServiceType = normalizedServiceType || "Service Call";
       const payload = buildPayload(
         resolvedServiceType,
         draftData,
@@ -196,7 +208,7 @@ const SubmitQuoteRequest = () => {
           onPress={() =>
             router.push({
               pathname: "/(tabs)/quotes/quote/common/review-request",
-              params: { serviceCallId, serviceType },
+              params: { serviceCallId, serviceType: normalizedServiceType },
             })
           }
         />

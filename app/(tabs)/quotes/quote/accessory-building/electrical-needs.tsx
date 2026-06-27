@@ -174,7 +174,15 @@ export default function ElectricalNeeds() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <BackButton />
+        <BackButton
+          onPress={() =>
+            router.push({
+              pathname:
+                "/(tabs)/quotes/quote/accessory-building/construction-details",
+              params: { serviceCallId, serviceType },
+            })
+          }
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

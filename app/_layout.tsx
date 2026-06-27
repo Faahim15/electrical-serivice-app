@@ -1,6 +1,11 @@
 import "@/global.css";
+import {
+  handleNotificationNavigation,
+  useNotificationHandler,
+} from "@/src/hook/useNotificationHandler";
 import { store } from "@/src/redux/store";
 import { useFonts } from "expo-font";
+import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -11,6 +16,8 @@ import { Toaster } from "sonner-native";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  useNotificationHandler();
+
   const [fontsLoaded] = useFonts({
     "Inter-Bold": require("../assets/fonts/Inter-Bold.ttf"),
     "Inter-SemiBold": require("../assets/fonts/Inter-SemiBold.ttf"),
@@ -23,13 +30,25 @@ export default function RootLayout() {
       if (!fontsLoaded) return;
       await SplashScreen.hideAsync();
     }
-
     prepare();
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  // ✅ Handle quit state notification tap
+  useEffect(() => {
+    const checkInitialNotification = async () => {
+      const response = await Notifications.getLastNotificationResponse();
+      if (response) {
+        const data = response.notification.request.content.data;
+        setTimeout(() => {
+          handleNotificationNavigation(data);
+        }, 500);
+      }
+    };
+
+    checkInitialNotification();
+  }, []);
+
+  if (!fontsLoaded) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

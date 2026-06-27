@@ -1,8 +1,6 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useDraftSave } from "@/src/hook/useDraftSave";
-import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
   ScrollView as HorizontalScroll,
@@ -10,8 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
-import { toast } from "sonner-native";
 
 interface CeilingFanReviewFormProps {
   draftData: any;
@@ -22,13 +18,6 @@ interface CeilingFanReviewFormProps {
   serviceCallId?: string;
   serviceType?: string;
 }
-
-// ─── Helper to build FormData ────────────────────────────────────────────────
-const createFormData = (payload: Record<string, any>) => {
-  const formData = new FormData();
-  formData.append("data", JSON.stringify(payload));
-  return formData;
-};
 
 // ─── Photos Row Component ────────────────────────────────────────────────────
 const PhotosRow = ({ label, photos }: { label: string; photos: string[] }) => (
@@ -75,94 +64,66 @@ const CeilingFanReviewForm = ({
   draftData,
   categoryData,
   onSuccess,
-  setIsSubmitting,
   isSubmitting,
-  serviceCallId,
-  serviceType,
 }: CeilingFanReviewFormProps) => {
-  const { createDraft, updateDraft } = useDraftSave();
-
-  // ─── Get values from Redux ────────────────────────────────────────────────────
-  const contactDetails = useSelector(
-    (state: RootState) => state.serviceForm.contactDetails,
-  );
-  const serviceAddress = useSelector(
-    (state: RootState) => state.serviceForm.serviceAddress,
-  );
-  const projectBasics = useSelector(
-    (state: RootState) => state.serviceForm.projectBasics,
-  );
-
   // ─── Get Ceiling Fan Details ────────────────────────────────────────────────
   const getCeilingFanDetails = () => {
     if (categoryData?.categoryId === "18" && categoryData.details) {
       const details = categoryData.details as any;
 
-      // St1 - Installation Type
-      const installationType =
-        draftData?.installationType || details.installationType || "";
-      const photosOfCurrentCeilingFan = draftData?.photosOfCurrentCeilingFan
-        ?.length
-        ? draftData.photosOfCurrentCeilingFan
-        : details.photosOfCurrentCeilingFan || [];
-      const aboveBelowAreaOfCeilingFan =
-        draftData?.aboveBelowAreaOfCeilingFan ||
-        details.aboveBelowAreaOfCeilingFan ||
-        "";
-      const isThereCurrentLightFixture =
-        draftData?.isThereCurrentLightFixture !== undefined
-          ? draftData.isThereCurrentLightFixture
-          : details.isThereCurrentLightFixture === "Yes";
-      const wasAreaPrewired =
-        draftData?.wasAreaPrewired || details.wasAreaPrewired || "";
-
-      // St2 - Fan Details
-      const willProvideNewCeilingFan =
-        draftData?.willProvideNewCeilingFan !== undefined
-          ? draftData.willProvideNewCeilingFan
-          : details.willProvideNewCeilingFan === "Yes";
-      const photosOfNewCeilingFan = draftData?.photosOfNewCeilingFan?.length
-        ? draftData.photosOfNewCeilingFan
-        : details.photosOfNewCeilingFan || [];
-      const describeFanWantInstalled =
-        draftData?.describeFanWantInstalled ||
-        details.describeFanWantInstalled ||
-        "";
-      const tallOfCeilingFanFromFloor =
-        draftData?.tallOfCeilingFanFromFloor ||
-        details.tallOfCeilingFanFromFloor ||
-        "";
-
-      // St3 - Switch Details
-      const willConnectNewOrExistingSwitch =
-        draftData?.willConnectNewOrExistingSwitch ||
-        details.willConnectNewOrExistingSwitch ||
-        "";
-      const wantUpgradeSwitch =
-        draftData?.wantUpgradeSwitch !== undefined
-          ? draftData.wantUpgradeSwitch
-          : details.wantUpgradeSwitch === "Yes";
-      const kindOfSwitchWant =
-        draftData?.kindOfSwitchWant || details.kindOfSwitchWant || "";
-
-      // St4 - Additional Notes
-      const additionalInformation =
-        draftData?.additionalInformation || details.additionalInformation || "";
-
+      // ⭐ Priority: draftData first, then Redux (categoryData.details)
       return {
-        installationType,
-        photosOfCurrentCeilingFan,
-        aboveBelowAreaOfCeilingFan,
-        isThereCurrentLightFixture,
-        wasAreaPrewired,
-        willProvideNewCeilingFan,
-        photosOfNewCeilingFan,
-        describeFanWantInstalled,
-        tallOfCeilingFanFromFloor,
-        willConnectNewOrExistingSwitch,
-        wantUpgradeSwitch,
-        kindOfSwitchWant,
-        additionalInformation,
+        // St1 - Installation Type
+        installationType:
+          draftData?.installationType || details.installationType || "",
+        photosOfCurrentCeilingFan: draftData?.photosOfCurrentCeilingFan?.length
+          ? draftData.photosOfCurrentCeilingFan
+          : details.photosOfCurrentCeilingFan || [],
+        aboveBelowAreaOfCeilingFan:
+          draftData?.aboveBelowAreaOfCeilingFan ||
+          details.aboveBelowAreaOfCeilingFan ||
+          "",
+        isThereCurrentLightFixture:
+          draftData?.isThereCurrentLightFixture !== undefined
+            ? draftData.isThereCurrentLightFixture
+            : details.isThereCurrentLightFixture === "Yes",
+        wasAreaPrewired:
+          draftData?.wasAreaPrewired || details.wasAreaPrewired || "",
+
+        // St2 - Fan Details
+        willProvideNewCeilingFan:
+          draftData?.willProvideNewCeilingFan !== undefined
+            ? draftData.willProvideNewCeilingFan
+            : details.willProvideNewCeilingFan === "Yes",
+        photosOfNewCeilingFan: draftData?.photosOfNewCeilingFan?.length
+          ? draftData.photosOfNewCeilingFan
+          : details.photosOfNewCeilingFan || [],
+        describeFanWantInstalled:
+          draftData?.describeFanWantInstalled ||
+          details.describeFanWantInstalled ||
+          "",
+        tallOfCeilingFanFromFloor:
+          draftData?.tallOfCeilingFanFromFloor ||
+          details.tallOfCeilingFanFromFloor ||
+          "",
+
+        // St3 - Switch Details
+        willConnectNewOrExistingSwitch:
+          draftData?.willConnectNewOrExistingSwitch ||
+          details.willConnectNewOrExistingSwitch ||
+          "",
+        wantUpgradeSwitch:
+          draftData?.wantUpgradeSwitch !== undefined
+            ? draftData.wantUpgradeSwitch
+            : details.wantUpgradeSwitch === "Yes",
+        kindOfSwitchWant:
+          draftData?.kindOfSwitchWant || details.kindOfSwitchWant || "",
+
+        // St4 - Additional Notes
+        additionalInformation:
+          draftData?.additionalInformation ||
+          details.additionalInformation ||
+          "",
       };
     }
     return {
@@ -180,149 +141,6 @@ const CeilingFanReviewForm = ({
       kindOfSwitchWant: "",
       additionalInformation: "",
     };
-  };
-
-  const handleSubmit = async () => {
-    const details = getCeilingFanDetails();
-
-    // ─── Get values from draftData (API) or fallback to Redux ────────────────
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    // ─── Validate required fields ─────────────────────────────────────────────
-    if (!finalFullName) {
-      toast.error("Please enter your full name");
-      return;
-    }
-    if (!finalEmail) {
-      toast.error("Please enter your email address");
-      return;
-    }
-    if (!finalPhone) {
-      toast.error("Please enter your phone number");
-      return;
-    }
-    if (!finalStreetAddress) {
-      toast.error("Please enter your street address");
-      return;
-    }
-    if (!finalCity) {
-      toast.error("Please enter your city");
-      return;
-    }
-    if (!finalState) {
-      toast.error("Please enter your state");
-      return;
-    }
-    if (!finalZipCode) {
-      toast.error("Please enter your zip code");
-      return;
-    }
-    if (!finalPropertyType) {
-      toast.error("Please select property type");
-      return;
-    }
-
-    // ─── Validate Ceiling Fan specific fields ─────────────────────────────────
-    if (!details.installationType) {
-      toast.error("Please select installation type");
-      return;
-    }
-
-    // ─── Build payload matching CeilingFanPayload ────────────────────────────
-    const payload = {
-      fullName: finalFullName,
-      phoneNumber: finalPhone,
-      emailAddress: finalEmail,
-      preferredContactMethod: finalPreferredContact,
-      streetAddress: finalStreetAddress,
-      apartmentUnit: finalApartment,
-      city: finalCity,
-      state: finalState,
-      zipCode: finalZipCode,
-      propertyType: finalPropertyType,
-      ownershipStatus: finalOwnershipStatus,
-      timelineUrgency: finalTimeline,
-
-      // St1 - Installation Type
-      installationType: details.installationType,
-      photosOfCurrentCeilingFan: details.photosOfCurrentCeilingFan,
-      aboveBelowAreaOfCeilingFan: details.aboveBelowAreaOfCeilingFan || "",
-      isThereCurrentLightFixture: details.isThereCurrentLightFixture,
-      wasAreaPrewired: details.wasAreaPrewired,
-
-      // St2 - Fan Details
-      willProvideNewCeilingFan: details.willProvideNewCeilingFan,
-      photosOfNewCeilingFan: details.photosOfNewCeilingFan,
-      describeFanWantInstalled: details.describeFanWantInstalled,
-      tallOfCeilingFanFromFloor: details.tallOfCeilingFanFromFloor,
-
-      // St3 - Switch Details
-      willConnectNewOrExistingSwitch: details.willConnectNewOrExistingSwitch,
-      wantUpgradeSwitch: details.wantUpgradeSwitch,
-      kindOfSwitchWant: details.kindOfSwitchWant,
-
-      // St4 - Additional Notes
-      additionalInformation: details.additionalInformation,
-
-      status: "pending" as const,
-      completionPercentage: 100,
-    };
-
-    console.log("Submitting Ceiling Fan payload:", payload);
-
-    setIsSubmitting(true);
-    try {
-      let result;
-
-      // ─── Check if we have an ID (existing draft) or not ─────────────────────
-      if (serviceCallId) {
-        // ✅ UPDATE - existing draft
-        result = await updateDraft(
-          serviceCallId,
-          serviceType || "Ceiling Fan Installation",
-          createFormData(payload),
-        );
-        console.log("Updated existing draft:", result);
-      } else {
-        // ✅ CREATE - new draft
-        result = await createDraft(
-          serviceType || "Ceiling Fan Installation",
-          createFormData({
-            serviceType: serviceType || "Ceiling Fan Installation",
-            ...payload,
-          }),
-        );
-        console.log("Created new draft:", result);
-      }
-
-      if (result.success) {
-        onSuccess();
-      } else {
-        toast.error(result.message || "Failed to submit request");
-      }
-    } catch (error: any) {
-      console.error("Submit error:", error);
-      toast.error(
-        error?.data?.message || "Failed to submit request. Please try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const details = getCeilingFanDetails();
@@ -435,7 +253,7 @@ const CeilingFanReviewForm = ({
       {/* ─── Submit ───────────────────────────────────────────────────────────── */}
       <GradientButton
         label={isSubmitting ? "Submitting..." : "Submit"}
-        onPress={handleSubmit}
+        onPress={onSuccess}
         disabled={isSubmitting}
       />
     </View>

@@ -4,9 +4,9 @@ import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import OptionGrid from "@/src/components/quote/OptionGrid";
 import { CategoryTag } from "@/src/components/quote/review/CategoryTag";
 import BackButton from "@/src/components/shared/BackButton";
+import CustomInput from "@/src/components/shared/CustomInput";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
-import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hook/useDraftDetails";
 import { useDraftSave } from "@/src/hook/useDraftSave";
 import { updatePanelUpgradeDetails } from "@/src/redux/slices/serviceFormSlice";
@@ -199,15 +199,19 @@ export default function CurrentPanelDetails() {
             numColumns={1}
           />
           {currentAmperage === "Other" && (
-            <TextAreaInput
-              label="Please specify"
-              placeholder="Describe your current amperage"
-              value={currentAmperageOther ?? ""}
-              onChangeText={(text) =>
-                dispatch(
-                  updatePanelUpgradeDetails({ currentAmperageOther: text }),
-                )
-              }
+            <CustomInput
+              label="Please specify *"
+              textInputConfig={{
+                placeholder: "Enter amperage (e.g. 125)",
+                keyboardType: "numeric",
+                value: currentAmperageOther ?? "",
+                onChangeText: (text) =>
+                  dispatch(
+                    updatePanelUpgradeDetails({
+                      currentAmperageOther: text.replace(/[^0-9]/g, ""), // শুধু number allow
+                    }),
+                  ),
+              }}
             />
           )}
 

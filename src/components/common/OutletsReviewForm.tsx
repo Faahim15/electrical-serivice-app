@@ -1,8 +1,6 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useDraftSave } from "@/src/hook/useDraftSave";
-import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
   ScrollView as HorizontalScroll,
@@ -10,8 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
-import { toast } from "sonner-native";
 
 interface OutletsReviewFormProps {
   draftData: any;
@@ -23,14 +19,18 @@ interface OutletsReviewFormProps {
   serviceType?: string;
 }
 
-const createFormData = (payload: Record<string, any>) => {
-  const formData = new FormData();
-  formData.append("data", JSON.stringify(payload));
-  return formData;
-};
-
+// ─── Photos Row Component ────────────────────────────────────────────────────
 const PhotosRow = ({ label, photos }: { label: string; photos: string[] }) => (
-  <View className="bg-white rounded-2xl px-4 py-4 mb-3">
+  <View
+    className="bg-white rounded-2xl px-4 py-4 mb-3"
+    style={{
+      shadowColor: "#94A3B8",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.07,
+      shadowRadius: 4,
+      elevation: 1,
+    }}
+  >
     <Text className="text-[#94A3B8] text-[11.5px] font-Inter_Medium mb-2">
       {label}
     </Text>
@@ -64,35 +64,35 @@ const OutletsReviewForm = ({
   draftData,
   categoryData,
   onSuccess,
-  setIsSubmitting,
   isSubmitting,
-  serviceCallId,
-  serviceType,
 }: OutletsReviewFormProps) => {
-  const { createDraft, updateDraft } = useDraftSave();
-  const contactDetails = useSelector(
-    (s: RootState) => s.serviceForm.contactDetails,
-  );
-  const serviceAddress = useSelector(
-    (s: RootState) => s.serviceForm.serviceAddress,
-  );
-  const projectBasics = useSelector(
-    (s: RootState) => s.serviceForm.projectBasics,
-  );
-
+  // ─── Get Outlets Details ──────────────────────────────────────────────────
   const getDetails = () => {
     if (categoryData?.categoryId === "15" && categoryData.details) {
       const d = categoryData.details as any;
+
+      // ⭐ Priority: draftData first, then Redux (categoryData.details)
       return {
-        intendedUse: d.intendedUse || "",
-        numberOfOutlets: d.numberOfOutlets || "",
-        installationType: d.installationType || "",
-        outletTypes: d.outletTypes || [],
-        ampsNeeded: d.ampsNeeded || "",
-        voltsNeeded: d.voltsNeeded || "",
-        NEMAConfiguration: d.NEMAConfiguration || "",
-        photosOfWhereOutletsInstall: d.photosOfWhereOutletsInstall || [],
-        additionalInformation: d.additionalNotes || "",
+        intendedUse: draftData?.intendedUse || d.intendedUse || "",
+        numberOfOutlets: draftData?.numberOfOutlets || d.numberOfOutlets || "",
+        installationType:
+          draftData?.installationType || d.installationType || "",
+        outletTypes: draftData?.outletTypes?.length
+          ? draftData.outletTypes
+          : d.outletTypes || [],
+        ampsNeeded: draftData?.ampsNeeded || d.ampsNeeded || "",
+        voltsNeeded: draftData?.voltsNeeded || d.voltsNeeded || "",
+        NEMAConfiguration:
+          draftData?.NEMAConfiguration || d.NEMAConfiguration || "",
+        photosOfWhereOutletsInstall: draftData?.photosOfWhereOutletsInstall
+          ?.length
+          ? draftData.photosOfWhereOutletsInstall
+          : d.photosOfWhereOutletsInstall || [],
+        additionalInformation:
+          draftData?.additionalInformation ||
+          draftData?.additionalNotes ||
+          d.additionalNotes ||
+          "",
       };
     }
     return {
@@ -108,97 +108,11 @@ const OutletsReviewForm = ({
     };
   };
 
-  const handleSubmit = async () => {
-    const details = getDetails();
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    if (!finalFullName) {
-      toast.error("Please enter your full name");
-      return;
-    }
-
-    const payload = {
-      fullName: finalFullName,
-      phoneNumber: finalPhone,
-      emailAddress: finalEmail,
-      preferredContactMethod: finalPreferredContact,
-      streetAddress: finalStreetAddress,
-      apartmentUnit: finalApartment,
-      city: finalCity,
-      state: finalState,
-      zipCode: finalZipCode,
-      propertyType: finalPropertyType,
-      ownershipStatus: finalOwnershipStatus,
-      timelineUrgency: finalTimeline,
-      intendedUseOfOutlets: details.intendedUse,
-      howManyOutletsNeeds: details.numberOfOutlets,
-      newInstallationOrReplacement: details.installationType,
-      typeOfOutletsNeed: details.outletTypes.join(", "),
-      howManyAmps: details.ampsNeeded,
-      ampsOrVoltsNeeded: details.voltsNeeded,
-      NEMAConfiguration: details.NEMAConfiguration,
-      photosOfWhereOutletsInstall: details.photosOfWhereOutletsInstall,
-      additionalInformation: details.additionalInformation,
-      status: "pending" as const,
-      completionPercentage: 100,
-    };
-
-    setIsSubmitting(true);
-    try {
-      let result;
-
-      // ─── Check if we have an ID (existing draft) or not ─────────────────────
-      if (serviceCallId) {
-        // ✅ UPDATE - existing draft
-        result = await updateDraft(
-          serviceCallId,
-          serviceType || "Outlets",
-          createFormData(payload),
-        );
-        console.log("Updated existing draft:", result);
-      } else {
-        // ✅ CREATE - new draft
-        result = await createDraft(
-          serviceType || "Outlets",
-          createFormData({ serviceType: serviceType || "Outlets", ...payload }),
-        );
-        console.log("Created new draft:", result);
-      }
-
-      if (result.success) {
-        onSuccess();
-      } else {
-        toast.error(result.message || "Failed to submit request");
-      }
-    } catch (error: any) {
-      console.log("show", error.data);
-      toast.error(
-        error?.data?.message || "Failed to submit request. Please try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const details = getDetails();
 
   return (
     <View>
+      {/* ─── Outlet Details ──────────────────────────────────────────────────── */}
       <ReviewSectionTitle title="Outlet Details" />
       <ReviewRow
         label="Intended Use"
@@ -214,9 +128,14 @@ const OutletsReviewForm = ({
       />
       <ReviewRow
         label="Outlet Types"
-        value={details.outletTypes.join(", ") || "Not specified"}
+        value={
+          details.outletTypes?.length
+            ? details.outletTypes.join(", ")
+            : "Not specified"
+        }
       />
 
+      {/* ─── Electrical Specifications ───────────────────────────────────────── */}
       <ReviewSectionTitle title="Electrical Specifications" />
       <ReviewRow
         label="Amps"
@@ -230,21 +149,32 @@ const OutletsReviewForm = ({
         value={details.NEMAConfiguration || "Not specified"}
       />
 
-      <ReviewSectionTitle title="Photos" />
-      <PhotosRow
-        label="Installation Area Photos"
-        photos={details.photosOfWhereOutletsInstall}
-      />
+      {/* ─── Photos ───────────────────────────────────────────────────────────── */}
+      {details.photosOfWhereOutletsInstall.length > 0 && (
+        <ReviewSectionTitle title="Photos" />
+      )}
+      {details.photosOfWhereOutletsInstall.length > 0 && (
+        <PhotosRow
+          label="Installation Area Photos"
+          photos={details.photosOfWhereOutletsInstall}
+        />
+      )}
 
-      <ReviewSectionTitle title="Additional Information" />
-      <ReviewRow
-        label="Additional Notes"
-        value={details.additionalInformation || "None provided"}
-      />
+      {/* ─── Additional Information ───────────────────────────────────────────── */}
+      {details.additionalInformation && (
+        <>
+          <ReviewSectionTitle title="Additional Information" />
+          <ReviewRow
+            label="Additional Notes"
+            value={details.additionalInformation || "None provided"}
+          />
+        </>
+      )}
 
+      {/* ─── Submit ───────────────────────────────────────────────────────────── */}
       <GradientButton
         label={isSubmitting ? "Submitting..." : "Submit"}
-        onPress={handleSubmit}
+        onPress={onSuccess}
         disabled={isSubmitting}
       />
     </View>

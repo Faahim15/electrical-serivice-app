@@ -1,8 +1,6 @@
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import { ReviewRow } from "@/src/components/quote/review/ReviewRow";
 import { ReviewSectionTitle } from "@/src/components/quote/review/ReviewSectionTitle";
-import { useDraftSave } from "@/src/hook/useDraftSave";
-import { RootState } from "@/src/redux/store";
 import React from "react";
 import {
   ScrollView as HorizontalScroll,
@@ -10,8 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
-import { toast } from "sonner-native";
 
 interface LightingReviewFormProps {
   draftData: any;
@@ -23,34 +19,18 @@ interface LightingReviewFormProps {
   serviceType?: string;
 }
 
-const createFormData = (payload: Record<string, any>) => {
-  const formData = new FormData();
-  formData.append("data", JSON.stringify(payload));
-  return formData;
-};
-
-const normalizeInstallType = (value: string) => {
-  if (!value) return "";
-  const lowerValue = value.toLowerCase();
-  if (
-    lowerValue.includes("new install") ||
-    lowerValue.includes("new installation")
-  )
-    return "New Installation";
-  if (lowerValue.includes("replacement")) return "Replacement";
-  return value;
-};
-
-const normalizeSwitchConnection = (value: string) => {
-  if (!value) return "";
-  const lowerValue = value.toLowerCase();
-  if (lowerValue === "new" || lowerValue === "n") return "New";
-  if (lowerValue === "existing" || lowerValue === "e") return "Existing";
-  return value;
-};
-
+// ─── Photos Row Component ────────────────────────────────────────────────────
 const PhotosRow = ({ label, photos }: { label: string; photos: string[] }) => (
-  <View className="bg-white rounded-2xl px-4 py-4 mb-3">
+  <View
+    className="bg-white rounded-2xl px-4 py-4 mb-3"
+    style={{
+      shadowColor: "#94A3B8",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.07,
+      shadowRadius: 4,
+      elevation: 1,
+    }}
+  >
     <Text className="text-[#94A3B8] text-[11.5px] font-Inter_Medium mb-2">
       {label}
     </Text>
@@ -84,299 +64,165 @@ const LightingReviewForm = ({
   draftData,
   categoryData,
   onSuccess,
-  setIsSubmitting,
   isSubmitting,
-  serviceCallId,
-  serviceType,
 }: LightingReviewFormProps) => {
-  const { createDraft, updateDraft } = useDraftSave();
-  const contactDetails = useSelector(
-    (s: RootState) => s.serviceForm.contactDetails,
-  );
-  const serviceAddress = useSelector(
-    (s: RootState) => s.serviceForm.serviceAddress,
-  );
-  const projectBasics = useSelector(
-    (s: RootState) => s.serviceForm.projectBasics,
-  );
-
+  // ─── Get Lighting Details ──────────────────────────────────────────────────
   const getDetails = () => {
     if (categoryData?.categoryId === "17" && categoryData.details) {
       const d = categoryData.details as any;
+
+      // ⭐ Priority: draftData first, then Redux (categoryData.details)
       return {
         // Lighting Type
-        lightingType: d.lightingType || "",
+        lightingType: draftData?.lightingType || d.lightingType || "",
 
         // Interior
-        fixtureWeight: d.fixtureWeight || "",
-        fixtureKind: d.fixtureKind || "",
-        complexAssembly: d.complexAssembly || "",
-        interiorInstallType: d.interiorInstallType || "",
-        ceilingHeight: d.ceilingHeight || "",
-        providingFixture: d.providingFixture || "",
-        fixtureDetails: d.fixtureDetails || "",
-        switchNewExisting: d.switchNewExisting || "",
-        upgradeSwitch: d.upgradeSwitch || "",
-        switchKind: d.switchKind || "",
-        multiSwitch: d.multiSwitch || "",
-        photosOfWhereWantToInstall: d.photosOfWhereWantToInstall || [],
-        photosOfCurrentLightFixture: d.photosOfCurrentLightFixture || [],
-        photosOfNewLightFixture: d.photosOfNewLightFixture || [],
+        fixtureWeight: draftData?.fixtureWeight || d.fixtureWeight || "",
+        fixtureKind: draftData?.fixtureKind || d.fixtureKind || "",
+        complexAssembly: draftData?.complexAssembly || d.complexAssembly || "",
+        interiorInstallType:
+          draftData?.interiorInstallType || d.interiorInstallType || "",
+        ceilingHeight: draftData?.ceilingHeight || d.ceilingHeight || "",
+        providingFixture:
+          draftData?.providingFixture || d.providingFixture || "",
+        fixtureDetails: draftData?.fixtureDetails || d.fixtureDetails || "",
+        switchNewExisting:
+          draftData?.switchNewExisting || d.switchNewExisting || "",
+        upgradeSwitch: draftData?.upgradeSwitch || d.upgradeSwitch || "",
+        switchKind: draftData?.switchKind || d.switchKind || "",
+        multiSwitch: draftData?.multiSwitch || d.multiSwitch || "",
+        photosOfWhereWantToInstall: draftData?.photosOfWhereWantToInstall
+          ?.length
+          ? draftData.photosOfWhereWantToInstall
+          : d.photosOfWhereWantToInstall || [],
+        photosOfCurrentLightFixture: draftData?.photosOfCurrentLightFixture
+          ?.length
+          ? draftData.photosOfCurrentLightFixture
+          : d.photosOfCurrentLightFixture || [],
+        photosOfNewLightFixture: draftData?.photosOfNewLightFixture?.length
+          ? draftData.photosOfNewLightFixture
+          : d.photosOfNewLightFixture || [],
 
         // Flood Lights
-        floodInstallType: d.floodInstallType || "",
-        floodInstallHeight: d.floodInstallHeight || "",
-        floodProviding: d.floodProviding || "",
-        floodDetails: d.floodDetails || "",
-        floodPowerControl: d.floodPowerControl || "",
-        floodSwitchNewExisting: d.floodSwitchNewExisting || "",
-        floodUpgradeSwitch: d.floodUpgradeSwitch || "",
-        floodSwitchKind: d.floodSwitchKind || "",
-        floodSwitchOtherText: d.floodSwitchOtherText || "",
-        floodMultiSwitch: d.floodMultiSwitch || "",
-        photosOfInstallationAreaFloodLight:
-          d.photosOfInstallationAreaFloodLight || [],
-        photosOfCurrentFloodLight: d.photosOfCurrentFloodLight || [],
-        photosOfNewFloodLight: d.photosOfNewFloodLight || [],
+        floodInstallType:
+          draftData?.floodInstallType || d.floodInstallType || "",
+        floodInstallHeight:
+          draftData?.floodInstallHeight || d.floodInstallHeight || "",
+        floodProviding: draftData?.floodProviding || d.floodProviding || "",
+        floodDetails: draftData?.floodDetails || d.floodDetails || "",
+        floodPowerControl:
+          draftData?.floodPowerControl || d.floodPowerControl || "",
+        floodSwitchNewExisting:
+          draftData?.floodSwitchNewExisting || d.floodSwitchNewExisting || "",
+        floodUpgradeSwitch:
+          draftData?.floodUpgradeSwitch || d.floodUpgradeSwitch || "",
+        floodSwitchKind: draftData?.floodSwitchKind || d.floodSwitchKind || "",
+        floodSwitchOtherText:
+          draftData?.floodSwitchOtherText || d.floodSwitchOtherText || "",
+        floodMultiSwitch:
+          draftData?.floodMultiSwitch || d.floodMultiSwitch || "",
+        photosOfInstallationAreaFloodLight: draftData
+          ?.photosOfInstallationAreaFloodLight?.length
+          ? draftData.photosOfInstallationAreaFloodLight
+          : d.photosOfInstallationAreaFloodLight || [],
+        photosOfCurrentFloodLight: draftData?.photosOfCurrentFloodLight?.length
+          ? draftData.photosOfCurrentFloodLight
+          : d.photosOfCurrentFloodLight || [],
+        photosOfNewFloodLight: draftData?.photosOfNewFloodLight?.length
+          ? draftData.photosOfNewFloodLight
+          : d.photosOfNewFloodLight || [],
 
         // Wall / Coach
-        wallInstallType: d.wallInstallType || "",
-        wallSurface: d.wallSurface || "",
-        wallProviding: d.wallProviding || "",
-        wallNewLightDetails: d.wallNewLightDetails || "",
-        wallSwitchNewExisting: d.wallSwitchNewExisting || "",
-        wallUpgradeSwitch: d.wallUpgradeSwitch || "",
-        wallSwitchKind: d.wallSwitchKind || "",
-        wallMultiSwitch: d.wallMultiSwitch || "",
-        wallPhotosNew: d.wallPhotosNew || [],
-        wallPhotosCurrent: d.wallPhotosCurrent || [],
-        wallPhotosFixtureNew: d.wallPhotosFixtureNew || [],
+        wallInstallType: draftData?.wallInstallType || d.wallInstallType || "",
+        wallSurface: draftData?.wallSurface || d.wallSurface || "",
+        wallProviding: draftData?.wallProviding || d.wallProviding || "",
+        wallNewLightDetails:
+          draftData?.wallNewLightDetails || d.wallNewLightDetails || "",
+        wallSwitchNewExisting:
+          draftData?.wallSwitchNewExisting || d.wallSwitchNewExisting || "",
+        wallUpgradeSwitch:
+          draftData?.wallUpgradeSwitch || d.wallUpgradeSwitch || "",
+        wallSwitchKind: draftData?.wallSwitchKind || d.wallSwitchKind || "",
+        wallMultiSwitch: draftData?.wallMultiSwitch || d.wallMultiSwitch || "",
+        wallPhotosNew: draftData?.wallPhotosNew?.length
+          ? draftData.wallPhotosNew
+          : d.wallPhotosNew || [],
+        wallPhotosCurrent: draftData?.wallPhotosCurrent?.length
+          ? draftData.wallPhotosCurrent
+          : d.wallPhotosCurrent || [],
+        wallPhotosFixtureNew: draftData?.wallPhotosFixtureNew?.length
+          ? draftData.wallPhotosFixtureNew
+          : d.wallPhotosFixtureNew || [],
 
         // Driveway
-        drivewayInstallType: d.drivewayInstallType || "",
-        drivewayProviding: d.drivewayProviding || "",
-        drivewayNewLightDetails: d.drivewayNewLightDetails || "",
-        drivewayDistance: d.drivewayDistance || "",
-        drivewayPowerControl: d.drivewayPowerControl || "",
-        drivewaySwitchNewExisting: d.drivewaySwitchNewExisting || "",
-        drivewayUpgradeSwitch: d.drivewayUpgradeSwitch || "",
-        drivewaySwitchKind: d.drivewaySwitchKind || "",
-        drivewaySwitchOtherText: d.drivewaySwitchOtherText || "",
-        drivewayMultiSwitch: d.drivewayMultiSwitch || "",
-        drivewayPhotosNew: d.drivewayPhotosNew || [],
-        drivewayPhotosCurrent: d.drivewayPhotosCurrent || [],
-        drivewayPhotosFixtureNew: d.drivewayPhotosFixtureNew || [],
+        drivewayInstallType:
+          draftData?.drivewayInstallType || d.drivewayInstallType || "",
+        drivewayProviding:
+          draftData?.drivewayProviding || d.drivewayProviding || "",
+        drivewayNewLightDetails:
+          draftData?.drivewayNewLightDetails || d.drivewayNewLightDetails || "",
+        drivewayDistance:
+          draftData?.drivewayDistance || d.drivewayDistance || "",
+        drivewayPowerControl:
+          draftData?.drivewayPowerControl || d.drivewayPowerControl || "",
+        drivewaySwitchNewExisting:
+          draftData?.drivewaySwitchNewExisting ||
+          d.drivewaySwitchNewExisting ||
+          "",
+        drivewayUpgradeSwitch:
+          draftData?.drivewayUpgradeSwitch || d.drivewayUpgradeSwitch || "",
+        drivewaySwitchKind:
+          draftData?.drivewaySwitchKind || d.drivewaySwitchKind || "",
+        drivewaySwitchOtherText:
+          draftData?.drivewaySwitchOtherText || d.drivewaySwitchOtherText || "",
+        drivewayMultiSwitch:
+          draftData?.drivewayMultiSwitch || d.drivewayMultiSwitch || "",
+        drivewayPhotosNew: draftData?.drivewayPhotosNew?.length
+          ? draftData.drivewayPhotosNew
+          : d.drivewayPhotosNew || [],
+        drivewayPhotosCurrent: draftData?.drivewayPhotosCurrent?.length
+          ? draftData.drivewayPhotosCurrent
+          : d.drivewayPhotosCurrent || [],
+        drivewayPhotosFixtureNew: draftData?.drivewayPhotosFixtureNew?.length
+          ? draftData.drivewayPhotosFixtureNew
+          : d.drivewayPhotosFixtureNew || [],
 
         // Pole / Area
-        poleInstallType: d.poleInstallType || "",
-        poleProviding: d.poleProviding || "",
-        poleLightDetails: d.poleLightDetails || "",
-        poleDistance: d.poleDistance || "",
-        polePowerControl: d.polePowerControl || "",
-        poleSwitchNewExisting: d.poleSwitchNewExisting || "",
-        poleUpgradeSwitch: d.poleUpgradeSwitch || "",
-        poleSwitchKind: d.poleSwitchKind || "",
-        poleSwitchOtherText: d.poleSwitchOtherText || "",
-        poleMultiSwitch: d.poleMultiSwitch || "",
-        polePhotosNew: d.polePhotosNew || [],
-        polePhotosCurrent: d.polePhotosCurrent || [],
-        polePhotosFixtureNew: d.polePhotosFixtureNew || [],
+        poleInstallType: draftData?.poleInstallType || d.poleInstallType || "",
+        poleProviding: draftData?.poleProviding || d.poleProviding || "",
+        poleLightDetails:
+          draftData?.poleLightDetails || d.poleLightDetails || "",
+        poleDistance: draftData?.poleDistance || d.poleDistance || "",
+        polePowerControl:
+          draftData?.polePowerControl || d.polePowerControl || "",
+        poleSwitchNewExisting:
+          draftData?.poleSwitchNewExisting || d.poleSwitchNewExisting || "",
+        poleUpgradeSwitch:
+          draftData?.poleUpgradeSwitch || d.poleUpgradeSwitch || "",
+        poleSwitchKind: draftData?.poleSwitchKind || d.poleSwitchKind || "",
+        poleSwitchOtherText:
+          draftData?.poleSwitchOtherText || d.poleSwitchOtherText || "",
+        poleMultiSwitch: draftData?.poleMultiSwitch || d.poleMultiSwitch || "",
+        polePhotosNew: draftData?.polePhotosNew?.length
+          ? draftData.polePhotosNew
+          : d.polePhotosNew || [],
+        polePhotosCurrent: draftData?.polePhotosCurrent?.length
+          ? draftData.polePhotosCurrent
+          : d.polePhotosCurrent || [],
+        polePhotosFixtureNew: draftData?.polePhotosFixtureNew?.length
+          ? draftData.polePhotosFixtureNew
+          : d.polePhotosFixtureNew || [],
 
         // Landscape
-        landscapeVoltage: d.landscapeVoltage || "",
+        landscapeVoltage:
+          draftData?.landscapeVoltage || d.landscapeVoltage || "",
 
         // Additional
-        additionalInformation: d.additionalInformation || "",
+        additionalInformation:
+          draftData?.additionalInformation || d.additionalInformation || "",
       };
     }
     return null;
-  };
-
-  const handleSubmit = async () => {
-    const details = getDetails();
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    if (!finalFullName) {
-      toast.error("Please enter your full name");
-      return;
-    }
-
-    const payload = {
-      fullName: finalFullName,
-      phoneNumber: finalPhone,
-      emailAddress: finalEmail,
-      preferredContactMethod: finalPreferredContact,
-      streetAddress: finalStreetAddress,
-      apartmentUnit: finalApartment,
-      city: finalCity,
-      state: finalState,
-      zipCode: finalZipCode,
-      propertyType: finalPropertyType,
-      ownershipStatus: finalOwnershipStatus,
-      timelineUrgency: finalTimeline,
-
-      // Lighting Type
-      lightingType: details?.lightingType || "",
-
-      // Interior
-      typeOfInteriorLightingFixture: details?.fixtureKind || "",
-      kindOfLightingFixture: details?.fixtureWeight || "",
-      isFixtureHaveComplexAssembly: details?.complexAssembly === "Yes",
-      tallOfCeiling: details?.ceilingHeight || "",
-      detailsOnTypeOfFixture: details?.fixtureDetails || "",
-      willProvideNewLight: details?.providingFixture === "Yes",
-      kindOfSwitchWant: details?.switchKind || "",
-      wantToUpgradeSwitch: details?.upgradeSwitch === "Yes",
-      moreThanOneSwitchLocation: details?.multiSwitch === "Yes",
-      photosOfWhereWantToInstall: details?.photosOfWhereWantToInstall || [],
-      photosOfCurrentLightFixture: details?.photosOfCurrentLightFixture || [],
-      photosOfNewLightFixture: details?.photosOfNewLightFixture || [],
-
-      // Flood Lights
-      floodInstallHeight: details?.floodInstallHeight || "",
-      floodProviding: details?.floodProviding || "",
-      floodDetails: details?.floodDetails || "",
-      floodPowerControl: details?.floodPowerControl || "",
-      floodUpgradeSwitch: details?.floodUpgradeSwitch || "",
-      floodSwitchKind: details?.floodSwitchKind || "",
-      floodSwitchOtherText: details?.floodSwitchOtherText || "",
-      floodMultiSwitch: details?.floodMultiSwitch || "",
-      photosOfInstallationAreaFloodLight:
-        details?.photosOfInstallationAreaFloodLight || [],
-      photosOfCurrentFloodLight: details?.photosOfCurrentFloodLight || [],
-      photosOfNewFloodLight: details?.photosOfNewFloodLight || [],
-
-      // Wall Coach
-      wallSurface: details?.wallSurface || "",
-      wallProviding: details?.wallProviding || "",
-      wallNewLightDetails: details?.wallNewLightDetails || "",
-      wallUpgradeSwitch: details?.wallUpgradeSwitch || "",
-      wallSwitchKind: details?.wallSwitchKind || "",
-      wallMultiSwitch: details?.wallMultiSwitch || "",
-
-      // Driveway
-      drivewayProviding: details?.drivewayProviding || "",
-      drivewayNewLightDetails: details?.drivewayNewLightDetails || "",
-      drivewayDistance: details?.drivewayDistance || "",
-      drivewayPowerControl: details?.drivewayPowerControl || "",
-      drivewayUpgradeSwitch: details?.drivewayUpgradeSwitch || "",
-      drivewaySwitchKind: details?.drivewaySwitchKind || "",
-      drivewaySwitchOtherText: details?.drivewaySwitchOtherText || "",
-      drivewayMultiSwitch: details?.drivewayMultiSwitch || "",
-
-      // Pole Area
-      poleProviding: details?.poleProviding || "",
-      poleLightDetails: details?.poleLightDetails || "",
-      poleDistance: details?.poleDistance || "",
-      polePowerControl: details?.polePowerControl || "",
-      poleUpgradeSwitch: details?.poleUpgradeSwitch || "",
-      poleSwitchKind: details?.poleSwitchKind || "",
-      poleSwitchOtherText: details?.poleSwitchOtherText || "",
-      poleMultiSwitch: details?.poleMultiSwitch || "",
-
-      // Landscape
-      landscapeVoltage: details?.landscapeVoltage || "",
-
-      // Additional
-      additionalInformation: details?.additionalInformation || "",
-
-      // ─── Conditional enum fields (omitted if empty) ──────────────────────────
-      ...(normalizeInstallType(details?.interiorInstallType || "") && {
-        isNewOrReplacement: normalizeInstallType(
-          details?.interiorInstallType || "",
-        ),
-      }),
-      ...(normalizeSwitchConnection(details?.switchNewExisting || "") && {
-        fixtureConnectedToNewOrExistingSwitch: normalizeSwitchConnection(
-          details?.switchNewExisting || "",
-        ),
-      }),
-      ...(normalizeInstallType(details?.floodInstallType || "") && {
-        floodInstallType: normalizeInstallType(details?.floodInstallType || ""),
-      }),
-      ...(normalizeSwitchConnection(details?.floodSwitchNewExisting || "") && {
-        floodSwitchNewExisting: normalizeSwitchConnection(
-          details?.floodSwitchNewExisting || "",
-        ),
-      }),
-      ...(normalizeInstallType(details?.wallInstallType || "") && {
-        wallInstallType: normalizeInstallType(details?.wallInstallType || ""),
-      }),
-      ...(normalizeSwitchConnection(details?.wallSwitchNewExisting || "") && {
-        wallSwitchNewExisting: normalizeSwitchConnection(
-          details?.wallSwitchNewExisting || "",
-        ),
-      }),
-      ...(normalizeInstallType(details?.drivewayInstallType || "") && {
-        drivewayInstallType: normalizeInstallType(
-          details?.drivewayInstallType || "",
-        ),
-      }),
-      ...(normalizeSwitchConnection(
-        details?.drivewaySwitchNewExisting || "",
-      ) && {
-        drivewaySwitchNewExisting: normalizeSwitchConnection(
-          details?.drivewaySwitchNewExisting || "",
-        ),
-      }),
-      ...(normalizeInstallType(details?.poleInstallType || "") && {
-        poleInstallType: normalizeInstallType(details?.poleInstallType || ""),
-      }),
-      ...(normalizeSwitchConnection(details?.poleSwitchNewExisting || "") && {
-        poleSwitchNewExisting: normalizeSwitchConnection(
-          details?.poleSwitchNewExisting || "",
-        ),
-      }),
-
-      status: "pending" as const,
-      completionPercentage: 100,
-    };
-
-    setIsSubmitting(true);
-    try {
-      let result;
-      if (serviceCallId) {
-        result = await updateDraft(
-          serviceCallId,
-          serviceType || "Lighting",
-          createFormData(payload),
-        );
-      } else {
-        result = await createDraft(
-          serviceType || "Lighting",
-          createFormData({
-            serviceType: serviceType || "Lighting",
-            ...payload,
-          }),
-        );
-      }
-      if (result.success) {
-        onSuccess();
-      } else {
-        toast.error(result.message || "Failed to submit request");
-      }
-    } catch (error: any) {
-      toast.error(
-        error?.data?.message || "Failed to submit request. Please try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const details = getDetails();
@@ -758,9 +604,10 @@ const LightingReviewForm = ({
         value={details.additionalInformation || "None provided"}
       />
 
+      {/* ─── Submit ───────────────────────────────────────────────────────────── */}
       <GradientButton
         label={isSubmitting ? "Submitting..." : "Submit"}
-        onPress={handleSubmit}
+        onPress={onSuccess}
         disabled={isSubmitting}
       />
     </View>

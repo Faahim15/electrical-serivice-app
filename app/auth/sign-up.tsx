@@ -13,6 +13,7 @@ import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import CustomInput from "@/src/components/shared/CustomInput";
 import CustomSvg from "@/src/components/shared/CustomSvg";
 import PhoneInput from "@/src/components/shared/PhoneInput";
+import { useFCMToken } from "@/src/hook/useFCMToken";
 import { useSignupMutation } from "@/src/redux/api-slices/auth/auth-api";
 import {
   signUpSchema,
@@ -73,7 +74,7 @@ function getLevel(score: number) {
 export default function SignUpScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [signup, { isLoading }] = useSignupMutation();
-
+  const { fcmToken } = useFCMToken();
   const {
     control,
     handleSubmit,
@@ -104,6 +105,7 @@ export default function SignUpScreen() {
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
+        fcmToken: fcmToken ?? "using emulator",
       };
 
       await signup(payload).unwrap();
