@@ -3,14 +3,74 @@ import SkeletonElement from "@/src/components/skeleton/SkeletonElement";
 import { useGetQuoteDetailsQuery } from "@/src/redux/api-slices/quote/my-quotes-api";
 import { scale, verticalScale } from "@/src/utils/Scaling";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useState } from "react";
+import {
+  FlatList,
+  Modal,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  Text,
+  View,
+} from "react-native";
 import { toast } from "sonner-native";
+
+// ── Image Viewer Modal ───────────────────────────────────────────────────────
+
+const ImageViewerModal = ({
+  visible,
+  uri,
+  onClose,
+}: {
+  visible: boolean;
+  uri: string | null;
+  onClose: () => void;
+}) => (
+  <Modal
+    visible={visible}
+    transparent
+    animationType="fade"
+    onRequestClose={onClose}
+    statusBarTranslucent
+  >
+    <StatusBar backgroundColor="#000" barStyle="light-content" />
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
+      {/* Close button */}
+      <Pressable
+        onPress={onClose}
+        style={{
+          position: "absolute",
+          top: 50,
+          right: 20,
+          zIndex: 10,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: "rgba(255,255,255,0.15)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons name="close" size={22} color="#fff" />
+      </Pressable>
+
+      {/* Full-screen image */}
+      {uri && (
+        <Image
+          source={{ uri }}
+          style={{ flex: 1 }}
+          contentFit="contain"
+          transition={200}
+        />
+      )}
+    </View>
+  </Modal>
+);
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-// Horizontal layout with icon — used in Main Card
 const InfoRow = ({
   label,
   value,
@@ -36,7 +96,6 @@ const InfoRow = ({
   </View>
 );
 
-// Stacked layout — used in Details Card
 const DetailRow = ({ label, value }: { label: string; value: string }) => (
   <View className="py-[10px] border-b border-[#F1F5F9]">
     <Text className="text-[#94A3B8] text-[11.5px] font-Inter_Regular mb-[4px]">
@@ -78,7 +137,9 @@ export default function ActivityDetails() {
     submitted: string;
     status: string;
   }>();
-
+  const badgeLabel = badge
+    ? badge.charAt(0).toUpperCase() + badge.slice(1)
+    : "";
   const {
     data: detailsData,
     isLoading,
@@ -86,7 +147,8 @@ export default function ActivityDetails() {
     error,
   } = useGetQuoteDetailsQuery(id);
 
-  // Show error toast if API fails
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   React.useEffect(() => {
     if (isError) {
       toast.error("Failed to load quote details. Please try again.");
@@ -101,7 +163,6 @@ export default function ActivityDetails() {
   const cardType = type ?? "Quote";
   const badgeBg = badgeColor ? badgeColor + "20" : "#F1F5F9";
 
-  // Format status display
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
       pending: "Pending",
@@ -112,7 +173,6 @@ export default function ActivityDetails() {
     return statusMap[status] || status;
   };
 
-  // Skeleton Loader
   const renderSkeleton = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
@@ -122,7 +182,6 @@ export default function ActivityDetails() {
         paddingBottom: verticalScale(120),
       }}
     >
-      {/* Main Card Skeleton */}
       <View className="bg-white rounded-2xl px-4 py-4">
         <SkeletonElement width={60} height={14} style={{ marginBottom: 12 }} />
         <View className="flex-row items-center gap-3 mb-1">
@@ -145,8 +204,6 @@ export default function ActivityDetails() {
           </View>
         ))}
       </View>
-
-      {/* Details Card Skeleton */}
       <View className="bg-white rounded-2xl px-4 py-4">
         <SkeletonElement width={80} height={18} style={{ marginBottom: 12 }} />
         {[1, 2, 3, 4].map((i) => (
@@ -160,8 +217,6 @@ export default function ActivityDetails() {
           </View>
         ))}
       </View>
-
-      {/* Recent Updates Skeleton */}
       <View className="bg-white rounded-2xl px-4 py-4">
         <SkeletonElement width={120} height={18} style={{ marginBottom: 12 }} />
         {[1, 2, 3].map((i) => (
@@ -189,7 +244,6 @@ export default function ActivityDetails() {
     return (
       <ScreenWrapper paddingHorizontal={0}>
         <View className="flex-1">
-          {/* Header Skeleton */}
           <View className="bg-white px-[4%] pt-[10%] pb-4">
             <SkeletonElement
               width={24}
@@ -216,7 +270,6 @@ export default function ActivityDetails() {
     return (
       <ScreenWrapper paddingHorizontal={0}>
         <View className="flex-1">
-          {/* Header */}
           <View className="bg-white px-[4%] pt-[10%] pb-4">
             <Pressable onPress={() => router.back()} className="mb-3">
               <Ionicons name="arrow-back" size={22} color="#1E293B" />
@@ -244,7 +297,6 @@ export default function ActivityDetails() {
     );
   }
 
-  // Build updates array from details
   const updates = [
     {
       id: "1",
@@ -269,7 +321,6 @@ export default function ActivityDetails() {
     },
   ];
 
-  // Build details rows
   const detailRows = [
     {
       label: "Service Requested",
@@ -283,10 +334,7 @@ export default function ActivityDetails() {
       label: "Current Progress",
       value: details.Details.currentProgress || "Not specified",
     },
-    {
-      label: "Notes",
-      value: details.Details.notes || "No additional notes",
-    },
+    { label: "Notes", value: details.Details.notes || "No additional notes" },
   ];
 
   return (
@@ -310,7 +358,7 @@ export default function ActivityDetails() {
                   className="text-[12px] font-Inter_SemiBold"
                   style={{ color: badgeColor }}
                 >
-                  {badge}
+                  {badgeLabel}
                 </Text>
               </View>
             ) : null}
@@ -469,23 +517,33 @@ export default function ActivityDetails() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ gap: 10 }}
                 renderItem={({ item }) => (
-                  <View
-                    className="rounded-xl bg-[#F1F5F9] items-center justify-center"
-                    style={{
-                      width: scale(80),
-                      height: verticalScale(80),
-                      borderWidth: 1,
-                      borderColor: "#E2E8F0",
-                    }}
-                  >
-                    <Ionicons name="image-outline" size={28} color="#94A3B8" />
-                  </View>
+                  <Pressable onPress={() => setSelectedImage(item)}>
+                    <Image
+                      source={{ uri: item }}
+                      style={{
+                        width: scale(80),
+                        height: verticalScale(80),
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: "#E2E8F0",
+                      }}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  </Pressable>
                 )}
               />
             </View>
           )}
         </ScrollView>
       </View>
+
+      {/* Full-screen image viewer */}
+      <ImageViewerModal
+        visible={selectedImage !== null}
+        uri={selectedImage}
+        onClose={() => setSelectedImage(null)}
+      />
     </ScreenWrapper>
   );
 }

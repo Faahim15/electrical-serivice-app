@@ -1,9 +1,15 @@
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import {
+  useGetMaintenanceAlertsQuery,
+  useUpdateMaintenanceAlertsMutation,
+} from "@/src/redux/api-slices/profile/maintenance-alert-api";
+import { UpdateMaintenanceAlertsPayload } from "@/src/types/maintenanceAlert.api.types";
 import Feather from "@expo/vector-icons/build/Feather";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Linking,
   Pressable,
@@ -13,14 +19,29 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 
+// ── All maintenance alert keys ────────────────────────────────────────────────
+const ALL_ALERTS_PAYLOAD = (
+  value: boolean,
+): UpdateMaintenanceAlertsPayload => ({
+  smokeDetectorBatteries: value,
+  carbonMonoxideDetector: value,
+  testGfciOutlets: value,
+  septicSystemAlarm: value,
+  testAfciBreakers: value,
+  clearDryerVent: value,
+  inspectElectricalCords: value,
+});
+
+// ── Static notification items ─────────────────────────────────────────────────
 const notificationItems = [
   {
     id: 1,
     title: "Reminder Alerts",
     description: "Get notified about upcoming maintenance reminders",
     defaultValue: true,
-    isStatic: true,
+    isStatic: false,
   },
   {
     id: 3,
@@ -31,16 +52,19 @@ const notificationItems = [
   },
 ];
 
+// ── NotificationCard ──────────────────────────────────────────────────────────
 const NotificationCard = ({
   item,
   index,
   value,
   onToggle,
+  disabled,
 }: {
   item: (typeof notificationItems)[0];
   index: number;
   value: boolean;
   onToggle: (id: number, val: boolean) => void;
+  disabled?: boolean;
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(24)).current;
@@ -93,56 +117,83 @@ const NotificationCard = ({
           trackColor={{ false: "#D1D5DB", true: "#06B6D4" }}
           thumbColor="#ffffff"
           ios_backgroundColor="#D1D5DB"
-          disabled={item.isStatic}
+          disabled={disabled}
         />
       </View>
     </Animated.View>
   );
 };
 
+// ── Main Screen ───────────────────────────────────────────────────────────────
 const Notificationsetting = () => {
-  const [settings, setSettings] = useState<Record<number, boolean>>(
-    Object.fromEntries(notificationItems.map((n) => [n.id, n.defaultValue])),
+  const { data: alertsData } = useGetMaintenanceAlertsQuery();
+  const [updateMaintenanceAlerts] = useUpdateMaintenanceAlertsMutation();
+
+  // Derive reminder toggle state: true only if at least one alert is enabled
+  const reminderEnabled = alertsData?.data
+    ? Object.values(alertsData.data).some((a) => a.enabled)
+    : false;
+
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const [appNotifEnabled, setAppNotifEnabled] = useState(
+    notificationItems.find((n) => n.id === 3)?.defaultValue ?? true,
   );
 
-  useEffect(() => {
-    Animated.timing(new Animated.Value(0), {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
   const handleToggle = async (id: number, val: boolean) => {
-    const item = notificationItems.find((n) => n.id === id);
-    if (item?.isStatic) return;
-
-    // ── App Notifications toggle ──
-    if (id === 3) {
-      if (val) {
-        // ── Off → On: permission চাও ──
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status === "granted") {
-          setSettings((prev) => ({ ...prev, [id]: true }));
-        } else {
-          // permission denied — toggle false থাকবে
-          setSettings((prev) => ({ ...prev, [id]: false }));
-        }
-      } else {
-        // ── On → Off: phone settings এ নিয়ে যাও ──
-        setSettings((prev) => ({ ...prev, [id]: false }));
-        Linking.openSettings();
-      }
+    // ── Reminder Alerts ──
+    if (id === 1) {
+      Alert.alert(
+        val ? "Enable All Reminders?" : "Disable All Reminders?",
+        val
+          ? "This will turn ON all safety & maintenance reminders. You'll receive notifications for smoke detectors, GFCI outlets, dryer vents, and more."
+          : "This will turn OFF all safety & maintenance reminders. You won't receive any maintenance notifications until you re-enable them.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: val ? "Enable All" : "Disable All",
+            style: val ? "default" : "destructive",
+            onPress: async () => {
+              setIsUpdating(true);
+              try {
+                await updateMaintenanceAlerts(ALL_ALERTS_PAYLOAD(val)).unwrap();
+                toast.success(
+                  val
+                    ? "All reminders enabled successfully."
+                    : "All reminders disabled successfully.",
+                );
+              } catch {
+                toast.error("Failed to update reminders. Please try again.");
+              } finally {
+                setIsUpdating(false);
+              }
+            },
+          },
+        ],
+      );
       return;
     }
 
-    setSettings((prev) => ({ ...prev, [id]: val }));
+    // ── App Notifications ──
+    if (id === 3) {
+      if (val) {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === "granted") {
+          setAppNotifEnabled(true);
+        } else {
+          setAppNotifEnabled(false);
+        }
+      } else {
+        setAppNotifEnabled(false);
+        Linking.openSettings();
+      }
+    }
   };
 
   return (
     <ScreenWrapper>
       <SafeAreaView edges={["top"]} className="flex-1">
-        {/* ── Header ── */}
+        {/* Header */}
         <View className="flex-row justify-between items-center pb-2">
           <Pressable onPress={() => router.back()}>
             <Feather name="arrow-left" size={24} color="#111827" />
@@ -163,8 +214,9 @@ const Notificationsetting = () => {
               key={item.id}
               item={item}
               index={index}
-              value={settings[item.id]}
+              value={item.id === 1 ? reminderEnabled : appNotifEnabled}
               onToggle={handleToggle}
+              disabled={item.id === 1 && isUpdating}
             />
           ))}
         </ScrollView>

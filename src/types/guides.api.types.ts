@@ -57,6 +57,8 @@ export type RecentActivityItem = {
   status: string | null;
   serviceModel?: string;
   timestamp: string;
+  iconColor: string;
+  iconBg: string;
 };
 
 export type GetRecentActivityResponse = {

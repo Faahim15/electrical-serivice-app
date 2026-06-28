@@ -16,6 +16,7 @@ import {
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { ServiceCallResponse } from "@/src/types/quotes.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createSelector } from "@reduxjs/toolkit";
 import { router, useLocalSearchParams } from "expo-router";
@@ -238,7 +239,7 @@ export default function FinalProjectQuestions() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar currentStep={CURRENT_STEP} totalSteps={totalSteps} />
 

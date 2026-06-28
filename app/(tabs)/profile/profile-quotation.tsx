@@ -24,7 +24,13 @@ import {
 } from "react-native";
 
 // ── Icon map per quote title keyword ───────────────────────────────────────
-
+const FILTER_LABELS: Record<FilterTab, string> = {
+  All: "All",
+  pending: "Pending",
+  in_review: "In Review",
+  send: "Sent",
+  closed: "Closed",
+};
 const TITLE_ICON_MAP: {
   keyword: string;
   icon: string;
@@ -397,7 +403,7 @@ export default function MyQuotesScreen() {
                   }}
                   className="font-Inter_SemiBold"
                 >
-                  {tab}
+                  {FILTER_LABELS[tab]}
                 </Text>
               </Pressable>
             );

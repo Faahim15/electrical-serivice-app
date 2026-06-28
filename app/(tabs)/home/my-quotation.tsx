@@ -23,6 +23,16 @@ import {
   View,
 } from "react-native";
 
+// ── Filter label display map ───────────────────────────────────────────────
+
+const FILTER_LABELS: Record<FilterTab, string> = {
+  All: "All",
+  pending: "Pending",
+  in_review: "In Review",
+  send: "Sent",
+  closed: "Closed",
+};
+
 // ── Icon map per quote title keyword ───────────────────────────────────────
 
 const TITLE_ICON_MAP: {
@@ -269,7 +279,7 @@ export default function MyQuotesScreen() {
   const { width } = useWindowDimensions();
   const isSmall = width < 360;
 
-  const { data, isLoading, isError, error } = useGetMyQuotesQuery();
+  const { data, isLoading, isError } = useGetMyQuotesQuery();
 
   const quotes = data?.data || [];
 
@@ -397,7 +407,7 @@ export default function MyQuotesScreen() {
                   }}
                   className="font-Inter_SemiBold"
                 >
-                  {tab}
+                  {FILTER_LABELS[tab]}
                 </Text>
               </Pressable>
             );

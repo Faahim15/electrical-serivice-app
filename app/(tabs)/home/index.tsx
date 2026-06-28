@@ -12,8 +12,14 @@ import {
 } from "@/src/redux/api-slices/home/home-api";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -34,12 +40,21 @@ function getInitials(name: string) {
 
 export default function HomeScreen() {
   const [searchVisible, setSearchVisible] = useState(false);
-  const { data, isLoading } = useGetProfileQuery();
-  const { data: activityData } = useGetRecentActivityQuery();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data, isLoading, refetch: refetchProfile } = useGetProfileQuery();
+  const { data: activityData, refetch: refetchActivity } =
+    useGetRecentActivityQuery();
 
   const profile = data?.data;
   const firstName = profile?.name?.split(" ")[0] ?? "";
   const initials = profile?.name ? getInitials(profile.name) : "";
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refetchProfile(), refetchActivity()]);
+    setRefreshing(false);
+  }, [refetchProfile, refetchActivity]);
 
   // ── Map API data → ActivityCard shape, first 4 only ──────────────────────
 
@@ -102,6 +117,14 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00ABB0"
+            colors={["#00ABB0"]}
+          />
+        }
       >
         <View className="pt-[14%]">
           {/* ── Top Bar ── */}
