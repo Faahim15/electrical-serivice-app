@@ -5,17 +5,16 @@ import QuickActionFullCard from "@/src/components/home/QuickActionFullCard";
 import ElectricalHelpCard from "@/src/components/profile/ElectricalHelpCard";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import HomeScreenSkeleton from "@/src/components/skeleton/HomeScreenSkeleton";
+import { quickActions } from "@/src/constants/tabs.home.constant";
 import {
-  quickActions,
-  recentActivity,
-} from "@/src/constants/tabs.home.constant";
-import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
+  useGetProfileQuery,
+  useGetRecentActivityQuery,
+} from "@/src/redux/api-slices/home/home-api";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-// ── Greeting helpers ──────────────────────────────────────
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning,";
@@ -33,14 +32,62 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-// ─── Main Screen ──────────────────────────────────────────
 export default function HomeScreen() {
   const [searchVisible, setSearchVisible] = useState(false);
   const { data, isLoading } = useGetProfileQuery();
+  const { data: activityData } = useGetRecentActivityQuery();
 
-  const profile = data?.data; // was: data?.data
+  const profile = data?.data;
   const firstName = profile?.name?.split(" ")[0] ?? "";
   const initials = profile?.name ? getInitials(profile.name) : "";
+
+  // ── Map API data → ActivityCard shape, first 4 only ──────────────────────
+
+  type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+
+  const recentActivities = (activityData?.data ?? [])
+    .slice(0, 4)
+    .map((item) => {
+      const icon: IoniconsName =
+        item.type === "guide"
+          ? "book-outline"
+          : item.type === "reminder"
+            ? "alarm-outline"
+            : "document-text-outline";
+
+      const badgeColor =
+        item.status === "pending"
+          ? "#F59E0B"
+          : item.status === "in_review"
+            ? "#3B82F6"
+            : item.status === "send"
+              ? "#10B981"
+              : item.status === "upcoming"
+                ? "#8B5CF6"
+                : item.status === null
+                  ? undefined
+                  : "#6B7280";
+
+      const route =
+        item.type === "quote"
+          ? "/(tabs)/home/details"
+          : item.type === "reminder"
+            ? "/(tabs)/home/maintenance-details"
+            : "/(tabs)/home/troubleshooting-guides";
+
+      return {
+        id: item.id ?? item.title,
+        icon,
+        title: item.title,
+        subtitle: item.timestamp,
+        badge: item.status ?? undefined,
+        badgeColor,
+        route: route as any,
+        type: item.type,
+        iconColor: item.iconColor,
+        iconBg: item.iconBg,
+      };
+    });
 
   if (isLoading) {
     return (
@@ -149,7 +196,7 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {recentActivity.map((item) => (
+          {recentActivities.map((item) => (
             <ActivityCard key={item.id} item={item} />
           ))}
 

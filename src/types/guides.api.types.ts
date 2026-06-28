@@ -50,3 +50,17 @@ export interface GetSavedGuidesResponse {
   meta: GuidesMeta;
   data: Guide[];
 }
+export type RecentActivityItem = {
+  id?: string;
+  type: "reminder" | "quote" | "guide";
+  title: string;
+  status: string | null;
+  serviceModel?: string;
+  timestamp: string;
+};
+
+export type GetRecentActivityResponse = {
+  success: boolean;
+  message: string;
+  data: RecentActivityItem[];
+};

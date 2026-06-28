@@ -46,8 +46,8 @@ const menuItems: MenuRowProps[] = [
   },
   {
     emoji: favoriteIcon,
-    route: "/(tabs)/partners/favorite-partners",
-    title: "Favorite Partners",
+    route: "/(tabs)/profile/favorite-partners",
+    title: "Saved Partners",
     subtitle: "Your preferred contractors",
     delay: 640,
   },

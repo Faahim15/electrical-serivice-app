@@ -1,5 +1,8 @@
 import { GradientPressable } from "@/src/components/shared/GradientPressable";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import SkeletonElement from "@/src/components/skeleton/SkeletonElement";
+import { useGetRecentActivityQuery } from "@/src/redux/api-slices/home/home-api";
+import { RecentActivityItem } from "@/src/types/guides.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,95 +30,137 @@ const GRADIENT_COLORS = [
   "#14B8A6",
 ] as const;
 
-const ACTIVITIES = [
-  {
-    id: "1",
-    type: "Quote",
-    status: "Pending",
-    statusColor: "#F59E0B",
-    statusBg: "#FEF3C7",
-    title: "EV Charger Installation",
-    subtitle: "Submitted 2 days ago",
-    icon: "flash-outline",
-    iconColor: "#3B82F6",
-    iconBg: "#EFF6FF",
-  },
-  {
-    id: "2",
-    type: "Reminder",
-    status: "Upcoming",
-    statusColor: "#8B5CF6",
-    statusBg: "#F3F0FF",
-    title: "Smoke Detector Check",
-    subtitle: "Due in 3 days",
-    icon: "time-outline",
-    iconColor: "#8B5CF6",
-    iconBg: "#F3F0FF",
-  },
-  {
-    id: "3",
-    type: "Quote",
-    status: "Completed",
-    statusColor: "#10B981",
-    statusBg: "#D1FAE5",
-    title: "Panel Upgrade Quote",
-    subtitle: "Completed 5 days ago",
-    icon: "document-text-outline",
-    iconColor: "#3B82F6",
-    iconBg: "#EFF6FF",
-  },
-  {
-    id: "4",
-    type: "Guide",
-    status: null,
-    statusColor: "",
-    statusBg: "",
-    title: "Reset GFCI Outlet",
-    subtitle: "Viewed yesterday",
-    icon: "bulb-outline",
-    iconColor: "#F59E0B",
-    iconBg: "#FEF3C7",
-  },
-  {
-    id: "5",
-    type: "Partner",
-    status: null,
-    statusColor: "",
-    statusBg: "",
-    title: "Licensed Electricians",
-    subtitle: "Viewed 3 days ago",
-    icon: "people-outline",
-    iconColor: "#10B981",
-    iconBg: "#D1FAE5",
-  },
-  {
-    id: "6",
-    type: "Reminder",
-    status: "Upcoming",
-    statusColor: "#8B5CF6",
-    statusBg: "#F3F0FF",
-    title: "Circuit Breaker Test",
-    subtitle: "Due next week",
-    icon: "time-outline",
-    iconColor: "#8B5CF6",
-    iconBg: "#F3F0FF",
-  },
-];
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function getIconForType(type: string): {
+  icon: string;
+  iconColor: string;
+  iconBg: string;
+} {
+  switch (type) {
+    case "guide":
+      return { icon: "book-outline", iconColor: "#F59E0B", iconBg: "#FEF3C7" };
+    case "reminder":
+      return { icon: "alarm-outline", iconColor: "#8B5CF6", iconBg: "#F3F0FF" };
+    default:
+      return {
+        icon: "document-text-outline",
+        iconColor: "#3B82F6",
+        iconBg: "#EFF6FF",
+      };
+  }
+}
+
+function getStatusStyle(status: string | null): { color: string; bg: string } {
+  switch (status) {
+    case "pending":
+      return { color: "#F59E0B", bg: "#FEF3C7" };
+    case "in_review":
+      return { color: "#3B82F6", bg: "#EFF6FF" };
+    case "send":
+      return { color: "#10B981", bg: "#D1FAE5" };
+    case "upcoming":
+      return { color: "#8B5CF6", bg: "#F3F0FF" };
+    default:
+      return { color: "#6B7280", bg: "#F3F4F6" };
+  }
+}
+
+function getStatusLabel(status: string | null): string {
+  if (!status) return "";
+  const map: Record<string, string> = {
+    pending: "Pending",
+    in_review: "In Review",
+    send: "Sent",
+    upcoming: "Upcoming",
+  };
+  return map[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function getRouteForType(type: string): string {
+  switch (type) {
+    case "guide":
+      return "/(tabs)/home/troubleshooting-guides";
+    case "reminder":
+      return "/(tabs)/home/maintenance-details";
+    default:
+      return "/(tabs)/home/details";
+  }
+}
+
+function getTypeLabel(type: string): string {
+  switch (type) {
+    case "quote":
+      return "Quote";
+    case "reminder":
+      return "Reminder";
+    case "guide":
+      return "Guide";
+    default:
+      return type;
+  }
+}
+
+// ── Skeleton ─────────────────────────────────────────────────────────────────
+
+function RecentActivitySkeleton() {
+  return (
+    <View style={{ padding: 16, gap: 12 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <View
+          key={i}
+          className="bg-white rounded-2xl px-4 py-4"
+          style={{
+            shadowColor: "#94A3B8",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 6,
+            elevation: 2,
+          }}
+        >
+          <View className="flex-row items-center mb-3">
+            <SkeletonElement
+              width={40}
+              height={40}
+              style={{ borderRadius: 20, marginRight: 12 }}
+            />
+            <View className="flex-1 gap-y-2">
+              <SkeletonElement width={80} height={11} />
+              <SkeletonElement width={160} height={14} />
+              <SkeletonElement width={110} height={11} />
+            </View>
+          </View>
+          <SkeletonElement
+            width="100%"
+            height={38}
+            style={{ borderRadius: 12 }}
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function RecentActivity() {
   const [activeTab, setActiveTab] = useState("All");
+  const { data, isLoading, isError } = useGetRecentActivityQuery();
 
-  const filteredActivities =
-    activeTab === "All"
-      ? ACTIVITIES
-      : ACTIVITIES.filter(
-          (a) => a.type === activeTab.slice(0, -1) || a.type === activeTab,
-        );
+  const activities = data?.data ?? [];
+
+  const filteredActivities = activities.filter((item) => {
+    if (activeTab === "All") return true;
+    if (activeTab === "Quotes") return item.type === "quote";
+    if (activeTab === "Reminders") return item.type === "reminder";
+    if (activeTab === "Guides") return item.type === "guide";
+    return true;
+  });
 
   return (
     <ScreenWrapper paddingHorizontal={0}>
-      <View className="flex-1 ">
-        {/* Header */}
+      <View className="flex-1">
+        {/* ── Header ── */}
         <View className="px-[4%] pt-[10%] pb-[4%] bg-white">
           <Pressable onPress={() => router.back()} className="mb-3">
             <Ionicons name="arrow-back" size={22} color="#1E293B" />
@@ -128,7 +173,7 @@ export default function RecentActivity() {
           </Text>
         </View>
 
-        {/* Tabs */}
+        {/* ── Tabs ── */}
         <View className="bg-white px-[4%] pb-3 border-b border-[#F1F5F9]">
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View className="flex-row gap-2">
@@ -168,92 +213,138 @@ export default function RecentActivity() {
           </ScrollView>
         </View>
 
-        {/* List */}
-        <FlatList
-          data={filteredActivities}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            padding: 16,
-            gap: 12,
-            paddingBottom: verticalScale(120),
-          }}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View
-              className="bg-white rounded-2xl px-4 py-4"
-              style={{
-                shadowColor: "#94A3B8",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.08,
-                shadowRadius: 6,
-                elevation: 2,
-              }}
-            >
-              <View className="flex-row items-center mb-3">
-                {/* Icon */}
+        {/* ── Loading ── */}
+        {isLoading && (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <RecentActivitySkeleton />
+          </ScrollView>
+        )}
+
+        {/* ── Error ── */}
+        {isError && !isLoading && (
+          <View className="flex-1 items-center justify-center px-8">
+            <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+            <Text className="text-red-500 font-Inter_Regular text-sm mt-3 text-center">
+              Failed to load recent activity. Please try again.
+            </Text>
+          </View>
+        )}
+
+        {/* ── Empty ── */}
+        {!isLoading && !isError && filteredActivities.length === 0 && (
+          <View className="flex-1 items-center justify-center px-8">
+            <Ionicons name="document-text-outline" size={48} color="#CBD5E1" />
+            <Text className="text-[#94A3B8] font-Inter_Regular text-sm mt-3 text-center">
+              No activity found for this category.
+            </Text>
+          </View>
+        )}
+
+        {/* ── List ── */}
+        {!isLoading && !isError && filteredActivities.length > 0 && (
+          <FlatList
+            data={filteredActivities}
+            keyExtractor={(item, index) => item.id ?? `${index}`}
+            contentContainerStyle={{
+              padding: 16,
+              gap: 12,
+              paddingBottom: verticalScale(120),
+            }}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }: { item: RecentActivityItem }) => {
+              const { icon, iconColor, iconBg } = getIconForType(item.type);
+              const { color: statusColor, bg: statusBg } = getStatusStyle(
+                item.status,
+              );
+              const route = getRouteForType(item.type);
+              const statusLabel = getStatusLabel(item.status);
+              const typeLabel = getTypeLabel(item.type);
+
+              return (
                 <View
-                  className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: item.iconBg }}
+                  className="bg-white rounded-2xl px-4 py-4"
+                  style={{
+                    shadowColor: "#94A3B8",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 6,
+                    elevation: 2,
+                  }}
                 >
-                  <Ionicons
-                    name={item.icon as any}
-                    size={20}
-                    color={item.iconColor}
+                  <View className="flex-row items-center mb-3">
+                    {/* ── Icon ── */}
+                    <View
+                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                      style={{ backgroundColor: iconBg }}
+                    >
+                      <Ionicons
+                        name={icon as any}
+                        size={20}
+                        color={iconColor}
+                      />
+                    </View>
+
+                    {/* ── Title + Subtitle ── */}
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-2 mb-[2px]">
+                        <Text className="text-[#94A3B8] text-[11px] font-Inter_Medium">
+                          {typeLabel}
+                        </Text>
+                        {item.status && (
+                          <View
+                            className="px-2 py-[2px] rounded-full"
+                            style={{ backgroundColor: statusBg }}
+                          >
+                            <Text
+                              className="text-[10.5px] font-Inter_SemiBold"
+                              style={{ color: statusColor }}
+                            >
+                              {statusLabel}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        className="text-[#1E293B] text-[14px] font-Inter_SemiBold"
+                        numberOfLines={1}
+                      >
+                        {item.title}
+                      </Text>
+                      <Text className="text-[#94A3B8] text-[12px] font-Inter_Regular mt-[2px]">
+                        {item.timestamp}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* ── View Details Button ── */}
+                  <GradientPressable
+                    label="View Details"
+                    onPress={() =>
+                      router.push({
+                        pathname: route as any,
+                        params: {
+                          id: item.id ?? "",
+                          guideId: item.id ?? "",
+                          title: item.title,
+                          subtitle: item.timestamp,
+                          badge: statusLabel,
+                          badgeColor: statusColor,
+                          type: typeLabel,
+                          icon,
+                          iconColor,
+                          iconBg,
+                          qId: item.id ?? "",
+                          submitted: item.timestamp,
+                          status: item.status ?? "",
+                        },
+                      })
+                    }
                   />
                 </View>
-
-                {/* Title + subtitle */}
-                <View className="flex-1">
-                  <View className="flex-row items-center gap-2 mb-[2px]">
-                    <Text className="text-[#94A3B8] text-[11px] font-Inter_Medium">
-                      {item.type}
-                    </Text>
-                    {item.status && (
-                      <View
-                        className="px-2 py-[2px] rounded-full"
-                        style={{ backgroundColor: item.statusBg }}
-                      >
-                        <Text
-                          className="text-[10.5px] font-Inter_SemiBold"
-                          style={{ color: item.statusColor }}
-                        >
-                          {item.status}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text className="text-[#1E293B] text-[14px] font-Inter_SemiBold">
-                    {item.title}
-                  </Text>
-                  <Text className="text-[#94A3B8] text-[12px] font-Inter_Regular mt-[2px]">
-                    {item.subtitle}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Gradient Button */}
-              <GradientPressable
-                label="View Details"
-                onPress={() =>
-                  router.push({
-                    pathname: "/(tabs)/home/details",
-                    params: {
-                      id: item.id,
-                      title: item.title,
-                      subtitle: item.subtitle,
-                      badge: item.status ?? "",
-                      badgeColor: item.statusColor ?? "",
-                      type: item.type,
-                      icon: item.icon,
-                      iconColor: item.iconColor,
-                      iconBg: item.iconBg,
-                    },
-                  })
-                }
-              />
-            </View>
-          )}
-        />
+              );
+            }}
+          />
+        )}
       </View>
     </ScreenWrapper>
   );

@@ -3,6 +3,7 @@ import { baseApi } from "@/src/redux/services/base-api";
 import {
   GetGuideByIdResponse,
   GetGuidesResponse,
+  GetRecentActivityResponse,
   GetSavedGuidesResponse,
   SaveGuideResponse,
 } from "@/src/types/guides.api.types";
@@ -108,6 +109,15 @@ const homeApi = baseApi.injectEndpoints({
       }),
       providesTags: [TagTypes.Guide],
     }),
+
+    // ─── Get Recent Activity ─────────────────────────────────────────────────────
+    getRecentActivity: builder.query<GetRecentActivityResponse, void>({
+      query: () => ({
+        url: "/quotes/recent-activity",
+        method: "GET",
+      }),
+      providesTags: [TagTypes.Quote],
+    }),
   }),
 });
 
@@ -122,4 +132,5 @@ export const {
   useSaveGuideMutation,
   useUnsaveGuideMutation,
   useGetSavedGuidesQuery,
+  useGetRecentActivityQuery,
 } = homeApi;

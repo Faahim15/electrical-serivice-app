@@ -15,6 +15,9 @@ export type ActivityItem = {
   badge?: string;
   badgeColor?: string;
   route: string;
+  type: string;
+  iconColor: string;
+  iconBg: string;
 };
 
 export interface ServiceCategory {

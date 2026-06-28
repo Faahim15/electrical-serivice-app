@@ -1,7 +1,7 @@
 // src/components/shared/GradientPressable.tsx
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Pressable, Text } from "react-native";
+import { ActivityIndicator, Pressable, Text } from "react-native";
 
 const GRADIENT_COLORS = [
   "#0EA5E9",
@@ -25,16 +25,28 @@ interface GradientPressableProps {
   label: string;
   onPress?: () => void;
   style?: object;
+  disabled?: boolean;
+  isLoading?: boolean;
 }
 
 export const GradientPressable = ({
   label,
   onPress,
   style,
+  disabled = false,
+  isLoading = false,
 }: GradientPressableProps) => (
   <Pressable
     onPress={onPress}
-    style={[{ borderRadius: 12, overflow: "hidden" }, style]}
+    disabled={disabled || isLoading}
+    style={[
+      {
+        borderRadius: 12,
+        overflow: "hidden",
+        opacity: disabled || isLoading ? 0.6 : 1,
+      },
+      style,
+    ]}
   >
     <LinearGradient
       colors={GRADIENT_COLORS}
@@ -43,10 +55,14 @@ export const GradientPressable = ({
       style={{
         paddingVertical: 12,
         alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 8,
       }}
     >
+      {isLoading && <ActivityIndicator size="small" color="white" />}
       <Text className="text-white text-[13.5px] font-Inter_SemiBold">
-        {label}
+        {isLoading ? "Loading..." : label}
       </Text>
     </LinearGradient>
   </Pressable>

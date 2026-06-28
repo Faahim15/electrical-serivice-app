@@ -1,9 +1,12 @@
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import { useGetMaintenanceAlertsQuery } from "@/src/redux/api-slices/profile/maintenance-alert-api";
-import { selectSelectedItem } from "@/src/redux/slices/seftymaintanceSlice";
+import {
+  selectAllItems,
+  selectSelectedItem,
+} from "@/src/redux/slices/seftymaintanceSlice";
 import { MaintenanceAlertKey } from "@/src/types/maintenanceAlert.api.types";
 import { Feather } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -49,7 +52,18 @@ const formatDate = (iso: string) =>
 
 // ── MaintenanceDetails ────────────────────────────────────────────────────────
 const MaintenanceDetails = () => {
-  const selectedItem = useSelector(selectSelectedItem);
+  const { title } = useLocalSearchParams<{ title?: string }>();
+  const allItems = useSelector(selectAllItems);
+  const selectedItem =
+    useSelector(selectSelectedItem) ??
+    allItems.find((item) =>
+      title
+        ? item.pageTitle.toLowerCase().includes(title.toLowerCase()) ||
+          title.toLowerCase().includes(item.pageTitle.toLowerCase())
+        : false,
+    ) ??
+    null;
+
   const { data: alertsData, refetch } = useGetMaintenanceAlertsQuery();
 
   // ── Refetch whenever this screen comes into focus ──

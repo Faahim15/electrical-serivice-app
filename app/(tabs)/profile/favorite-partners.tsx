@@ -3,6 +3,7 @@ import FavoritePartnerSkeleton from "@/src/components/skeleton/FavoritePartnerSk
 import { useGetFavoritePartnersQuery } from "@/src/redux/api-slices/profile/partners-api";
 import { selectIsFavorite } from "@/src/redux/slices/favouritePartnerSlice";
 import type { FavoritePartner } from "@/src/types/partners.types";
+import { verticalScale } from "@/src/utils/Scaling";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
@@ -43,7 +44,7 @@ const PartnerCard = ({
 
   const handleNavigate = () => {
     router.push({
-      pathname: "/(tabs)/partners/partner-details",
+      pathname: "/(tabs)/profile/fav-partner-details",
       params: {
         partnerId: partner.id,
         companyName: partner.companyName,
@@ -180,7 +181,7 @@ const Favoritepartners = () => {
           showsVerticalScrollIndicator={false}
           className="flex-1"
           contentContainerStyle={{
-            paddingBottom: 32,
+            paddingBottom: verticalScale(120),
             paddingTop: 8,
             paddingHorizontal: 16,
           }}
