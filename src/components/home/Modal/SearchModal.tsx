@@ -1,21 +1,13 @@
-import {
-  quickActions,
-  recentActivity,
-  SERVICE_CATEGORIES,
-} from "@/src/constants/tabs.home.constant";
-import { setSelectedRouteCategory } from "@/src/redux/slices/categoryRouteSlice";
-import {
-  ActivityItem,
-  QuickAction,
-  ServiceCategory,
-} from "@/src/types/tabs.home.types";
+import { useSearchQuotesQuery } from "@/src/redux/api-slices/home/home-api";
+import { badgeColorMap } from "@/src/types/quotes.types";
+import { getIconMeta } from "@/src/utils/quoteIconUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -25,11 +17,33 @@ import {
 } from "react-native";
 import { useDispatch } from "react-redux";
 import ScreenWrapper from "../../shared/ScreenWrapper";
+
 type SearchResultItem =
-  | { type: "service"; data: ServiceCategory }
-  | { type: "activity"; data: ActivityItem }
-  | { type: "action"; data: QuickAction };
-const OTHER_IDS = ["13", "14", "15", "16", "17", "18", "19", "20"];
+  | { type: "quote"; data: any }
+  | { type: "partner"; data: any };
+
+// ─── Get status color ──────────────────────────────────────────────────────
+const getStatusColor = (status: string): string => {
+  const s = status?.toLowerCase() || "";
+  if (s === "pending") return "#F59E0B";
+  if (s === "approved" || s === "completed") return "#22C55E";
+  if (s === "rejected" || s === "cancelled") return "#EF4444";
+  if (s === "in_progress" || s === "in progress") return "#3B82F6";
+  return "#6B7280";
+};
+
+// ─── Get status label ──────────────────────────────────────────────────────
+const getStatusLabel = (status: string): string => {
+  const s = status?.toLowerCase() || "";
+  if (s === "pending") return "Pending";
+  if (s === "approved") return "Approved";
+  if (s === "completed") return "Completed";
+  if (s === "rejected") return "Rejected";
+  if (s === "cancelled") return "Cancelled";
+  if (s === "in_progress" || s === "in progress") return "In Progress";
+  return status || "Unknown";
+};
+
 export default function SearchModal({
   visible,
   onClose,
@@ -38,76 +52,97 @@ export default function SearchModal({
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const dispatch = useDispatch();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getResults = (): SearchResultItem[] => {
-    const q = query.toLowerCase().trim();
-    if (!q) return [];
+  // ─── Debounce search query ────────────────────────────────────────────────
+  useEffect(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
 
-    const services: SearchResultItem[] = SERVICE_CATEGORIES.filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q),
-    ).map((data) => ({ type: "service", data }));
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 300);
 
-    const activities: SearchResultItem[] = recentActivity
-      .filter(
-        (item) =>
-          item.title.toLowerCase().includes(q) ||
-          item.subtitle.toLowerCase().includes(q),
-      )
-      .map((data) => ({ type: "activity", data }));
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [query]);
 
-    const actions: SearchResultItem[] = quickActions
-      .filter(
-        (item) =>
-          item.title.toLowerCase().includes(q) ||
-          item.subtitle.toLowerCase().includes(q),
-      )
-      .map((data) => ({ type: "action", data }));
+  // ─── API search for quotes and partners ────────────────────────────────────
+  const { data: searchResults, isLoading: isSearching } = useSearchQuotesQuery(
+    debouncedQuery,
+    {
+      skip: debouncedQuery.length < 2,
+    },
+  );
 
-    return [...services, ...activities, ...actions];
-  };
+  // ─── Get results (only from API) ──────────────────────────────────────────
+  const getResults = useCallback((): SearchResultItem[] => {
+    if (debouncedQuery.length >= 2 && searchResults?.data?.length) {
+      return searchResults.data
+        .map((item: any) => {
+          if (item.type === "quote") {
+            return { type: "quote", data: item };
+          } else if (item.type === "partner") {
+            return { type: "partner", data: item };
+          }
+          return null;
+        })
+        .filter(Boolean) as SearchResultItem[];
+    }
+    return [];
+  }, [debouncedQuery, searchResults]);
 
   const results = getResults();
 
-  const handleSelectService = (item: ServiceCategory) => {
-    dispatch(setSelectedRouteCategory(item));
-    onClose();
-    setQuery("");
-    const isOther = OTHER_IDS.includes(item.id);
-    if (isOther) {
-      router.push("/(page)/(quote)/(othercustom)/other-form-progress" as any);
-    } else if (item.title === "Solar Installation") {
-      router.push("/sollar-installation" as any);
-    } else {
-      router.push("/quote/service-details" as any);
-    }
-  };
+  // ─── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleSelectAction = (item: QuickAction) => {
+  // ─── Quote Selection ─────────────────────────────────────────────────────
+  const handleSelectQuote = (quote: any) => {
     onClose();
     setQuery("");
-    const url = item.route as string;
-    if (url.startsWith("http")) {
-      Linking.openURL(url);
-    } else {
-      router.push(item.route);
-    }
-  };
 
-  const handleSelectActivity = (item: ActivityItem) => {
-    onClose();
-    setQuery("");
+    // Navigate to quote details - same as MyQuotesScreen
     router.push({
-      pathname: "/recent-activity/details",
+      pathname: "/(tabs)/home/details",
       params: {
-        id: item.id,
-        icon: item.icon,
-        title: item.title,
-        subtitle: item.subtitle,
-        badge: item.badge ?? "",
-        badgeColor: item.badgeColor ?? "",
+        id: quote.id || quote._id,
+        title: quote.serviceType || "Quote",
+        subtitle: quote.additionalNotes || "No additional notes",
+        badge: getStatusLabel(quote.status),
+        badgeColor: badgeColorMap[quote.status] || "#6B7280",
+        type: "Quote",
+        qId: quote.qId || "Q-000",
+        submitted: quote.submitted || "N/A",
+        status: quote.status || "pending",
+        icon: getIconMeta(quote.serviceType || "").icon,
+        iconColor: getIconMeta(quote.serviceType || "").iconColor,
+        iconBg: getIconMeta(quote.serviceType || "").iconBg,
+      },
+    });
+  };
+
+  // ─── Partner Selection ────────────────────────────────────────────────────
+  const handleSelectPartner = (partner: any) => {
+    onClose();
+    setQuery("");
+
+    // Navigate to partner details - same as Partnerdetails screen
+    router.push({
+      pathname: "/(tabs)/partners/partner-details",
+      params: {
+        partnerId: partner.id || partner._id,
+        companyName: partner.companyName || "Partner",
+        category: partner.category || "",
+        description: partner.description || "",
+        phoneNumber: partner.phoneNumber || "",
+        websiteUrl: partner.websiteUrl || "",
+        isVerified: String(partner.isVerified || false),
       },
     });
   };
@@ -115,6 +150,7 @@ export default function SearchModal({
   const handleClose = () => {
     onClose();
     setQuery("");
+    setDebouncedQuery("");
   };
 
   const SUGGESTION_TAGS = [
@@ -125,13 +161,19 @@ export default function SearchModal({
     "Starlink",
   ];
 
+  // ─── Render item ───────────────────────────────────────────────────────────
   const renderItem = ({ item }: { item: SearchResultItem }) => {
-    // ── Service ──
-    if (item.type === "service") {
-      const s = item.data;
+    // ── Quote ──
+    if (item.type === "quote") {
+      const q = item.data;
+      const serviceType = q.serviceType || "Service";
+      const iconMeta = getIconMeta(serviceType);
+      const statusColor = getStatusColor(q.status);
+      const statusLabel = getStatusLabel(q.status);
+
       return (
         <Pressable
-          onPress={() => handleSelectService(s)}
+          onPress={() => handleSelectQuote(q)}
           className="flex-row items-center bg-white rounded-2xl px-4 py-3 mb-3"
           style={{
             shadowColor: "#000",
@@ -143,40 +185,53 @@ export default function SearchModal({
         >
           <View
             className="w-11 h-11 rounded-xl items-center justify-center mr-3"
-            style={{ backgroundColor: s.iconBg }}
+            style={{ backgroundColor: iconMeta.iconBg }}
           >
-            <Ionicons name={s.iconName} size={20} color={s.iconColor} />
+            <Ionicons
+              name={iconMeta.icon as any}
+              size={20}
+              color={iconMeta.iconColor}
+            />
           </View>
           <View className="flex-1">
-            {/* FIXED: flex-wrap prevents badge overlap on narrow screens */}
             <View className="flex-row flex-wrap items-center gap-2 mb-0.5">
               <Text className="font-Inter_SemiBold text-sm text-gray-900">
-                {s.title}
+                {serviceType}
               </Text>
-              <View className="bg-[#E0F2FE] px-2 py-0.5 rounded-full">
-                <Text className="font-Inter_Medium text-[10px] text-[#00ABB0]">
-                  Service
+              <View className="bg-blue-100 px-2 py-0.5 rounded-full">
+                <Text className="font-Inter_Medium text-[10px] text-blue-600">
+                  Quote
                 </Text>
               </View>
             </View>
-            <Text
-              className="font-Inter_Regular text-xs text-gray-400"
-              numberOfLines={1}
-            >
-              {s.description}
-            </Text>
+            <View className="flex-row items-center gap-2">
+              <Text className="font-Inter_Regular text-xs text-gray-400">
+                {q.qId || "Q-000"}
+              </Text>
+              <View
+                className="px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: statusColor + "20" }}
+              >
+                <Text
+                  className="font-Inter_Medium text-[10px]"
+                  style={{ color: statusColor }}
+                >
+                  {statusLabel}
+                </Text>
+              </View>
+            </View>
           </View>
           <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
         </Pressable>
       );
     }
 
-    // ── Activity ──
-    if (item.type === "activity") {
-      const a = item.data;
+    // ── Partner ──
+    if (item.type === "partner") {
+      const p = item.data;
       return (
         <Pressable
-          onPress={() => handleSelectActivity(a)}
+          onPress={() => handleSelectPartner(p)}
           className="flex-row items-center bg-white rounded-2xl px-4 py-3 mb-3"
           style={{
             shadowColor: "#000",
@@ -186,31 +241,23 @@ export default function SearchModal({
             elevation: 2,
           }}
         >
-          <View className="w-11 h-11 rounded-full bg-[#E0F2FE] items-center justify-center mr-3">
-            <Ionicons name={a.icon} size={20} color="#00ABB0" />
+          <View className="w-11 h-11 rounded-full bg-[#FEF3E8] items-center justify-center mr-3">
+            <Ionicons name="business-outline" size={20} color="#F5A623" />
           </View>
           <View className="flex-1">
-            {/*  FIXED: flex-wrap prevents "Activity" badge + status badge overlap */}
             <View className="flex-row flex-wrap items-center gap-2 mb-0.5">
               <Text className="font-Inter_SemiBold text-sm text-gray-900">
-                {a.title}
+                {p.companyName || "Partner"}
               </Text>
               <View className="bg-purple-100 px-2 py-0.5 rounded-full">
                 <Text className="font-Inter_Medium text-[10px] text-purple-500">
-                  Activity
+                  Partner
                 </Text>
               </View>
-              {/* Status badge moved inside title row so it wraps correctly */}
-              {a.badge && (
-                <View
-                  className="px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: a.badgeColor + "20" }}
-                >
-                  <Text
-                    className="font-Inter_Medium text-[10px]"
-                    style={{ color: a.badgeColor }}
-                  >
-                    {a.badge}
+              {p.isVerified && (
+                <View className="bg-green-100 px-2 py-0.5 rounded-full">
+                  <Text className="font-Inter_Medium text-[10px] text-green-600">
+                    ✓ Verified
                   </Text>
                 </View>
               )}
@@ -219,49 +266,7 @@ export default function SearchModal({
               className="font-Inter_Regular text-xs text-gray-400"
               numberOfLines={1}
             >
-              {a.subtitle}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-        </Pressable>
-      );
-    }
-
-    // ── Quick Action ──
-    if (item.type === "action") {
-      const ac = item.data;
-      return (
-        <Pressable
-          onPress={() => handleSelectAction(ac)}
-          className="flex-row items-center bg-white rounded-2xl px-4 py-3 mb-3"
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 4,
-            elevation: 2,
-          }}
-        >
-          <View className="w-11 h-11 rounded-full bg-[#E0F2FE] items-center justify-center mr-3">
-            <Ionicons name={ac.icon} size={20} color="#00ABB0" />
-          </View>
-          <View className="flex-1">
-            {/*  FIXED: flex-wrap prevents badge overflow on narrow screens */}
-            <View className="flex-row flex-wrap items-center gap-2 mb-0.5">
-              <Text className="font-Inter_SemiBold text-sm text-gray-900">
-                {ac.title}
-              </Text>
-              <View className="bg-orange-100 px-2 py-0.5 rounded-full">
-                <Text className="font-Inter_Medium text-[10px] text-orange-500">
-                  Quick Action
-                </Text>
-              </View>
-            </View>
-            <Text
-              className="font-Inter_Regular text-xs text-gray-400"
-              numberOfLines={1}
-            >
-              {ac.subtitle}
+              {p.category || ""} {p.description ? `• ${p.description}` : ""}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
@@ -305,7 +310,7 @@ export default function SearchModal({
                   <TextInput
                     autoFocus
                     className="flex-1 font-Inter_Regular bg-white text-sm text-gray-800 ml-2"
-                    placeholder="Search services, activity, actions..."
+                    placeholder="Search quotes, partners..."
                     placeholderTextColor="#9CA3AF"
                     value={query}
                     onChangeText={setQuery}
@@ -325,16 +330,20 @@ export default function SearchModal({
               </View>
 
               {query.trim().length > 0 && (
-                <Text className="font-Inter_Regular text-xs text-gray-400 mt-3">
-                  {results.length} result{results.length !== 1 ? "s" : ""} for "
-                  {query}"
-                </Text>
+                <View className="flex-row items-center justify-between mt-3">
+                  <Text className="font-Inter_Regular text-xs text-gray-400">
+                    {results.length} result{results.length !== 1 ? "s" : ""} for
+                    "{query}"
+                  </Text>
+                  {isSearching && debouncedQuery.length >= 2 && (
+                    <ActivityIndicator size="small" color="#00ABB0" />
+                  )}
+                </View>
               )}
             </View>
 
             {/* ── Body ── */}
             {query.trim().length === 0 ? (
-              // ── Default state ──
               <View className="items-center justify-center mt-24 px-8">
                 <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center mb-4">
                   <Ionicons name="search-outline" size={28} color="#9CA3AF" />
@@ -343,7 +352,7 @@ export default function SearchModal({
                   Search anything
                 </Text>
                 <Text className="font-Inter_Regular text-sm text-gray-400 text-center">
-                  Find services, recent activity,{"\n"}or quick actions
+                  Find quotes, partners, or{"\n"}search by service type
                 </Text>
                 <View className="flex-row flex-wrap justify-center gap-2 mt-5">
                   {SUGGESTION_TAGS.map((tag) => (
@@ -360,12 +369,28 @@ export default function SearchModal({
                   ))}
                 </View>
               </View>
+            ) : debouncedQuery.length < 2 ? (
+              <View className="items-center justify-center mt-24 px-8">
+                <Ionicons name="search-outline" size={48} color="#D1D5DB" />
+                <Text className="font-Inter_SemiBold text-base text-gray-700 mt-4 mb-1">
+                  Type at least 2 characters
+                </Text>
+                <Text className="font-Inter_Regular text-sm text-gray-400 text-center">
+                  Start typing to search for quotes and partners
+                </Text>
+              </View>
+            ) : isSearching ? (
+              <View className="items-center justify-center mt-24">
+                <ActivityIndicator size="large" color="#00ABB0" />
+                <Text className="font-Inter_Regular text-sm text-gray-400 mt-4">
+                  Searching...
+                </Text>
+              </View>
             ) : (
-              // ── Results ──
               <FlatList
                 data={results}
                 keyExtractor={(item, index) =>
-                  `${item.type}-${item.data.id ?? index}`
+                  `${item.type}-${item.data.id || item.data._id || index}`
                 }
                 contentContainerStyle={{ padding: 16 }}
                 keyboardShouldPersistTaps="handled"
@@ -383,7 +408,8 @@ export default function SearchModal({
                       No results found
                     </Text>
                     <Text className="font-Inter_Regular text-sm text-gray-400 text-center">
-                      Try searching for a different{"\n"}service or category
+                      Try searching for a different{"\n"}service, quote, or
+                      partner
                     </Text>
                   </View>
                 }

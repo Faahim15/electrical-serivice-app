@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Text, TextInput, View } from "react-native";
 
 const USA_CODE = "+1";
-const MAX_DIGITS = 11;
+const MAX_DIGITS = 10;
 
 type PhoneInputProps = {
   label?: string;

@@ -11,7 +11,7 @@ import { z } from "zod";
 import { GradientButton } from "../../onboarding/GradientButton";
 import CustomInput from "../../shared/CustomInput";
 import LinearButton from "../../shared/LinearButton";
-
+import PhoneInput from "../../shared/PhoneInput";
 // ── schema ────────────────────────────────────────────────
 const addressSchema = z.object({
   addressName: z.string().min(1, "Location nickname is required"),
@@ -25,7 +25,12 @@ const addressSchema = z.object({
 
 const profileSchema = z.object({
   name: z.string().min(1, "Full name is required"),
-  phone: z.string().min(1, "Phone number is required"),
+
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\d{10}$/, "Please enter a valid 10-digit US phone number"),
+
   addresses: z.array(addressSchema),
 });
 
@@ -153,17 +158,13 @@ const ProfileEditForm: React.FC = () => {
         <Controller
           control={control}
           name="phone"
-          render={({ field: { value, onChange } }) => (
-            <CustomInput
+          render={({ field: { value, onChange, onBlur } }) => (
+            <PhoneInput
               label="Phone Number"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
               error={errors.phone?.message}
-              textInputConfig={{
-                value,
-                onChangeText: onChange,
-                placeholder: "Enter your phone number",
-                keyboardType: "phone-pad",
-                autoCapitalize: "none",
-              }}
             />
           )}
         />

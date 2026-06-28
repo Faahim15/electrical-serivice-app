@@ -1,102 +1,177 @@
-// src/app/notifications/index.tsx
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import NotificationsSkeleton from "@/src/components/skeleton/Notificationsskeleton";
+import {
+  useGetNotificationsQuery,
+  useMarkAllNotificationsAsReadMutation,
+  useMarkNotificationAsReadMutation,
+} from "@/src/redux/api-slices/home/home-api";
+import { Notification } from "@/src/types/notification.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
+import { toast } from "sonner-native";
 
-const NOTIFICATIONS = [
-  {
-    id: "1",
-    icon: "checkmark-circle",
-    iconColor: "#0EA5E9",
-    iconBg: "#EFF6FF",
-    title: "Quote submitted successfully",
-    body: "Your EV charger installation quote has been received. We'll review and respond within 24 hours.",
-    time: "2 hours ago",
-    tag: "Quotes",
-    tagColor: "#0EA5E9",
-    tagBg: "#EFF6FF",
-    unread: true,
-  },
-  {
-    id: "2",
-    icon: "notifications-outline",
-    iconColor: "#8B5CF6",
-    iconBg: "#F3F0FF",
-    title: "Smoke detector reminder due tomorrow",
-    body: "Time to test your smoke detectors. This monthly check keeps your home safe.",
-    time: "4 hours ago",
-    tag: "Reminders",
-    tagColor: "#8B5CF6",
-    tagBg: "#F3F0FF",
-    unread: true,
-  },
-  {
-    id: "3",
-    icon: "flash-outline",
-    iconColor: "#10B981",
-    iconBg: "#D1FAE5",
-    title: "EV charger quote update",
-    body: "Your quote has been reviewed and is ready for your approval.",
-    time: "1 day ago",
-    tag: "Quotes",
-    tagColor: "#0EA5E9",
-    tagBg: "#EFF6FF",
-    unread: false,
-  },
-  {
-    id: "4",
-    icon: "leaf-outline",
-    iconColor: "#F59E0B",
-    iconBg: "#FEF3C7",
-    title: "Safety tip: Spring electrical check",
-    body: "Spring is here! Check outdoor outlets, GFCI protection, and landscape lighting.",
-    time: "2 days ago",
-    tag: "Tips",
-    tagColor: "#F59E0B",
-    tagBg: "#FEF3C7",
-    unread: false,
-  },
-  {
-    id: "5",
-    icon: "document-text-outline",
-    iconColor: "#3B82F6",
-    iconBg: "#EFF6FF",
-    title: "Panel upgrade quote completed",
-    body: "Great news! Your electrical panel upgrade quote is complete and available to view.",
-    time: "3 days ago",
-    tag: "Quotes",
-    tagColor: "#0EA5E9",
-    tagBg: "#EFF6FF",
-    unread: false,
-  },
-  {
-    id: "6",
-    icon: "time-outline",
-    iconColor: "#8B5CF6",
-    iconBg: "#F3F0FF",
-    title: "GFCI outlet test reminder",
-    body: "Monthly GFCI test due this week. Takes just 2 minutes to ensure safety.",
-    time: "4 days ago",
-    tag: "Reminders",
-    tagColor: "#8B5CF6",
-    tagBg: "#F3F0FF",
-    unread: false,
-  },
-];
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const formatTime = (iso: string): string => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+};
+
+// ─── Notification Card ────────────────────────────────────────────────────────
+
+function NotificationCard({
+  item,
+  onPress,
+}: {
+  item: Notification;
+  onPress: (id: string) => void;
+}) {
+  return (
+    <Pressable
+      onPress={() => onPress(item._id)}
+      style={{
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 14,
+        shadowColor: "#94A3B8",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 2,
+        borderLeftWidth: !item.isRead ? 3 : 0,
+        borderLeftColor: !item.isRead ? "#0EA5E9" : "transparent",
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        {/* Title row */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 4,
+          }}
+        >
+          <Text
+            className="text-[#1E293B] text-[13.5px] font-Inter_SemiBold flex-1"
+            numberOfLines={2}
+          >
+            {item.title}
+          </Text>
+          {/* Unread dot */}
+          {!item.isRead && (
+            <View
+              className="w-2 h-2 rounded-full mt-[5px]"
+              style={{ backgroundColor: "#0EA5E9" }}
+            />
+          )}
+        </View>
+
+        {/* Body */}
+        <Text
+          className="text-[#64748B] text-[12.5px] font-Inter_Regular leading-[18px]"
+          numberOfLines={3}
+        >
+          {item.message}
+        </Text>
+
+        {/* Footer */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: 8,
+          }}
+        >
+          <Text className="text-[#94A3B8] text-[11.5px] font-Inter_Regular">
+            {formatTime(item.createdAt)}
+          </Text>
+          <View
+            className="px-2 py-[3px] rounded-full"
+            style={{ backgroundColor: "#EFF6FF" }}
+          >
+            <Text
+              className="text-[10.5px] font-Inter_SemiBold"
+              style={{ color: "#0EA5E9" }}
+            >
+              {item.serviceType}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+
+function EmptyState() {
+  return (
+    <View className="items-center justify-center pt-20 gap-3">
+      <View className="w-16 h-16 rounded-full bg-sky-50 items-center justify-center mb-1">
+        <Ionicons name="notifications-off-outline" size={28} color="#0EA5E9" />
+      </View>
+      <Text className="text-base font-Inter_SemiBold text-gray-700">
+        No Notifications
+      </Text>
+      <Text className="text-[13px] font-Inter_Regular text-gray-400 text-center max-w-[220px]">
+        You're all caught up. We'll notify you when something new arrives.
+      </Text>
+    </View>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const { data, isLoading, isError } = useGetNotificationsQuery({
+    page: 1,
+    limit: 10,
+  });
 
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+  const [markAsRead] = useMarkNotificationAsReadMutation();
+  const [markAllAsRead] = useMarkAllNotificationsAsReadMutation();
+
+  const notifications = data?.data ?? [];
+  const hasUnread = notifications.some((n) => !n.isRead);
+
+  const handleMarkAsRead = async (id: string) => {
+    const notification = notifications.find((n) => n._id === id);
+    if (!notification || notification.isRead) return;
+    try {
+      await markAsRead(id).unwrap();
+    } catch {
+      toast.error("Failed to mark notification as read.");
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (!hasUnread) return;
+    try {
+      await markAllAsRead().unwrap();
+      toast.success("All notifications marked as read.");
+    } catch {
+      toast.error("Failed to mark all as read. Please try again.");
+    }
   };
 
   return (
     <ScreenWrapper paddingHorizontal={0}>
-      <View className="flex-1 pt-[4%] ">
+      <View className="flex-1 pt-[4%]">
         {/* Header */}
         <View className="bg-white px-[4%] pt-[4%] pb-4">
           <View className="flex-row items-center justify-between">
@@ -108,99 +183,47 @@ export default function Notifications() {
                 Notifications
               </Text>
             </View>
-            <Pressable onPress={markAllRead}>
-              <Text className="text-[#0EA5E9] text-[13px] font-Inter_Medium">
-                Mark all read
-              </Text>
-            </Pressable>
+            {hasUnread && (
+              <Pressable onPress={handleMarkAllRead}>
+                <Text className="text-[#0EA5E9] text-[13px] font-Inter_Medium">
+                  Mark all read
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
-        {/* List */}
-        <FlatList
-          data={notifications}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            padding: 16,
-            gap: 10,
-            paddingBottom: verticalScale(100),
-          }}
-          renderItem={({ item }) => (
-            <Pressable
-              style={{
-                backgroundColor: "#fff",
-                borderRadius: 16,
-                padding: 14,
-                shadowColor: "#94A3B8",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.08,
-                shadowRadius: 6,
-                elevation: 2,
-                borderLeftWidth: item.unread ? 3 : 0,
-                borderLeftColor: item.unread ? "#0EA5E9" : "transparent",
-              }}
-            >
-              <View className="flex-row items-start gap-3">
-                {/* Icon */}
-                <View
-                  className="w-10 h-10 rounded-full items-center justify-center mt-[2px]"
-                  style={{ backgroundColor: item.iconBg }}
-                >
-                  <Ionicons
-                    name={item.icon as any}
-                    size={20}
-                    color={item.iconColor}
-                  />
-                </View>
-
-                {/* Content */}
-                <View className="flex-1">
-                  <View className="flex-row items-start justify-between gap-2">
-                    <Text
-                      className="text-[#1E293B] text-[13.5px] font-Inter_SemiBold flex-1"
-                      numberOfLines={2}
-                    >
-                      {item.title}
-                    </Text>
-                    {/* Unread dot */}
-                    {item.unread && (
-                      <View
-                        className="w-2 h-2 rounded-full mt-[5px]"
-                        style={{ backgroundColor: "#0EA5E9" }}
-                      />
-                    )}
-                  </View>
-
-                  <Text
-                    className="text-[#64748B] text-[12.5px] font-Inter_Regular mt-1 leading-[18px]"
-                    numberOfLines={3}
-                  >
-                    {item.body}
-                  </Text>
-
-                  {/* Footer */}
-                  <View className="flex-row items-center justify-between mt-2">
-                    <Text className="text-[#94A3B8] text-[11.5px] font-Inter_Regular">
-                      {item.time}
-                    </Text>
-                    <View
-                      className="px-2 py-[3px] rounded-full"
-                      style={{ backgroundColor: item.tagBg }}
-                    >
-                      <Text
-                        className="text-[10.5px] font-Inter_SemiBold"
-                        style={{ color: item.tagColor }}
-                      >
-                        {item.tag}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </Pressable>
-          )}
-        />
+        {/* Content */}
+        {isLoading ? (
+          <NotificationsSkeleton />
+        ) : isError ? (
+          <View className="items-center justify-center pt-20 gap-3">
+            <View className="w-16 h-16 rounded-full bg-red-50 items-center justify-center mb-1">
+              <Ionicons name="alert-circle-outline" size={28} color="#EF4444" />
+            </View>
+            <Text className="text-base font-Inter_SemiBold text-gray-700">
+              Something went wrong
+            </Text>
+            <Text className="text-[13px] font-Inter_Regular text-gray-400 text-center max-w-[220px]">
+              Failed to load notifications. Please try again.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item._id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              padding: 16,
+              gap: 10,
+              paddingBottom: verticalScale(100),
+            }}
+            ListEmptyComponent={<EmptyState />}
+            renderItem={({ item }) => (
+              <NotificationCard item={item} onPress={handleMarkAsRead} />
+            )}
+          />
+        )}
       </View>
     </ScreenWrapper>
   );

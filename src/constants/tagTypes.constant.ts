@@ -27,6 +27,8 @@ const TagTypes = {
   FAQ: "FAQ",
   AboutUs: "AboutUs",
   Terms: "Terms",
+  Notification: "Notification",
+  Guide: "Guide",
 } as const;
 
 export default TagTypes;

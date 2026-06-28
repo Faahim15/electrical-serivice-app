@@ -27,7 +27,7 @@ export const quickActions: QuickAction[] = [
   },
   {
     id: "4",
-    route: "/(tabs)/home/my-quotes",
+    route: "/(tabs)/home/my-quotation",
     icon: "document-outline",
     title: "My Quotes",
     subtitle: "Get in touch quickly",

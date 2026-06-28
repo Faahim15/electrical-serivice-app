@@ -6,6 +6,7 @@ interface ReminderDetails {
   date: string;
   frequency: string;
   status: string;
+  key: string;
 }
 
 interface ReminderDetailsState {

@@ -1,5 +1,11 @@
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import MyReminderSkeleton from "@/src/components/skeleton/MyreminderSkeleton";
+import { useGetMaintenanceAlertsQuery } from "@/src/redux/api-slices/profile/maintenance-alert-api";
 import { setSelectedReminder } from "@/src/redux/slices/myReminderSlice";
+import {
+  MaintenanceAlertKey,
+  MaintenanceAlertsData,
+} from "@/src/types/maintenanceAlert.api.types";
 import Feather from "@expo/vector-icons/build/Feather";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -25,56 +31,81 @@ interface Reminder {
   frequency: string;
   date: string;
   status: ReminderStatus;
+  key: MaintenanceAlertKey;
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
-const REMINDERS: Reminder[] = [
-  {
-    id: "1",
-    title: "Smoke Detector Check",
-    frequency: "Monthly",
-    date: "April 15, 2026",
-    status: "Active",
-  },
-  {
-    id: "2",
-    title: "GFCI Testing",
-    frequency: "Quarterly",
-    date: "May 1, 2026",
-    status: "Active",
-  },
-  {
-    id: "3",
-    title: "Carbon Monoxide Detector",
-    frequency: "Monthly",
-    date: "April 10, 2026",
-    status: "Active",
-  },
-  {
-    id: "4",
-    title: "Dryer Vent Cleaning",
-    frequency: "Annually",
-    date: "June 15, 2026",
-    status: "Active",
-  },
-  {
-    id: "5",
-    title: "Panel Inspection",
-    frequency: "Annually",
-    date: "January 20, 2026",
-    status: "Completed",
-  },
-  {
-    id: "6",
-    title: "Outlet Safety Check",
-    frequency: "Monthly",
-    date: "March 5, 2026",
-    status: "Completed",
-  },
-];
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const FILTERS: FilterType[] = ["Active", "Completed"];
+
+// Display metadata keyed by API field
+const ALERT_META: Record<
+  MaintenanceAlertKey,
+  { title: string; frequency: string }
+> = {
+  smokeDetectorBatteries: {
+    title: "Smoke Detector Batteries",
+    frequency: "Yearly",
+  },
+  carbonMonoxideDetector: {
+    title: "Carbon Monoxide Detector",
+    frequency: "Yearly",
+  },
+  testGfciOutlets: { title: "GFCI Outlet Testing", frequency: "Monthly" },
+  septicSystemAlarm: { title: "Septic System Alarm", frequency: "Monthly" },
+  testAfciBreakers: { title: "AFCI Breaker Test", frequency: "Monthly" },
+  clearDryerVent: { title: "Dryer Vent Cleaning", frequency: "Every 3 Months" },
+  inspectElectricalCords: {
+    title: "Electrical Cord Inspection",
+    frequency: "Every 3 Months",
+  },
+};
+
+const ORDERED_KEYS: MaintenanceAlertKey[] = [
+  "smokeDetectorBatteries",
+  "testGfciOutlets",
+  "carbonMonoxideDetector",
+  "septicSystemAlarm",
+  "clearDryerVent",
+  "inspectElectricalCords",
+  "testAfciBreakers",
+];
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+// ─── Derive reminders from API data ──────────────────────────────────────────
+
+const deriveReminders = (data: MaintenanceAlertsData): Reminder[] => {
+  const now = new Date();
+
+  return ORDERED_KEYS.reduce<Reminder[]>((acc, key) => {
+    const alert = data[key];
+
+    // Only surface items the user has enabled
+    if (!alert.enabled) return acc;
+
+    const isPast = alert.nextDueAt !== null && new Date(alert.nextDueAt) < now;
+
+    const status: ReminderStatus = isPast ? "Completed" : "Active";
+    const meta = ALERT_META[key];
+
+    acc.push({
+      id: key,
+      key,
+      title: meta.title,
+      frequency: meta.frequency,
+      date: alert.nextDueAt ? formatDate(alert.nextDueAt) : "—",
+      status,
+    });
+
+    return acc;
+  }, []);
+};
 
 // ─── Filter Tab ───────────────────────────────────────────────────────────────
 
@@ -87,7 +118,6 @@ function FilterTab({
   active: boolean;
   onPress: () => void;
 }) {
-  // JS-driven only — color interpolation cannot use useNativeDriver
   const bgAnim = useRef(new Animated.Value(active ? 1 : 0)).current;
 
   useEffect(() => {
@@ -129,11 +159,8 @@ function FilterTab({
 // ─── Reminder Card ────────────────────────────────────────────────────────────
 
 function ReminderCard({ item, index }: { item: Reminder; index: number }) {
-  // Entrance animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(28)).current;
-
-  // Press scale
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -156,26 +183,20 @@ function ReminderCard({ item, index }: { item: Reminder; index: number }) {
   }, []);
 
   const dispatch = useDispatch();
-  const handleTheRiminder = () => {
+
+  const handlePress = () => {
     dispatch(setSelectedReminder(item));
     router.push("/(tabs)/profile/reminder-details");
   };
 
   return (
-    // Outer: fade + slide entrance
     <Animated.View
-      style={{
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }],
-      }}
+      style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
       className="mb-3"
     >
-      {/* Inner: scale on press */}
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <Pressable
-          // onPressIn={handlePressIn}
-          // onPressOut={handlePressOut}
-          onPress={handleTheRiminder}
+          onPress={handlePress}
           style={{
             shadowColor: "#94A3B8",
             shadowOffset: { width: 0, height: 2 },
@@ -263,10 +284,34 @@ function EmptyState({ filter }: { filter: FilterType }) {
   );
 }
 
+// ─── Error State ──────────────────────────────────────────────────────────────
+
+function ErrorState() {
+  return (
+    <View className="items-center justify-center pt-16 gap-3">
+      <View className="w-16 h-16 rounded-full bg-red-50 items-center justify-center mb-1">
+        <Feather name="alert-circle" size={28} color="#EF4444" />
+      </View>
+      <Text className="text-base font-Inter_SemiBold text-gray-700">
+        Something went wrong
+      </Text>
+      <Text className="text-[13px] font-Inter_Regular text-gray-400 text-center max-w-[220px]">
+        Failed to load reminders. Please try again.
+      </Text>
+    </View>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 const Myreminder = () => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("Active");
+
+  const { data, isLoading, isError } = useGetMaintenanceAlertsQuery();
+
+  const reminders: Reminder[] = data?.data ? deriveReminders(data.data) : [];
+
+  const filteredReminders = reminders.filter((r) => r.status === activeFilter);
 
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(-10)).current;
@@ -288,16 +333,24 @@ const Myreminder = () => {
     ]).start();
   }, []);
 
-  const filteredReminders = REMINDERS.filter((r) => r.status === activeFilter);
-
   const handleFilter = useCallback((f: FilterType) => setActiveFilter(f), []);
+
+  const renderContent = () => {
+    if (isLoading) return <MyReminderSkeleton />;
+    if (isError) return <ErrorState />;
+    if (filteredReminders.length === 0)
+      return <EmptyState filter={activeFilter} />;
+    return filteredReminders.map((item, index) => (
+      <ReminderCard key={item.id} item={item} index={index} />
+    ));
+  };
 
   return (
     <ScreenWrapper>
       <SafeAreaView edges={["top"]} className="flex-1">
-        {/* header */}
-        <View className="flex-row justify-between items-center pb-2 ">
-          <Pressable onPress={() => router.back()} className="">
+        {/* Header */}
+        <View className="flex-row justify-between items-center pb-2">
+          <Pressable onPress={() => router.back()}>
             <Feather name="arrow-left" size={24} color="#111827" />
           </Pressable>
           <Text className="text-2xl text-[#111827] font-Inter_Bold">
@@ -332,17 +385,10 @@ const Myreminder = () => {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          className="flex-1 "
+          className="flex-1"
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          {/* content  */}
-          {filteredReminders.length === 0 ? (
-            <EmptyState filter={activeFilter} />
-          ) : (
-            filteredReminders.map((item, index) => (
-              <ReminderCard key={item.id} item={item} index={index} />
-            ))
-          )}
+          {renderContent()}
         </ScrollView>
       </SafeAreaView>
     </ScreenWrapper>

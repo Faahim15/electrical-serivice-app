@@ -25,7 +25,7 @@ type MenuRowProps = {
 const menuItems: MenuRowProps[] = [
   {
     emoji: notesIcon,
-    route: "/(tabs)/profile/my-quotes",
+    route: "/(tabs)/profile/profile-quotation",
     title: "My Quotes",
     subtitle: "View all quote requests",
     delay: 400,

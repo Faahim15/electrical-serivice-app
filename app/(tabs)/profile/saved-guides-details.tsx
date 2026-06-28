@@ -12,7 +12,7 @@ import { Animated, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
-const Troubleshootingguides = () => {
+const SavedGuideDetails = () => {
   const { guideId } = useLocalSearchParams<{ guideId?: string }>();
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -114,8 +114,8 @@ const Troubleshootingguides = () => {
     ]).start();
   }, []);
 
-  // ─── Handle Save/Unsave Guide ──────────────────────────────────────────────
-  const handleToggleSave = async () => {
+  // ─── Handle Remove from Saved (Unsave) ─────────────────────────────────────
+  const handleRemoveFromSaved = async () => {
     if (!guideId && !guide) {
       toast.error("Guide not found");
       return;
@@ -129,21 +129,15 @@ const Troubleshootingguides = () => {
 
     setIsLoading(true);
     try {
-      if (isSaved) {
-        await unsaveGuide(id).unwrap();
-        setIsSaved(false);
-        toast.success("Guide removed from saved!");
-      } else {
-        await saveGuide(id).unwrap();
-        setIsSaved(true);
-        toast.success("Guide saved!");
-      }
-      // Navigate back after successful save/unsave
+      await unsaveGuide(id).unwrap();
+      setIsSaved(false);
+      toast.success("Guide removed from saved!");
+      // Navigate back after successful unsave
       setTimeout(() => {
         router.back();
-      }, 1000);
+      }, 800);
     } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to update guide");
+      toast.error(error?.data?.message || "Failed to remove guide");
     } finally {
       setIsLoading(false);
     }
@@ -245,35 +239,17 @@ const Troubleshootingguides = () => {
               Steps to Follow
             </Text>
 
-            {/* ─── Save Button ── */}
+            {/* ─── Remove from Saved Button ── */}
             <Animated.View style={{ opacity: saveBtnAnim }}>
               <Pressable
-                onPress={handleToggleSave}
-                disabled={isLoading || isSaved}
-                className={`px-4 py-2 rounded-full flex-row items-center gap-2 ${
-                  isSaved
-                    ? "bg-green-100"
-                    : isLoading
-                      ? "bg-gray-100"
-                      : "bg-[#0EA5E9]"
-                }`}
-                style={{ opacity: isSaved || isLoading ? 0.6 : 1 }}
+                onPress={handleRemoveFromSaved}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-full flex-row items-center gap-2 bg-red-500"
+                style={{ opacity: isLoading ? 0.6 : 1 }}
               >
-                <Feather
-                  name={isSaved ? "check" : "bookmark"}
-                  size={14}
-                  color={isSaved ? "#22C55E" : isLoading ? "#94A3B8" : "white"}
-                />
-                <Text
-                  className={`font-Inter_SemiBold text-xs ${
-                    isSaved
-                      ? "text-green-600"
-                      : isLoading
-                        ? "text-gray-400"
-                        : "text-white"
-                  }`}
-                >
-                  {isLoading ? "Saving..." : isSaved ? "Saved" : "Save Guide"}
+                <Feather name="trash-2" size={14} color="white" />
+                <Text className="font-Inter_SemiBold text-xs text-white">
+                  {isLoading ? "Removing..." : "Remove from Saved"}
                 </Text>
               </Pressable>
             </Animated.View>
@@ -391,4 +367,4 @@ const Troubleshootingguides = () => {
   );
 };
 
-export default Troubleshootingguides;
+export default SavedGuideDetails;
