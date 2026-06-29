@@ -8,7 +8,10 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateServiceCallDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateServiceCallDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,6 +53,10 @@ export default function ProjectDetails() {
     return "";
   });
 
+  const selectedCategory = useSelector(
+    (state: RootState) => state.categoryRoute.selectedCategory,
+  );
+
   const { fullName, email, phone, preferredContact } = useSelector(
     (state: RootState) => state.serviceForm.contactDetails,
   );
@@ -68,6 +75,13 @@ export default function ProjectDetails() {
 
   // ─── Cast to ServiceCallResponse ─────────────────────────────────────────
   const draft = draftData as ServiceCallResponse | undefined;
+
+  // ─── Ensure category is set ──────────────────────────────────────────────
+  useEffect(() => {
+    if (selectedCategory?.id !== "1") {
+      dispatch(selectCategory("1"));
+    }
+  }, [selectedCategory]);
 
   // ─── RHF Setup ───────────────────────────────────────────────────────────
   const {
@@ -104,26 +118,22 @@ export default function ProjectDetails() {
   const handleSaveForLater = async () => {
     const values = getValues();
 
-    const resolvedEmail = draft?.emailAddress || email || "";
-    const resolvedFullName = draft?.fullName || fullName || "";
-    const resolvedPhone = draft?.phoneNumber || phone || "";
-    const resolvedPreferredContact =
-      draft?.preferredContactMethod || preferredContact || "Call";
-
+    // ✅ draft first, then Redux as fallback
     const payload = {
-      fullName: resolvedFullName,
-      emailAddress: resolvedEmail,
-      phoneNumber: resolvedPhone,
-      preferredContactMethod: resolvedPreferredContact,
-      streetAddress: streetAddress || "",
-      apartmentUnit: apartment || "",
-      city: city || "",
-      state: state || "",
-      zipCode: zipCode || "",
-      propertyType: propertyType || "",
-      ownershipStatus: ownershipStatus || "",
-      timelineUrgency: timeline || "",
-      issueDescription: values.projectDetails || "",
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      issueDescription: draft?.issueDescription || values.projectDetails || "",
       status: "draft" as const,
       completionPercentage,
     };

@@ -24,7 +24,6 @@ import { toast } from "sonner-native";
 const CURRENT_STEP = 4;
 const TOTAL_STEPS = 7;
 
-// ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
@@ -34,6 +33,7 @@ const createFormData = (payload: Record<string, any>) => {
 export default function StarlinkDetails() {
   const dispatch = useDispatch();
   const [localEquipment, setLocalEquipment] = useState("");
+  const [localWhenHaveEquipment, setLocalWhenHaveEquipment] = useState("");
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -73,7 +73,7 @@ export default function StarlinkDetails() {
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.haveStarlinkEquipment || ""
       : "";
-  const whenHaveEquipment =
+  const reduxWhenHaveEquipment =
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.whenHaveEquipment || ""
       : "";
@@ -85,23 +85,24 @@ export default function StarlinkDetails() {
     }
   }, [reduxHaveStarlinkEquipment]);
 
+  useEffect(() => {
+    if (reduxWhenHaveEquipment) {
+      setLocalWhenHaveEquipment(reduxWhenHaveEquipment);
+    }
+  }, [reduxWhenHaveEquipment]);
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.haveStarlinkEquipment !== undefined) {
       const value = draft.haveStarlinkEquipment ? "Yes" : "No";
       setLocalEquipment(value);
-      dispatch(
-        updateStarlinkDetails({
-          haveStarlinkEquipment: value as any, // ← Type assertion
-        }),
-      );
+      dispatch(updateStarlinkDetails({ haveStarlinkEquipment: value as any }));
     }
     if (draft.whenHaveEquipment) {
+      setLocalWhenHaveEquipment(draft.whenHaveEquipment);
       dispatch(
-        updateStarlinkDetails({
-          whenHaveEquipment: draft.whenHaveEquipment,
-        }),
+        updateStarlinkDetails({ whenHaveEquipment: draft.whenHaveEquipment }),
       );
     }
   }, [draft]);
@@ -122,8 +123,16 @@ export default function StarlinkDetails() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      haveStarlinkEquipment: localEquipment === "Yes",
-      whenHaveEquipment: whenHaveEquipment || "",
+      haveStarlinkEquipment:
+        localEquipment !== ""
+          ? localEquipment === "Yes"
+          : (draft?.haveStarlinkEquipment ??
+            reduxHaveStarlinkEquipment === "Yes"),
+      whenHaveEquipment:
+        draft?.whenHaveEquipment ||
+        localWhenHaveEquipment ||
+        reduxWhenHaveEquipment ||
+        "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -140,7 +149,6 @@ export default function StarlinkDetails() {
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
     } catch (error: any) {
-      console.log("Save draft error:", error);
       toast.error(
         error?.data?.message || "Failed to save draft. Please try again.",
       );
@@ -150,9 +158,7 @@ export default function StarlinkDetails() {
   const handleContinue = () => {
     if (localEquipment) {
       dispatch(
-        updateStarlinkDetails({
-          haveStarlinkEquipment: localEquipment as any, // ← Type assertion
-        }),
+        updateStarlinkDetails({ haveStarlinkEquipment: localEquipment as any }),
       );
     }
     router.push({
@@ -162,13 +168,8 @@ export default function StarlinkDetails() {
   };
 
   const handleSelect = (val: string) => {
-    console.log("Selected:", val);
     setLocalEquipment(val);
-    dispatch(
-      updateStarlinkDetails({
-        haveStarlinkEquipment: val as any, // ← Type assertion
-      }),
-    );
+    dispatch(updateStarlinkDetails({ haveStarlinkEquipment: val as any }));
   };
 
   return (
@@ -213,10 +214,11 @@ export default function StarlinkDetails() {
             <TextAreaInput
               label="When do you expect to have the equipment?"
               placeholder="e.g., Next week, in 2 weeks, etc."
-              value={whenHaveEquipment}
-              onChangeText={(text) =>
-                dispatch(updateStarlinkDetails({ whenHaveEquipment: text }))
-              }
+              value={localWhenHaveEquipment}
+              onChangeText={(text) => {
+                setLocalWhenHaveEquipment(text);
+                dispatch(updateStarlinkDetails({ whenHaveEquipment: text }));
+              }}
               minHeight={80}
             />
           )}

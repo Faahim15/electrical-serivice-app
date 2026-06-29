@@ -12,7 +12,7 @@ import { updateDockPowerDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
@@ -20,7 +20,6 @@ import { toast } from "sonner-native";
 const CURRENT_STEP = 9;
 const TOTAL_STEPS = 10;
 
-// ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
@@ -31,10 +30,7 @@ export default function AdditionalInfo() {
   const dispatch = useDispatch();
 
   const { serviceCallId, serviceType: serviceTypeParam } =
-    useLocalSearchParams<{
-      serviceCallId?: string;
-      serviceType?: string;
-    }>();
+    useLocalSearchParams<{ serviceCallId?: string; serviceType?: string }>();
 
   const serviceType = serviceTypeParam || "Dock Power";
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
@@ -53,17 +49,41 @@ export default function AdditionalInfo() {
     (state: RootState) => state.serviceForm.projectBasics,
   );
 
-  const additionalInfo = useSelector((state: RootState) => {
+  const reduxAdditionalInfo = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.additionalInfo;
     return "";
   });
 
+  // ─── Local state ──────────────────────────────────────────────────────────────
+  const [additionalInfo, setAdditionalInfo] = useState(
+    reduxAdditionalInfo || "",
+  );
+  const {
+    isDockBuilt,
+    electricalNeedsDetails,
+    receptacleCount,
+    electricalServiceType,
+    subPanelSize,
+    panelLocation,
+    routeDistanceDetails,
+    privateUtilitiesDetails,
+    panelPhotos,
+    existingSpacePhotos,
+    hasPlansDrawings,
+    plansDrawingsPhotos,
+    permitApplied,
+  } = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "7" && data.details) return data.details;
+    return {} as any;
+  });
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.additionalInformation) {
+      setAdditionalInfo(draft.additionalInformation);
       dispatch(
         updateDockPowerDetails({ additionalInfo: draft.additionalInformation }),
       );
@@ -86,7 +106,30 @@ export default function AdditionalInfo() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      additionalInformation: additionalInfo || "",
+      isDockBuilt: draft?.isDockBuilt ?? isDockBuilt ?? false,
+      electricalNeedsDetails:
+        draft?.electricalNeedsDetails || electricalNeedsDetails || "",
+      receptacleCount: draft?.receptacleCount ?? receptacleCount ?? 0,
+      electricalServiceType:
+        draft?.electricalServiceType || electricalServiceType || "",
+      subPanelSize: draft?.subPanelSize || subPanelSize || "",
+      panelLocation: draft?.panelLocation || panelLocation || "",
+      routeDistanceDetails:
+        draft?.routeDistanceDetails || routeDistanceDetails || "",
+      privateUtilitiesDetails:
+        draft?.privateUtilitiesDetails || privateUtilitiesDetails || "",
+      panelPhotos: draft?.panelPhotos || panelPhotos || [],
+      existingSpacePhotos:
+        draft?.existingSpacePhotos || existingSpacePhotos || [],
+      hasPlansDrawings: draft?.hasPlansDrawings ?? hasPlansDrawings ?? false,
+      plansDrawingsPhotos:
+        draft?.plansDrawingsPhotos || plansDrawingsPhotos || [],
+      permitApplied: draft?.permitApplied ?? permitApplied ?? false,
+      additionalInformation:
+        draft?.additionalInformation ||
+        reduxAdditionalInfo ||
+        additionalInfo ||
+        "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -130,9 +173,7 @@ export default function AdditionalInfo() {
             currentStep={CURRENT_STEP}
             totalSteps={TOTAL_STEPS}
           />
-
           <CategoryTag title={serviceType} />
-
           <AuthHeading
             title="Additional information"
             subtitle="Any other details we should know"
@@ -142,9 +183,10 @@ export default function AdditionalInfo() {
             label="Additional Information"
             placeholder="any additional information you feel we should know for your quote"
             value={additionalInfo}
-            onChangeText={(text) =>
-              dispatch(updateDockPowerDetails({ additionalInfo: text }))
-            }
+            onChangeText={(text) => {
+              setAdditionalInfo(text);
+              dispatch(updateDockPowerDetails({ additionalInfo: text }));
+            }}
             minHeight={100}
           />
 

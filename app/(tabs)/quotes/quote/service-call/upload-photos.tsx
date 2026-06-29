@@ -64,6 +64,32 @@ export default function UploadPhotos() {
     (state: RootState) => state.categoryRoute.selectedCategory,
   );
 
+  // ─── Redux state for fallbacks ──────────────────────────────────────────────
+  const { fullName, email, phone, preferredContact } = useSelector(
+    (state: RootState) => state.serviceForm.contactDetails,
+  );
+  const { streetAddress, apartment, city, state, zipCode } = useSelector(
+    (state: RootState) => state.serviceForm.serviceAddress,
+  );
+  const { propertyType, ownershipStatus, timeline } = useSelector(
+    (state: RootState) => state.serviceForm.projectBasics,
+  );
+  const issueDescription = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.projectDetails;
+    return "";
+  });
+  const preferredTime = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.preferredTime;
+    return "";
+  });
+  const schedulingDays = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.schedulingDays;
+    return [];
+  });
+
   useEffect(() => {
     if (selectedCategory?.id !== "1") {
       dispatch(selectCategory("1"));
@@ -115,7 +141,7 @@ export default function UploadPhotos() {
     } as any);
 
     const res = await uploadImages(formData).unwrap();
-    return res.data[0]; // data is string[]
+    return res.data[0];
   };
 
   const deleteImageHandler = async (imageUrl: string) => {
@@ -180,14 +206,6 @@ export default function UploadPhotos() {
     }
   };
 
-  const validatePhotos = (): boolean => {
-    if (!panelPhotos || panelPhotos.length === 0) {
-      toast.error("Please upload at least one panel photo");
-      return false;
-    }
-    return true;
-  };
-
   // ─── Helper to convert payload to FormData ──────────────────────────────────
   const createFormData = (payload: Record<string, any>) => {
     const formData = new FormData();
@@ -196,29 +214,32 @@ export default function UploadPhotos() {
   };
 
   const handleSaveForLater = async () => {
-    if (!validatePhotos()) return;
-
+    //  draft first, then Redux as fallback
     const payload = {
-      fullName: draft?.fullName || "",
-      emailAddress: draft?.emailAddress || "",
-      phoneNumber: draft?.phoneNumber || "",
-      preferredContactMethod: draft?.preferredContactMethod || "Call",
-      streetAddress: draft?.streetAddress || "",
-      apartmentUnit: draft?.apartmentUnit || "",
-      city: draft?.city || "",
-      state: draft?.state || "",
-      zipCode: draft?.zipCode || "",
-      propertyType: draft?.propertyType || "",
-      ownershipStatus: draft?.ownershipStatus || "",
-      timelineUrgency: draft?.timelineUrgency || "",
-      issueDescription: draft?.issueDescription || "",
-      preferredTime: draft?.preferredTime || "",
-      schedulingPreference: draft?.schedulingPreference || [],
-      panelPhotos: panelPhotos, // Cloudinary URLs from Redux
-      workAreaPhotos: workAreaPhotos, // Cloudinary URLs from Redux
-      extraReferencePhotos: referencePhotos, // Cloudinary URLs from Redux
-      notes: draft?.notes || "",
-      quickTags: draft?.quickTags || [],
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      issueDescription: draft?.issueDescription || issueDescription || "",
+      preferredTime: draft?.preferredTime || preferredTime || "",
+      schedulingPreference: draft?.schedulingPreference || schedulingDays || [],
+
+      // draft first, then Redux as fallback for photos
+      panelPhotos: draft?.panelPhotos || panelPhotos || [],
+      workAreaPhotos: draft?.workAreaPhotos || workAreaPhotos || [],
+      extraReferencePhotos:
+        draft?.extraReferencePhotos || referencePhotos || [],
+
+      // Remove notes and quickTags - they belong to the next screen
       status: "draft" as const,
       completionPercentage: Math.round((CURRENT_STEP / TOTAL_STEPS) * 100),
     };
@@ -240,7 +261,6 @@ export default function UploadPhotos() {
   };
 
   const handleContinue = async () => {
-    if (!validatePhotos()) return;
     router.push({
       pathname: "/(tabs)/quotes/quote/service-call/additional-notes",
       params: { serviceType, serviceCallId },

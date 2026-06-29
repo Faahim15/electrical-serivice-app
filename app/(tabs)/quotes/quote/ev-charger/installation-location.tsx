@@ -8,14 +8,17 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateEVChargerDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateEVChargerDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import {
   EVChargerInstallationLocationFormValues,
   evChargerInstallationLocationSchema,
 } from "@/src/schemas/quotes/ev-charger/ev-chargerDetailsSchema";
 import { EvChargerInstallationResponse } from "@/src/types/evCharger.api.types";
-import { ServiceCallResponse } from "@/src/types/quotes.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
@@ -43,12 +46,14 @@ const createFormData = (payload: Record<string, any>) => {
   return formData;
 };
 
-// Type guard to check if draft is EV Charger type
+// ✅ Type guard - checks if draft is EV Charger
 const isEvChargerDraft = (
-  draft: ServiceCallResponse | EvChargerInstallationResponse,
+  draft: any,
 ): draft is EvChargerInstallationResponse => {
   return (
-    (draft as EvChargerInstallationResponse).chargerConnectionType !== undefined
+    draft &&
+    typeof draft === "object" &&
+    draft.chargerConnectionType !== undefined
   );
 };
 
@@ -117,17 +122,62 @@ export default function InstallationLocation() {
     serviceTypeParam || selectedCategory?.title || "EV Charger Installation";
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
 
+  // ─── Ensure category is set ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!categoryData || categoryData.categoryId !== "2") {
+      dispatch(selectCategory("2"));
+    }
+  }, []);
+
   // ─── Get current values from Redux ───────────────────────────────────────────
   const reduxInstallationLocation =
     categoryData?.categoryId === "2"
-      ? (categoryData.details as any)?.installationLocation
+      ? (categoryData.details as any)?.installationLocation || ""
       : "";
   const reduxInstallationLocationOther =
     categoryData?.categoryId === "2"
-      ? (categoryData.details as any)?.installationLocationOther
+      ? (categoryData.details as any)?.installationLocationOther || ""
       : "";
 
-  // Determine if the saved value is a custom "Other" value (not in LOCATIONS array)
+  // ─── Get ALL Redux values for fallback ──────────────────────────────────────
+  const reduxChargerType =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerType || ""
+      : "";
+  const reduxNemaConfig =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.nemaConfig || ""
+      : "";
+  const reduxProvidingCharger =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.providingCharger || ""
+      : "";
+  const reduxChargerStatus =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerStatus || ""
+      : "";
+  const reduxPanelLocation =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.panelLocation || ""
+      : "";
+  const reduxPanelDistance =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.panelDistance || ""
+      : "";
+  const reduxChargerAreaPhotos =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerAreaPhotos || []
+      : [];
+  const reduxPanelPhotos =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.panelPhotos || []
+      : [];
+  const reduxAdditionalInfo =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.additionalInfo || ""
+      : "";
+
+  // Determine if the saved value is a custom "Other" value
   const isOtherSelected =
     reduxInstallationLocation &&
     !LOCATIONS.includes(reduxInstallationLocation as any) &&
@@ -137,6 +187,9 @@ export default function InstallationLocation() {
   const { createDraft, updateDraft, isSaving } = useDraftSave();
   const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
 
+  // ─── Check if draft is EV Charger ────────────────────────────────────────────
+  const isEvCharger = isEvChargerDraft(draftData);
+
   // ─── React Hook Form ──────────────────────────────────────────────────────────
   const {
     control,
@@ -144,6 +197,7 @@ export default function InstallationLocation() {
     setValue,
     getValues,
     watch,
+    reset,
     formState: { errors },
   } = useForm<EVChargerInstallationLocationFormValues>({
     resolver: zodResolver(evChargerInstallationLocationSchema),
@@ -162,15 +216,16 @@ export default function InstallationLocation() {
 
   // ─── Prefill from API draft ───────────────────────────────────────────────────
   useEffect(() => {
-    if (draftData && isEvChargerDraft(draftData)) {
+    if (!draftData) return;
+
+    if (isEvCharger) {
       const apiLocation = draftData.installationLocation;
+      const formValues: Partial<EVChargerInstallationLocationFormValues> = {};
 
       if (apiLocation) {
-        // Check if the API value is one of the predefined options
         if (LOCATIONS.includes(apiLocation as any)) {
-          // It's a standard option
-          setValue("installationLocation", apiLocation);
-          setValue("installationLocationOther", "");
+          formValues.installationLocation = apiLocation;
+          formValues.installationLocationOther = "";
           dispatch(
             updateEVChargerDetails({
               installationLocation: apiLocation as any,
@@ -178,9 +233,8 @@ export default function InstallationLocation() {
             }),
           );
         } else {
-          // It's a custom "Other" value
-          setValue("installationLocation", "Other");
-          setValue("installationLocationOther", apiLocation);
+          formValues.installationLocation = "Other";
+          formValues.installationLocationOther = apiLocation;
           dispatch(
             updateEVChargerDetails({
               installationLocation: "Other",
@@ -188,6 +242,10 @@ export default function InstallationLocation() {
             }),
           );
         }
+      }
+
+      if (Object.keys(formValues).length > 0) {
+        reset(formValues);
       }
     }
   }, [draftData]);
@@ -197,8 +255,6 @@ export default function InstallationLocation() {
     const values = getValues();
 
     // Determine the final installationLocation value for API
-    // If "Other" is selected, use the custom text from installationLocationOther
-    // Otherwise, use the selected value
     let finalInstallationLocation = "";
     if (values.installationLocation === "Other") {
       finalInstallationLocation = values.installationLocationOther || "";
@@ -206,69 +262,53 @@ export default function InstallationLocation() {
       finalInstallationLocation = values.installationLocation || "";
     }
 
-    // Get all required data from Redux or draft
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    // Get previous step data from Redux or draft
-    const previousData =
-      categoryData?.categoryId === "2" ? (categoryData.details as any) : {};
-
-    let finalChargerType = previousData.chargerType;
-    let finalNemaConfig = previousData.nemaConfig;
-    let finalProvidingCharger = previousData.providingCharger;
-    let finalChargerStatus = previousData.chargerStatus;
-
-    if (draftData && isEvChargerDraft(draftData)) {
-      finalChargerType = draftData.chargerConnectionType || finalChargerType;
-      finalNemaConfig = draftData.nemaConfiguration || finalNemaConfig;
-      finalProvidingCharger =
-        draftData.chargerProvidedByUser !== undefined
-          ? draftData.chargerProvidedByUser
-            ? "Yes"
-            : "No"
-          : finalProvidingCharger;
-      finalChargerStatus = draftData.chargerStatus || finalChargerStatus;
-    }
-
-    // Build payload matching the EV Charger API structure
+    // ✅ Build payload - draft first, then Redux, then values/fallback
     const payload = {
-      fullName: finalFullName || "",
-      phoneNumber: finalPhone || "",
-      emailAddress: finalEmail || "",
-      preferredContactMethod: finalPreferredContact || "Call",
-      streetAddress: finalStreetAddress || "",
-      apartmentUnit: finalApartment || "",
-      city: finalCity || "",
-      state: finalState || "",
-      zipCode: finalZipCode || "",
-      propertyType: finalPropertyType || "",
-      ownershipStatus: finalOwnershipStatus || "",
-      timelineUrgency: finalTimeline || "",
-      chargerConnectionType: finalChargerType || "",
-      nemaConfiguration: finalNemaConfig || "",
-      chargerProvidedByUser: finalProvidingCharger === "Yes",
-      chargerStatus: finalChargerStatus || "",
-      installationLocation: finalInstallationLocation,
+      // ─── Common fields (draft → Redux → fallback) ──────────────────────────
+      fullName: draftData?.fullName || contactDetails.fullName || "",
+      emailAddress: draftData?.emailAddress || contactDetails.email || "",
+      phoneNumber: draftData?.phoneNumber || contactDetails.phone || "",
+      preferredContactMethod:
+        draftData?.preferredContactMethod ||
+        contactDetails.preferredContact ||
+        "Call",
+      streetAddress:
+        draftData?.streetAddress || serviceAddress.streetAddress || "",
+      apartmentUnit: draftData?.apartmentUnit || serviceAddress.apartment || "",
+      city: draftData?.city || serviceAddress.city || "",
+      state: draftData?.state || serviceAddress.state || "",
+      zipCode: draftData?.zipCode || serviceAddress.zipCode || "",
+      propertyType: draftData?.propertyType || projectBasics.propertyType || "",
+      ownershipStatus:
+        draftData?.ownershipStatus || projectBasics.ownershipStatus || "",
+      timelineUrgency:
+        draftData?.timelineUrgency || projectBasics.timeline || "",
+
+      // ─── EV Charger specific (draft → Redux → values → fallback) ────────────
+      chargerConnectionType:
+        (isEvCharger && draftData.chargerConnectionType) ||
+        reduxChargerType ||
+        "",
+      nemaConfiguration:
+        (isEvCharger && draftData.nemaConfiguration) || reduxNemaConfig || "",
+      chargerProvidedByUser:
+        isEvCharger && draftData.chargerProvidedByUser !== undefined
+          ? draftData.chargerProvidedByUser
+          : reduxProvidingCharger === "Yes",
+      chargerStatus:
+        (isEvCharger && draftData.chargerStatus) || reduxChargerStatus || "",
+
+      // ─── Current screen's field (draft → values → fallback) ──────────────────
+      installationLocation:
+        (isEvCharger && draftData.installationLocation) ||
+        finalInstallationLocation ||
+        "",
+
+      // ─── Status ──────────────────────────────────────────────────────────────
       status: "draft" as const,
       completionPercentage,
     };
 
-    // Create FormData from payload
     const formData = createFormData(payload);
 
     try {
@@ -289,7 +329,6 @@ export default function InstallationLocation() {
 
   // ─── Continue handler ────────────────────────────────────────────────────────
   const onSubmit = (values: EVChargerInstallationLocationFormValues) => {
-    // Store both values in Redux
     dispatch(
       updateEVChargerDetails({
         installationLocation: values.installationLocation as any,
@@ -320,7 +359,7 @@ export default function InstallationLocation() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}

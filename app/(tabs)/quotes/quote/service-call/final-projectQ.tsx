@@ -11,6 +11,7 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
 import {
+  selectCategory,
   toggleSchedulingDay,
   updateServiceCallDetails,
 } from "@/src/redux/slices/serviceFormSlice";
@@ -43,12 +44,6 @@ const SERVICE_TYPE = "Service Call";
 const selectCategoryData = (state: RootState) => state.serviceForm.categoryData;
 const selectSelectedCategory = (state: RootState) =>
   state.categoryRoute.selectedCategory;
-const selectContactDetails = (state: RootState) =>
-  state.serviceForm.contactDetails;
-const selectServiceAddress = (state: RootState) =>
-  state.serviceForm.serviceAddress;
-const selectProjectBasics = (state: RootState) =>
-  state.serviceForm.projectBasics;
 
 const selectSchedulingDays = createSelector(
   [selectCategoryData, selectSelectedCategory],
@@ -58,9 +53,9 @@ const selectSchedulingDays = createSelector(
       data?.categoryId === "1" &&
       data.details
     ) {
-      return data.details.schedulingDays ?? ([] as string[]);
+      return data.details.schedulingDays ?? [];
     }
-    return [] as string[];
+    return [];
   },
 );
 
@@ -83,6 +78,13 @@ const selectIssueDescription = createSelector([selectCategoryData], (data) => {
   return "";
 });
 
+const selectContactDetails = (state: RootState) =>
+  state.serviceForm.contactDetails;
+const selectServiceAddress = (state: RootState) =>
+  state.serviceForm.serviceAddress;
+const selectProjectBasics = (state: RootState) =>
+  state.serviceForm.projectBasics;
+
 export default function FinalProjectQuestions() {
   const dispatch = useDispatch();
 
@@ -94,7 +96,8 @@ export default function FinalProjectQuestions() {
 
   const serviceType = serviceTypeParam || SERVICE_TYPE;
 
-  // ─── Redux selectors ──────────────────────────────────────────────────────
+  // ─── Redux selectors at top level ──────────────────────────────────────────
+  const selectedCategory = useSelector(selectSelectedCategory);
   const schedulingDays = useSelector(selectSchedulingDays);
   const preferredTime = useSelector(selectPreferredTime);
   const issueDescription = useSelector(selectIssueDescription);
@@ -113,6 +116,13 @@ export default function FinalProjectQuestions() {
   const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
   const draft = draftData as ServiceCallResponse | undefined;
 
+  // ─── Ensure category is set ──────────────────────────────────────────────
+  useEffect(() => {
+    if (selectedCategory?.id !== "1") {
+      dispatch(selectCategory("1"));
+    }
+  }, [selectedCategory]);
+
   // ─── RHF Setup ───────────────────────────────────────────────────────────
   const {
     control,
@@ -120,6 +130,7 @@ export default function FinalProjectQuestions() {
     setValue,
     getValues,
     formState: { errors },
+    reset,
   } = useForm<FinalProjectFormValues>({
     resolver: zodResolver(finalProjectSchema),
     mode: "onChange",
@@ -129,24 +140,51 @@ export default function FinalProjectQuestions() {
     },
   });
 
-  // ─── Prefill from API draft ───────────────────────────────────────────────
+  // ─── Prefill from draft when it loads ──────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
 
+    // ✅ Get scheduling data from draft
+    const schedulingData = draft.schedulingPreference || [];
+
+    console.log("🔄 FinalProjectQuestions - Prefilled from draft:", {
+      preferredTime: draft.preferredTime,
+      schedulingPreference: draft.schedulingPreference,
+      schedulingData,
+    });
+
+    // ✅ Update form values
+    const formValues: Partial<FinalProjectFormValues> = {};
+
     if (draft.preferredTime) {
-      setValue("preferredTime", draft.preferredTime, { shouldValidate: true });
+      formValues.preferredTime = draft.preferredTime;
+    }
+
+    if (schedulingData.length > 0) {
+      formValues.schedulingDays = schedulingData;
+      // ✅ Also toggle each day in Redux for UI state
+      schedulingData.forEach((day: string) => {
+        dispatch(toggleSchedulingDay(day));
+      });
+    }
+
+    if (Object.keys(formValues).length > 0) {
+      reset(formValues);
+    }
+
+    // ✅ Sync to Redux
+    if (draft.preferredTime) {
       dispatch(
         updateServiceCallDetails({ preferredTime: draft.preferredTime as any }),
       );
     }
-
-    if (draft.schedulingPreference?.length) {
-      setValue("schedulingDays", draft.schedulingPreference, {
-        shouldValidate: true,
-      });
-      draft.schedulingPreference.forEach((day) => {
-        dispatch(toggleSchedulingDay(day));
-      });
+    if (schedulingData.length > 0) {
+      dispatch(updateServiceCallDetails({ schedulingDays: schedulingData }));
+    }
+    if (draft.issueDescription && !issueDescription) {
+      dispatch(
+        updateServiceCallDetails({ projectDetails: draft.issueDescription }),
+      );
     }
   }, [draftData]);
 
@@ -161,31 +199,35 @@ export default function FinalProjectQuestions() {
   const handleSaveForLater = async () => {
     const values = getValues();
 
-    const resolvedEmail = draft?.emailAddress || email || "";
-    const resolvedFullName = draft?.fullName || fullName || "";
-    const resolvedPhone = draft?.phoneNumber || phone || "";
-    const resolvedPreferredContact =
-      draft?.preferredContactMethod || preferredContact || "Call";
+    console.log("📝 Saving schedulingDays from form:", values.schedulingDays);
 
+    // ✅ draft first, then Redux, then form values as fallback
     const payload = {
-      fullName: resolvedFullName,
-      emailAddress: resolvedEmail,
-      phoneNumber: resolvedPhone,
-      preferredContactMethod: resolvedPreferredContact,
-      streetAddress: streetAddress || "",
-      apartmentUnit: apartment || "",
-      city: city || "",
-      state: state || "",
-      zipCode: zipCode || "",
-      propertyType: propertyType || "",
-      ownershipStatus: ownershipStatus || "",
-      timelineUrgency: timeline || "",
-      issueDescription: issueDescription || "",
-      preferredTime: values.preferredTime || "",
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      issueDescription: draft?.issueDescription || issueDescription || "",
+      preferredTime: draft?.preferredTime || values.preferredTime || "",
+      // ✅ Make sure schedulingPreference is sent from form values
       schedulingPreference: values.schedulingDays || [],
       status: "draft" as const,
       completionPercentage,
     };
+
+    console.log(
+      "📤 Saving payload schedulingPreference:",
+      payload.schedulingPreference,
+    );
 
     try {
       if (serviceCallId) {

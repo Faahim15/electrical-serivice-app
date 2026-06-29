@@ -21,6 +21,7 @@ export interface DockPowerPayload {
   hasPlansDrawings: boolean;
   permitApplied: boolean;
   additionalInformation?: string;
+  privateUtilitiesDetails?: string;
   panelPhotos?: string[];
   existingSpacePhotos?: string[];
   plansDrawingsPhotos?: string[];

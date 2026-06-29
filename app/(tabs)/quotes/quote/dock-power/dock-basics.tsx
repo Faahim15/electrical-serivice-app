@@ -14,7 +14,7 @@ import { updateDockPowerDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
@@ -22,7 +22,6 @@ import { toast } from "sonner-native";
 const CURRENT_STEP = 4;
 const TOTAL_STEPS = 10;
 
-// ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
@@ -33,10 +32,7 @@ export default function DockBasics() {
   const dispatch = useDispatch();
 
   const { serviceCallId, serviceType: serviceTypeParam } =
-    useLocalSearchParams<{
-      serviceCallId?: string;
-      serviceType?: string;
-    }>();
+    useLocalSearchParams<{ serviceCallId?: string; serviceType?: string }>();
 
   const serviceType = serviceTypeParam || "Dock Power";
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
@@ -55,37 +51,43 @@ export default function DockBasics() {
     (state: RootState) => state.serviceForm.projectBasics,
   );
 
-  const dockBuilt = useSelector((state: RootState) => {
+  const reduxDockBuilt = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details) return data.details.dockBuilt;
     return "";
   });
-
-  const electricalNeeds = useSelector((state: RootState) => {
+  const reduxElectricalNeeds = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.electricalNeeds;
     return "";
   });
-
-  const receptacleCount = useSelector((state: RootState) => {
+  const reduxReceptacleCount = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.receptacleCount;
     return "";
   });
 
+  // ─── Local state ──────────────────────────────────────────────────────────────
+  const [dockBuilt, setDockBuilt] = useState(reduxDockBuilt || "");
+  const [electricalNeeds, setElectricalNeeds] = useState(
+    reduxElectricalNeeds || "",
+  );
+  const [receptacleCount, setReceptacleCount] = useState(
+    reduxReceptacleCount || "",
+  );
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.isDockBuilt !== undefined) {
-      dispatch(
-        updateDockPowerDetails({
-          dockBuilt: draft.isDockBuilt ? "Yes" : "No",
-        }),
-      );
+      const val = draft.isDockBuilt ? "Yes" : "No";
+      setDockBuilt(val);
+      dispatch(updateDockPowerDetails({ dockBuilt: val as any }));
     }
     if (draft.electricalNeedsDetails) {
+      setElectricalNeeds(draft.electricalNeedsDetails);
       dispatch(
         updateDockPowerDetails({
           electricalNeeds: draft.electricalNeedsDetails,
@@ -93,11 +95,9 @@ export default function DockBasics() {
       );
     }
     if (draft.receptacleCount) {
-      dispatch(
-        updateDockPowerDetails({
-          receptacleCount: String(draft.receptacleCount),
-        }),
-      );
+      const val = String(draft.receptacleCount);
+      setReceptacleCount(val);
+      dispatch(updateDockPowerDetails({ receptacleCount: val }));
     }
   }, [draft]);
 
@@ -117,9 +117,33 @@ export default function DockBasics() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      isDockBuilt: dockBuilt === "Yes",
-      electricalNeedsDetails: electricalNeeds || "",
-      receptacleCount: parseInt(receptacleCount) || 0,
+      isDockBuilt:
+        draft?.isDockBuilt ??
+        (dockBuilt === "Yes"
+          ? true
+          : dockBuilt === "No"
+            ? false
+            : reduxDockBuilt === "Yes"),
+      electricalNeedsDetails:
+        draft?.electricalNeedsDetails ||
+        electricalNeeds ||
+        reduxElectricalNeeds ||
+        "",
+      receptacleCount:
+        (draft?.receptacleCount ?? parseInt(receptacleCount)) ||
+        parseInt(reduxReceptacleCount) ||
+        0,
+      electricalServiceType: draft?.electricalServiceType || "",
+      subPanelSize: draft?.subPanelSize || "",
+      panelLocation: draft?.panelLocation || "",
+      routeDistanceDetails: draft?.routeDistanceDetails || "",
+      privateUtilitiesDetails: draft?.privateUtilitiesDetails || "",
+      panelPhotos: draft?.panelPhotos || [],
+      existingSpacePhotos: draft?.existingSpacePhotos || [],
+      hasPlansDrawings: draft?.hasPlansDrawings ?? false,
+      plansDrawingsPhotos: draft?.plansDrawingsPhotos || [],
+      permitApplied: draft?.permitApplied ?? false,
+      additionalInformation: draft?.additionalInformation || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -164,16 +188,16 @@ export default function DockBasics() {
             totalSteps={TOTAL_STEPS}
           />
           <CategoryTag title={serviceType} />
-
           <AuthHeading title="Dock basics" subtitle="" />
 
           <OptionGrid
             label="Is your dock already built?"
             options={["Yes", "No"]}
             selected={dockBuilt}
-            onSelect={(val) =>
-              dispatch(updateDockPowerDetails({ dockBuilt: val as any }))
-            }
+            onSelect={(val) => {
+              setDockBuilt(val);
+              dispatch(updateDockPowerDetails({ dockBuilt: val as any }));
+            }}
             numColumns={1}
           />
 
@@ -181,9 +205,10 @@ export default function DockBasics() {
             label="Please provide details about your electrical need at the dock power"
             placeholder="Describe boat lift and how many, jet ski lift and how many, lighting, etc."
             value={electricalNeeds}
-            onChangeText={(text) =>
-              dispatch(updateDockPowerDetails({ electricalNeeds: text }))
-            }
+            onChangeText={(text) => {
+              setElectricalNeeds(text);
+              dispatch(updateDockPowerDetails({ electricalNeeds: text }));
+            }}
             minHeight={120}
           />
 
@@ -193,8 +218,10 @@ export default function DockBasics() {
               placeholder: "Type here",
               keyboardType: "number-pad",
               value: receptacleCount,
-              onChangeText: (text) =>
-                dispatch(updateDockPowerDetails({ receptacleCount: text })),
+              onChangeText: (text) => {
+                setReceptacleCount(text);
+                dispatch(updateDockPowerDetails({ receptacleCount: text }));
+              },
             }}
           />
 

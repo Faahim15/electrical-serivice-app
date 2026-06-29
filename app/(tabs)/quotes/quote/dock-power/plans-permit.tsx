@@ -26,7 +26,6 @@ import { toast } from "sonner-native";
 const CURRENT_STEP = 7;
 const TOTAL_STEPS = 10;
 
-// ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
@@ -65,43 +64,50 @@ export default function DockPlansPermit() {
     (state: RootState) => state.serviceForm.projectBasics,
   );
 
-  const hasPlans = useSelector((state: RootState) => {
+  const reduxHasPlans = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details) return data.details.hasPlans;
     return "";
   });
 
-  const planDrawingPhotos = useSelector((state: RootState) => {
+  const reduxPlanDrawingPhotos = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.planDrawingPhotos || [];
     return [];
   });
 
-  const hasPermit = useSelector((state: RootState) => {
+  const reduxHasPermit = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details) return data.details.hasPermit;
     return "";
   });
 
-  const permitNumber = useSelector((state: RootState) => {
+  const reduxPermitNumber = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.permitNumber;
     return "";
   });
 
+  // ─── Local state ──────────────────────────────────────────────────────────────
+  const [hasPlans, setHasPlans] = useState(reduxHasPlans || "");
+  const [planDrawingPhotos, setPlanDrawingPhotos] = useState<string[]>(
+    reduxPlanDrawingPhotos || [],
+  );
+  const [hasPermit, setHasPermit] = useState(reduxHasPermit || "");
+  const [permitNumber, setPermitNumber] = useState(reduxPermitNumber || "");
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.hasPlansDrawings !== undefined) {
-      dispatch(
-        updateDockPowerDetails({
-          hasPlans: draft.hasPlansDrawings ? "Yes" : "No",
-        }),
-      );
+      const val = draft.hasPlansDrawings ? "Yes" : "No";
+      setHasPlans(val);
+      dispatch(updateDockPowerDetails({ hasPlans: val as any }));
     }
     if (draft.plansDrawingsPhotos?.length) {
+      setPlanDrawingPhotos(draft.plansDrawingsPhotos);
       dispatch(
         updateDockPowerDetails({
           planDrawingPhotos: draft.plansDrawingsPhotos,
@@ -109,13 +115,10 @@ export default function DockPlansPermit() {
       );
     }
     if (draft.permitApplied !== undefined) {
-      dispatch(
-        updateDockPowerDetails({
-          hasPermit: draft.permitApplied ? "Yes" : "No",
-        }),
-      );
+      const val = draft.permitApplied ? "Yes" : "No";
+      setHasPermit(val);
+      dispatch(updateDockPowerDetails({ hasPermit: val as any }));
     }
-    // Removed: permitNumber prefill from draft since it doesn't exist in DockPowerRecord
   }, [draft]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
@@ -144,8 +147,18 @@ export default function DockPlansPermit() {
     }
   };
 
+  const handlePhotosChange = (updated: string[]) => {
+    setPlanDrawingPhotos(updated);
+    dispatch(updateDockPowerDetails({ planDrawingPhotos: updated }));
+  };
+
   const deleteImageHandler = async (imageUrl: string) => {
-    await deleteImage({ imageUrl }).unwrap();
+    try {
+      await deleteImage({ imageUrl }).unwrap();
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to delete photo.");
+      throw error;
+    }
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
@@ -164,11 +177,19 @@ export default function DockPlansPermit() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      hasPlansDrawings: hasPlans === "Yes",
-      plansDrawingsPhotos: planDrawingPhotos || [],
-      permitApplied: hasPermit === "Yes",
-      // Removed: permitNumber from payload
-      status: "draft" as const,
+      hasPlansDrawings:
+        hasPlans !== ""
+          ? hasPlans === "Yes"
+          : (draft?.hasPlansDrawings ?? reduxHasPlans === "Yes"),
+      plansDrawingsPhotos: planDrawingPhotos.length
+        ? planDrawingPhotos
+        : draft?.plansDrawingsPhotos?.length
+          ? draft.plansDrawingsPhotos
+          : reduxPlanDrawingPhotos,
+      permitApplied:
+        hasPermit !== ""
+          ? hasPermit === "Yes"
+          : (draft?.permitApplied ?? reduxHasPermit === "Yes"),
       completionPercentage,
     };
 
@@ -215,46 +236,51 @@ export default function DockPlansPermit() {
 
           <AuthHeading title="Plans, Permit & Timeline" subtitle="" />
 
+          {/* ── Has Plans ── */}
           <OptionGrid
             label="Do you have any plans/drawings for the Dock power?"
             options={["Yes", "No"]}
             selected={hasPlans}
-            onSelect={(val) =>
+            onSelect={(val) => {
+              setHasPlans(val);
+              setPlanDrawingPhotos([]);
               dispatch(
                 updateDockPowerDetails({
                   hasPlans: val as any,
                   planDrawingPhotos: [],
                 }),
-              )
-            }
+              );
+            }}
             numColumns={1}
           />
 
           {hasPlans === "Yes" && (
             <PhotoUploadSection
+              key="plans-photo-section"
               label="Please Upload the plans Drawing"
               photos={planDrawingPhotos}
-              onPhotosChange={(p) =>
-                dispatch(updateDockPowerDetails({ planDrawingPhotos: p }))
-              }
+              onPhotosChange={handlePhotosChange}
               onUploadSingle={handlePlansUploadSingle}
               onDeleteSingle={deleteImageHandler}
               isUploading={uploadingSection === "plans"}
             />
           )}
 
+          {/* ── Has Permit ── */}
           <OptionGrid
             label="Has a permit been applied for?"
             options={["Yes", "No"]}
             selected={hasPermit}
-            onSelect={(val) =>
+            onSelect={(val) => {
+              setHasPermit(val);
+              setPermitNumber("");
               dispatch(
                 updateDockPowerDetails({
                   hasPermit: val as any,
                   permitNumber: "",
                 }),
-              )
-            }
+              );
+            }}
             numColumns={1}
           />
 
@@ -264,8 +290,10 @@ export default function DockPlansPermit() {
               textInputConfig={{
                 placeholder: "Permit number",
                 value: permitNumber,
-                onChangeText: (text) =>
-                  dispatch(updateDockPowerDetails({ permitNumber: text })),
+                onChangeText: (text) => {
+                  setPermitNumber(text);
+                  dispatch(updateDockPowerDetails({ permitNumber: text }));
+                },
               }}
             />
           )}

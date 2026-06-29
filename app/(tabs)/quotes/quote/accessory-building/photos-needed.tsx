@@ -305,7 +305,6 @@ export default function GeneratorPhotosNeeded() {
           <AuthHeading title="Photos needed" subtitle="" />
 
           <PhotoUploadSection
-            key={`existing-${existingSpacePhotos.length}`}
             label="Upload photos of route"
             photos={existingSpacePhotos}
             onPhotosChange={(p) =>
@@ -319,7 +318,6 @@ export default function GeneratorPhotosNeeded() {
           />
           <View className="mt-1">
             <PhotoUploadSection
-              key={`panel-${panelPhotos.length}`}
               label="Please upload clear photo of electrical panel up close so we can see the numbers and about 10 ft away."
               photos={panelPhotos}
               onPhotosChange={(p) =>

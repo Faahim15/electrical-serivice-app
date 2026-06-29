@@ -1,10 +1,9 @@
 import { requestsuccess } from "@/assets/iocns/icon";
-import BackButton from "@/src/components/shared/BackButton";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import { SERVICE_CATEGORIES } from "@/src/constants/tabs.home.constant";
 import { RootState } from "@/src/redux/store";
 import { verticalScale } from "@/src/utils/Scaling";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,6 +19,7 @@ const RequestReceived = () => {
   const refAnim = useRef(new Animated.Value(0)).current;
   const btnAnim = useRef(new Animated.Value(0)).current;
 
+  const { serviceType } = useLocalSearchParams();
   // ── Slice data ──────────────────────────────────────────
   const selectedCategoryId = useSelector(
     (state: RootState) => state.serviceForm.selectedCategoryId,
@@ -52,7 +52,7 @@ const RequestReceived = () => {
   const infoRows = [
     {
       label: "Quote Type",
-      value: selectedCategory?.title ?? "—",
+      value: selectedCategory?.title || serviceType,
     },
     {
       label: "Submitted",
@@ -115,7 +115,7 @@ const RequestReceived = () => {
 
   return (
     <ScreenWrapper>
-      <BackButton />
+      {/* <BackButton /> */}
 
       <SafeAreaView className="flex-1">
         <View style={{ flex: 1, paddingBottom: verticalScale(120) }}>
@@ -210,14 +210,14 @@ const RequestReceived = () => {
                 ],
               }}
             >
-              <View
+              {/* <View
                 className="self-start rounded-full px-4 py-[6px] mt-1"
                 style={{ backgroundColor: "#FEF9C3" }}
               >
                 <Text className="text-[#92400E] text-sm font-Inter_Medium">
                   Reference ID: {referenceId}
                 </Text>
-              </View>
+              </View> */}
             </Animated.View>
           </Animated.View>
 
@@ -262,7 +262,7 @@ const RequestReceived = () => {
               <Pressable
                 className="flex-1 rounded-full py-[14px] items-center bg-white"
                 onPress={() => {
-                  router.push("/(tabs)/quotes/my-quotes");
+                  router.push("/(tabs)/home/my-quotation");
                 }}
                 style={{
                   shadowColor: "#0EA5E9",

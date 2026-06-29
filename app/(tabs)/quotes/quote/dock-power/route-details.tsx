@@ -12,7 +12,7 @@ import { updateDockPowerDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
@@ -20,7 +20,6 @@ import { toast } from "sonner-native";
 const CURRENT_STEP = 6;
 const TOTAL_STEPS = 10;
 
-// ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
@@ -53,26 +52,41 @@ export default function DockRouteDetails() {
     (state: RootState) => state.serviceForm.projectBasics,
   );
 
-  const privateUtilities = useSelector((state: RootState) => {
+  const reduxPrivateUtilities = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.privateUtilities;
     return "";
   });
 
-  const routeDistance = useSelector((state: RootState) => {
+  const reduxRouteDistance = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.routeDistance;
     return "";
   });
 
+  // ─── Local state ──────────────────────────────────────────────────────────────
+  const [privateUtilities, setPrivateUtilities] = useState(
+    reduxPrivateUtilities || "",
+  );
+  const [routeDistance, setRouteDistance] = useState(reduxRouteDistance || "");
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.routeDistanceDetails) {
+      setRouteDistance(draft.routeDistanceDetails);
       dispatch(
         updateDockPowerDetails({ routeDistance: draft.routeDistanceDetails }),
+      );
+    }
+    if (draft.privateUtilitiesDetails) {
+      setPrivateUtilities(draft.privateUtilitiesDetails);
+      dispatch(
+        updateDockPowerDetails({
+          privateUtilities: draft.privateUtilitiesDetails,
+        }),
       );
     }
   }, [draft]);
@@ -93,7 +107,16 @@ export default function DockRouteDetails() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      routeDistanceDetails: routeDistance || "",
+      privateUtilitiesDetails:
+        draft?.privateUtilitiesDetails ||
+        privateUtilities ||
+        reduxPrivateUtilities ||
+        "",
+      routeDistanceDetails:
+        draft?.routeDistanceDetails ||
+        routeDistance ||
+        reduxRouteDistance ||
+        "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -145,9 +168,10 @@ export default function DockRouteDetails() {
             label="Please list any known private utilities between the house and Dock power"
             placeholder="Irrigation, private sewer/well, water, propane, etc."
             value={privateUtilities}
-            onChangeText={(text) =>
-              dispatch(updateDockPowerDetails({ privateUtilities: text }))
-            }
+            onChangeText={(text) => {
+              setPrivateUtilities(text);
+              dispatch(updateDockPowerDetails({ privateUtilities: text }));
+            }}
             minHeight={100}
           />
 
@@ -155,9 +179,10 @@ export default function DockRouteDetails() {
             label="Distance & route to the dock"
             placeholder="E.g., Panel is in the garage, dock is 75 ft away along the left side of the yard to the waterfront"
             value={routeDistance}
-            onChangeText={(text) =>
-              dispatch(updateDockPowerDetails({ routeDistance: text }))
-            }
+            onChangeText={(text) => {
+              setRouteDistance(text);
+              dispatch(updateDockPowerDetails({ routeDistance: text }));
+            }}
             minHeight={100}
           />
 

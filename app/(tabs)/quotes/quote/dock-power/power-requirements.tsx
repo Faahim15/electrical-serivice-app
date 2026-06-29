@@ -12,6 +12,7 @@ import { useDraftSave } from "@/src/hooks/useDraftSave";
 import { updateDockPowerDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
@@ -190,9 +191,9 @@ export default function PowerRequirements() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      electricalServiceType: serviceType_ || "",
-      subPanelSize: subPanelSize || "",
-      panelLocation: panelLocation || "",
+      electricalServiceType: draft?.electricalServiceType || serviceType_ || "",
+      subPanelSize: draft?.subPanelSize || subPanelSize || "",
+      panelLocation: draft?.panelLocation || panelLocation || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -230,7 +231,7 @@ export default function PowerRequirements() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}

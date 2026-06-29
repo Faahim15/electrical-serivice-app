@@ -14,10 +14,10 @@ export type ActivityItem = {
   subtitle: string;
   badge?: string;
   badgeColor?: string;
-  route: string;
-  type: string;
-  iconColor: string;
-  iconBg: string;
+  route?: string;
+  type?: string;
+  iconColor?: string;
+  iconBg?: string;
 };
 
 export interface ServiceCategory {

@@ -9,19 +9,15 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateEVChargerDetails } from "@/src/redux/slices/serviceFormSlice";
-import { RootState } from "@/src/redux/store";
 import {
-  EVChargerPanelLocationFormValues,
-  evChargerPanelLocationSchema,
-} from "@/src/schemas/quotes/ev-charger/ev-chargerPanelLocationSchema";
+  selectCategory,
+  updateEVChargerDetails,
+} from "@/src/redux/slices/serviceFormSlice";
+import { RootState } from "@/src/redux/store";
 import { EvChargerInstallationResponse } from "@/src/types/evCharger.api.types";
-import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -51,19 +47,19 @@ const PANEL_DISTANCES = [
   "Unsure",
 ];
 
-// ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
   return formData;
 };
 
-// Type guard to check if draft is EV Charger type
 const isEvChargerDraft = (
-  draft: ServiceCallResponse | EvChargerInstallationResponse,
+  draft: any,
 ): draft is EvChargerInstallationResponse => {
   return (
-    (draft as EvChargerInstallationResponse).chargerConnectionType !== undefined
+    draft &&
+    typeof draft === "object" &&
+    draft.chargerConnectionType !== undefined
   );
 };
 
@@ -97,206 +93,217 @@ export default function PanelLocation() {
     serviceTypeParam || selectedCategory?.title || "EV Charger Installation";
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
 
+  useEffect(() => {
+    if (!categoryData || categoryData.categoryId !== "2") {
+      dispatch(selectCategory("2"));
+    }
+  }, []);
+
   // ─── Get current values from Redux ───────────────────────────────────────────
   const reduxPanelLocation =
     categoryData?.categoryId === "2"
-      ? (categoryData.details as any)?.panelLocation
+      ? (categoryData.details as any)?.panelLocation || ""
       : "";
   const reduxPanelDistance =
     categoryData?.categoryId === "2"
-      ? (categoryData.details as any)?.panelDistance
+      ? (categoryData.details as any)?.panelDistance || ""
       : "";
   const reduxPanelLocationOther =
     categoryData?.categoryId === "2"
-      ? (categoryData.details as any)?.panelLocationOther
+      ? (categoryData.details as any)?.panelLocationOther || ""
+      : "";
+  const reduxChargerType =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerType || ""
+      : "";
+  const reduxNemaConfig =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.nemaConfig || ""
+      : "";
+  const reduxProvidingCharger =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.providingCharger || ""
+      : "";
+  const reduxChargerStatus =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerStatus || ""
+      : "";
+  const reduxInstallationLocation =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.installationLocation || ""
+      : "";
+  const reduxChargerAreaPhotos =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerAreaPhotos || []
+      : [];
+  const reduxPanelPhotos =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.panelPhotos || []
+      : [];
+  const reduxAdditionalInfo =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.additionalInfo || ""
       : "";
 
-  // Determine if the saved value is a custom "Other" value
-  const isOtherSelected =
-    reduxPanelLocation &&
-    !PANEL_LOCATIONS.includes(reduxPanelLocation as any) &&
-    reduxPanelLocation !== "";
+  // ─── Local state ──────────────────────────────────────────────────────────────
+  const [panelLocation, setPanelLocation] = useState(reduxPanelLocation || "");
+  const [panelLocationOther, setPanelLocationOther] = useState(
+    reduxPanelLocationOther || "",
+  );
+  const [panelDistance, setPanelDistance] = useState(reduxPanelDistance || "");
+  const [errors, setErrors] = useState<{
+    panelLocation?: string;
+    panelLocationOther?: string;
+    panelDistance?: string;
+  }>({});
 
   // ─── API hooks ────────────────────────────────────────────────────────────────
   const { createDraft, updateDraft, isSaving } = useDraftSave();
   const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
-
-  // ─── React Hook Form ──────────────────────────────────────────────────────────
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    getValues,
-    watch,
-    formState: { errors },
-  } = useForm<EVChargerPanelLocationFormValues>({
-    resolver: zodResolver(evChargerPanelLocationSchema),
-    mode: "onChange",
-    defaultValues: {
-      panelLocation: isOtherSelected
-        ? "Other (please specify)"
-        : reduxPanelLocation || "",
-      panelLocationOther: isOtherSelected
-        ? reduxPanelLocation
-        : reduxPanelLocationOther || "",
-      panelDistance: reduxPanelDistance || "",
-    },
-  });
-
-  const watchedPanelLocation = watch("panelLocation");
+  const isEvCharger = isEvChargerDraft(draftData);
 
   // ─── Prefill from API draft ───────────────────────────────────────────────────
   useEffect(() => {
-    if (draftData && isEvChargerDraft(draftData)) {
-      const apiPanelLocation = draftData.panelLocation;
-      const apiPanelDistance = draftData.panelDistance;
+    if (!draftData || !isEvCharger) return;
 
-      if (apiPanelLocation) {
-        if (PANEL_LOCATIONS.includes(apiPanelLocation as any)) {
-          setValue("panelLocation", apiPanelLocation);
-          setValue("panelLocationOther", "");
-          dispatch(
-            updateEVChargerDetails({
-              panelLocation: apiPanelLocation as any,
-              panelLocationOther: "",
-            }),
-          );
-        } else {
-          setValue("panelLocation", "Other (please specify)");
-          setValue("panelLocationOther", apiPanelLocation);
-          dispatch(
-            updateEVChargerDetails({
-              panelLocation: "Other (please specify)",
-              panelLocationOther: apiPanelLocation,
-            }),
-          );
-        }
-      }
+    const apiPanelLocation = draftData.panelLocation;
+    const apiPanelDistance = draftData.panelDistance;
 
-      if (apiPanelDistance) {
-        setValue("panelDistance", apiPanelDistance);
+    if (apiPanelLocation) {
+      if (PANEL_LOCATIONS.includes(apiPanelLocation)) {
+        setPanelLocation(apiPanelLocation);
+        setPanelLocationOther("");
         dispatch(
           updateEVChargerDetails({
-            panelDistance: apiPanelDistance as any,
+            panelLocation: apiPanelLocation as any,
+            panelLocationOther: "",
+          }),
+        );
+      } else {
+        setPanelLocation("Other (please specify)");
+        setPanelLocationOther(apiPanelLocation);
+        dispatch(
+          updateEVChargerDetails({
+            panelLocation: "Other (please specify)" as any,
+            panelLocationOther: apiPanelLocation,
           }),
         );
       }
     }
-  }, [draftData]);
 
-  // ─── Save for Later ──────────────────────────────────────────────────────────
-  const handleSaveForLater = async () => {
-    const values = getValues();
-
-    // Determine the final panelLocation value for API
-    let finalPanelLocation = "";
-    if (values.panelLocation === "Other (please specify)") {
-      finalPanelLocation = values.panelLocationOther || "";
-    } else {
-      finalPanelLocation = values.panelLocation || "";
-    }
-
-    // Get all required data from Redux or draft
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    // Get previous step data from Redux or draft
-    const previousData =
-      categoryData?.categoryId === "2" ? (categoryData.details as any) : {};
-
-    let finalChargerType = previousData.chargerType;
-    let finalNemaConfig = previousData.nemaConfig;
-    let finalProvidingCharger = previousData.providingCharger;
-    let finalChargerStatus = previousData.chargerStatus;
-    let finalInstallationLocation = previousData.installationLocation;
-
-    if (draftData && isEvChargerDraft(draftData)) {
-      finalChargerType = draftData.chargerConnectionType || finalChargerType;
-      finalNemaConfig = draftData.nemaConfiguration || finalNemaConfig;
-      finalProvidingCharger =
-        draftData.chargerProvidedByUser !== undefined
-          ? draftData.chargerProvidedByUser
-            ? "Yes"
-            : "No"
-          : finalProvidingCharger;
-      finalChargerStatus = draftData.chargerStatus || finalChargerStatus;
-      finalInstallationLocation =
-        draftData.installationLocation || finalInstallationLocation;
-    }
-
-    // Build payload matching the EV Charger API structure
-    const payload = {
-      fullName: finalFullName || "",
-      phoneNumber: finalPhone || "",
-      emailAddress: finalEmail || "",
-      preferredContactMethod: finalPreferredContact || "Call",
-      streetAddress: finalStreetAddress || "",
-      apartmentUnit: finalApartment || "",
-      city: finalCity || "",
-      state: finalState || "",
-      zipCode: finalZipCode || "",
-      propertyType: finalPropertyType || "",
-      ownershipStatus: finalOwnershipStatus || "",
-      timelineUrgency: finalTimeline || "",
-      chargerConnectionType: finalChargerType || "",
-      nemaConfiguration: finalNemaConfig || "",
-      chargerProvidedByUser: finalProvidingCharger === "Yes",
-      chargerStatus: finalChargerStatus || "",
-      installationLocation: finalInstallationLocation || "",
-      panelLocation: finalPanelLocation || "",
-      panelDistance: values.panelDistance || "",
-      status: "draft" as const,
-      completionPercentage,
-    };
-
-    // Create FormData from payload
-    const formData = createFormData(payload);
-
-    try {
-      if (serviceCallId) {
-        await updateDraft(serviceCallId, serviceType, formData);
-      } else {
-        await createDraft(serviceType, formData);
-      }
-      toast.success("Draft saved successfully!");
-      router.push("/(tabs)/home/saved-draft");
-    } catch (error: any) {
-      console.log("Save draft error:", error);
-      toast.error(
-        error?.data?.message || "Failed to save draft. Please try again.",
+    if (apiPanelDistance) {
+      setPanelDistance(apiPanelDistance);
+      dispatch(
+        updateEVChargerDetails({ panelDistance: apiPanelDistance as any }),
       );
     }
+  }, [draftData]);
+
+  // ─── Validation ───────────────────────────────────────────────────────────────
+  const validate = () => {
+    const newErrors: typeof errors = {};
+    if (!panelLocation)
+      newErrors.panelLocation = "Please select a panel location.";
+    if (
+      panelLocation === "Other (please specify)" &&
+      !panelLocationOther.trim()
+    ) {
+      newErrors.panelLocationOther = "Please specify the panel location.";
+    }
+    if (!panelDistance)
+      newErrors.panelDistance = "Please select a panel distance.";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // ─── Continue handler ────────────────────────────────────────────────────────
-  const onSubmit = (values: EVChargerPanelLocationFormValues) => {
-    // Store both values in Redux
+  const handleContinue = () => {
+    if (!validate()) return;
     dispatch(
       updateEVChargerDetails({
-        panelLocation: values.panelLocation as any,
-        panelLocationOther: values.panelLocationOther || "",
-        panelDistance: values.panelDistance as any,
+        panelLocation: panelLocation as any,
+        panelLocationOther: panelLocationOther,
+        panelDistance: panelDistance as any,
       }),
     );
-
     router.push({
       pathname: "/(tabs)/quotes/quote/ev-charger/photos-needed",
       params: { serviceCallId, serviceType },
     });
+  };
+
+  // ─── Save for Later ──────────────────────────────────────────────────────────
+  const handleSaveForLater = async () => {
+    const finalPanelLocation =
+      panelLocation === "Other (please specify)"
+        ? panelLocationOther
+        : panelLocation;
+
+    const payload = {
+      fullName: draftData?.fullName || contactDetails.fullName || "",
+      emailAddress: draftData?.emailAddress || contactDetails.email || "",
+      phoneNumber: draftData?.phoneNumber || contactDetails.phone || "",
+      preferredContactMethod:
+        draftData?.preferredContactMethod ||
+        contactDetails.preferredContact ||
+        "Call",
+      streetAddress:
+        draftData?.streetAddress || serviceAddress.streetAddress || "",
+      apartmentUnit: draftData?.apartmentUnit || serviceAddress.apartment || "",
+      city: draftData?.city || serviceAddress.city || "",
+      state: draftData?.state || serviceAddress.state || "",
+      zipCode: draftData?.zipCode || serviceAddress.zipCode || "",
+      propertyType: draftData?.propertyType || projectBasics.propertyType || "",
+      ownershipStatus:
+        draftData?.ownershipStatus || projectBasics.ownershipStatus || "",
+      timelineUrgency:
+        draftData?.timelineUrgency || projectBasics.timeline || "",
+      chargerConnectionType:
+        (isEvCharger && draftData.chargerConnectionType) ||
+        reduxChargerType ||
+        "",
+      nemaConfiguration:
+        (isEvCharger && draftData.nemaConfiguration) || reduxNemaConfig || "",
+      chargerProvidedByUser:
+        isEvCharger && draftData.chargerProvidedByUser !== undefined
+          ? draftData.chargerProvidedByUser
+          : reduxProvidingCharger === "Yes",
+      chargerStatus:
+        (isEvCharger && draftData.chargerStatus) || reduxChargerStatus || "",
+      installationLocation:
+        (isEvCharger && draftData.installationLocation) ||
+        reduxInstallationLocation ||
+        "",
+      panelLocation:
+        (isEvCharger && draftData.panelLocation) || finalPanelLocation || "",
+      panelDistance:
+        (isEvCharger && draftData.panelDistance) || panelDistance || "",
+      areaPhoto:
+        (isEvCharger && draftData.areaPhoto) ||
+        (reduxChargerAreaPhotos?.length > 0 ? reduxChargerAreaPhotos[0] : ""),
+      panelPhotos:
+        (isEvCharger && draftData.panelPhotos) || reduxPanelPhotos || [],
+      additionalInformation:
+        (isEvCharger && draftData.additionalInformation) ||
+        reduxAdditionalInfo ||
+        "",
+      status: "draft" as const,
+      completionPercentage,
+    };
+
+    try {
+      if (serviceCallId) {
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
+      } else {
+        await createDraft(serviceType, createFormData(payload));
+      }
+      toast.success("Draft saved successfully!");
+      router.push("/(tabs)/home/saved-draft");
+    } catch (error: any) {
+      toast.error(
+        error?.data?.message || "Failed to save draft. Please try again.",
+      );
+    }
   };
 
   return (
@@ -322,82 +329,71 @@ export default function PanelLocation() {
             currentStep={CURRENT_STEP}
             totalSteps={TOTAL_STEPS}
           />
-
           <CategoryTag title={serviceType} />
-
           <AuthHeading
             title="Panel location"
             subtitle="Help us understand your electrical panel"
           />
 
-          <Controller
-            control={control}
-            name="panelLocation"
-            render={({ field: { value, onChange } }) => (
-              <>
-                <OptionGrid
-                  label="Where is your electrical panel located?"
-                  options={PANEL_LOCATIONS}
-                  selected={value || ""}
-                  onSelect={(val) => {
-                    onChange(val);
-                    if (val !== "Other (please specify)") {
-                      setValue("panelLocationOther", "");
-                    }
-                  }}
-                  numColumns={1}
-                />
-                {errors.panelLocation && (
-                  <Text className="text-red-500 text-xs mb-2">
-                    {errors.panelLocation.message}
-                  </Text>
-                )}
-              </>
-            )}
+          {/* ── Panel Location ── */}
+          <OptionGrid
+            label="Where is your electrical panel located?"
+            options={PANEL_LOCATIONS}
+            selected={panelLocation}
+            onSelect={(val) => {
+              setPanelLocation(val);
+              if (val !== "Other (please specify)") {
+                setPanelLocationOther("");
+              }
+              setErrors((prev) => ({ ...prev, panelLocation: undefined }));
+            }}
+            numColumns={1}
           />
+          {errors.panelLocation && (
+            <Text className="text-red-500 text-xs mb-2">
+              {errors.panelLocation}
+            </Text>
+          )}
 
-          {watchedPanelLocation === "Other (please specify)" && (
-            <Controller
-              control={control}
-              name="panelLocationOther"
-              render={({ field: { value, onChange } }) => (
-                <TextAreaInput
-                  label="Please specify"
-                  placeholder="Describe your panel location"
-                  value={value || ""}
-                  onChangeText={onChange}
-                  error={errors.panelLocationOther?.message}
-                />
-              )}
+          {/* ── Other specify ── */}
+          {panelLocation === "Other (please specify)" && (
+            <TextAreaInput
+              label="Please specify"
+              placeholder="Describe your panel location"
+              value={panelLocationOther}
+              onChangeText={(val) => {
+                setPanelLocationOther(val);
+                setErrors((prev) => ({
+                  ...prev,
+                  panelLocationOther: undefined,
+                }));
+              }}
+              error={errors.panelLocationOther}
             />
           )}
 
-          <Controller
-            control={control}
-            name="panelDistance"
-            render={({ field: { value, onChange } }) => (
-              <>
-                <OptionGrid
-                  label="What is the approximate distance of the electrical panel from charger install location?"
-                  sublabel={true}
-                  options={PANEL_DISTANCES}
-                  selected={value || ""}
-                  onSelect={onChange}
-                  numColumns={1}
-                />
-                {errors.panelDistance && (
-                  <Text className="text-red-500 text-xs mb-2">
-                    {errors.panelDistance.message}
-                  </Text>
-                )}
-              </>
-            )}
+          {/* ── Panel Distance ── */}
+          <OptionGrid
+            label="What is the approximate distance of the electrical panel from charger install location?"
+            sublabel={true}
+            options={PANEL_DISTANCES}
+            selected={panelDistance}
+            onSelect={(val) => {
+              setPanelDistance(val);
+              setErrors((prev) => ({ ...prev, panelDistance: undefined }));
+            }}
+            numColumns={1}
           />
+          {errors.panelDistance && (
+            <Text className="text-red-500 text-xs mb-2">
+              {errors.panelDistance}
+            </Text>
+          )}
 
           <View className="mt-[3%]">
             <GradientButton
               label="Continue"
-              onPress={handleSubmit(onSubmit)}
+              onPress={handleContinue}
               disabled={isSaving}
             />
           </View>

@@ -244,7 +244,6 @@ export default function AdditionalInfo() {
           />
 
           <TextAreaInput
-            key={`additional-${additionalInfo}`}
             label="Additional Information"
             placeholder="any additional information you feel we should know for your quote"
             value={additionalInfo}

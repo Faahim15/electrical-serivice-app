@@ -12,6 +12,7 @@ import { useDraftSave } from "@/src/hooks/useDraftSave";
 import { updatePanelUpgradeDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { PanelUpgradeRecord } from "@/src/types/quotes/panel.upgrader.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
@@ -151,7 +152,8 @@ export default function PanelLocationScreen() {
       }
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
-    } catch {
+    } catch (error: any) {
+      console.log({ error });
       toast.error("Failed to save draft. Please try again.");
     }
   };
@@ -177,7 +179,7 @@ export default function PanelLocationScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}

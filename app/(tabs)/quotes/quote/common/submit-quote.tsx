@@ -11,6 +11,7 @@ import { clearServiceForm } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { buildPayload } from "@/src/utils/payloadBuilders";
 import { router, useLocalSearchParams } from "expo-router";
+import { dismissAll } from "expo-router/build/global-state/routing";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -193,7 +194,11 @@ const SubmitQuoteRequest = () => {
 
       dispatch(clearServiceForm());
       toast.success("Request submitted! We'll be in touch soon. 🎉");
-      router.push("/(tabs)/quotes/quote/common/request-received");
+      dismissAll();
+      router.replace({
+        pathname: "/(tabs)/quotes/quote/common/request-received",
+        params: { serviceType },
+      });
     } catch (error: any) {
       console.log(error.data);
       toast.error("Submission failed. Please try again.");

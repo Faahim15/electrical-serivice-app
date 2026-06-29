@@ -205,7 +205,6 @@ export default function ElectricalNeeds() {
           <AuthHeading title="Electrical needs" subtitle="" />
 
           <TextAreaInput
-            key="electrical-needs"
             label="What are the electrical needs for the accessory building?"
             placeholder="Describe lighting, outlets, equipment, etc."
             value={electricalNeeds}
@@ -218,7 +217,6 @@ export default function ElectricalNeeds() {
           />
 
           <OptionGrid
-            key={`heating-cooling-${hasHeatingCooling}`}
             label="Will there be any heating or cooling equipment in the accessory building?"
             options={["Yes", "No"]}
             selected={hasHeatingCooling}

@@ -8,10 +8,12 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateEVChargerDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateEVChargerDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { EvChargerInstallationResponse } from "@/src/types/evCharger.api.types";
-import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
@@ -28,12 +30,14 @@ const createFormData = (payload: Record<string, any>) => {
   return formData;
 };
 
-// Type guard to check if draft is EV Charger type
+// ✅ Updated type guard - accepts any type and checks for EV Charger properties
 const isEvChargerDraft = (
-  draft: ServiceCallResponse | EvChargerInstallationResponse,
+  draft: any,
 ): draft is EvChargerInstallationResponse => {
   return (
-    (draft as EvChargerInstallationResponse).chargerConnectionType !== undefined
+    draft &&
+    typeof draft === "object" &&
+    draft.chargerConnectionType !== undefined
   );
 };
 
@@ -68,17 +72,22 @@ export default function AdditionalInfo() {
     serviceTypeParam || selectedCategory?.title || "EV Charger Installation";
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
 
+  // ─── Ensure category is set ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!categoryData || categoryData.categoryId !== "2") {
+      dispatch(selectCategory("2"));
+    }
+  }, []);
+
   // ─── Get current values from Redux ───────────────────────────────────────────
   const additionalInfo =
     categoryData?.categoryId === "2"
-      ? (categoryData.details as any)?.additionalInfo
+      ? (categoryData.details as any)?.additionalInfo || ""
       : "";
 
   // Update local state when Redux changes
   useEffect(() => {
-    if (additionalInfo) {
-      setLocalAdditionalInfo(additionalInfo);
-    }
+    setLocalAdditionalInfo(additionalInfo);
   }, [additionalInfo]);
 
   // ─── API hooks ────────────────────────────────────────────────────────────────
@@ -87,7 +96,9 @@ export default function AdditionalInfo() {
 
   // ─── Prefill from API draft ───────────────────────────────────────────────────
   useEffect(() => {
-    if (draftData && isEvChargerDraft(draftData)) {
+    if (!draftData) return;
+
+    if (isEvChargerDraft(draftData)) {
       if (draftData.additionalInformation) {
         setLocalAdditionalInfo(draftData.additionalInformation);
         dispatch(
@@ -107,35 +118,39 @@ export default function AdditionalInfo() {
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
-    // Get all required data from Redux or draft
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
+    // ✅ Draft first, then Redux as fallback for ALL fields
+    const finalFullName = draftData?.fullName || contactDetails.fullName || "";
+    const finalEmail = draftData?.emailAddress || contactDetails.email || "";
+    const finalPhone = draftData?.phoneNumber || contactDetails.phone || "";
     const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
+      draftData?.preferredContactMethod ||
+      contactDetails.preferredContact ||
+      "Call";
     const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
+      draftData?.streetAddress || serviceAddress.streetAddress || "";
+    const finalApartment =
+      draftData?.apartmentUnit || serviceAddress.apartment || "";
+    const finalCity = draftData?.city || serviceAddress.city || "";
+    const finalState = draftData?.state || serviceAddress.state || "";
+    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode || "";
     const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
+      draftData?.propertyType || projectBasics.propertyType || "";
     const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
+      draftData?.ownershipStatus || projectBasics.ownershipStatus || "";
+    const finalTimeline =
+      draftData?.timelineUrgency || projectBasics.timeline || "";
 
     // Get previous step data from Redux or draft
     const previousData =
       categoryData?.categoryId === "2" ? (categoryData.details as any) : {};
 
-    let finalChargerType = previousData.chargerType;
-    let finalNemaConfig = previousData.nemaConfig;
-    let finalProvidingCharger = previousData.providingCharger;
-    let finalChargerStatus = previousData.chargerStatus;
-    let finalInstallationLocation = previousData.installationLocation;
-    let finalPanelLocation = previousData.panelLocation;
-    let finalPanelDistance = previousData.panelDistance;
+    let finalChargerType = previousData.chargerType || "";
+    let finalNemaConfig = previousData.nemaConfig || "";
+    let finalProvidingCharger = previousData.providingCharger || "";
+    let finalChargerStatus = previousData.chargerStatus || "";
+    let finalInstallationLocation = previousData.installationLocation || "";
+    let finalPanelLocation = previousData.panelLocation || "";
+    let finalPanelDistance = previousData.panelDistance || "";
     let finalAreaPhoto =
       previousData.chargerAreaPhotos?.length > 0
         ? previousData.chargerAreaPhotos[0]
@@ -162,25 +177,25 @@ export default function AdditionalInfo() {
 
     // Build payload matching the EV Charger API structure
     const payload = {
-      fullName: finalFullName || "",
-      phoneNumber: finalPhone || "",
-      emailAddress: finalEmail || "",
-      preferredContactMethod: finalPreferredContact || "Call",
-      streetAddress: finalStreetAddress || "",
-      apartmentUnit: finalApartment || "",
-      city: finalCity || "",
-      state: finalState || "",
-      zipCode: finalZipCode || "",
-      propertyType: finalPropertyType || "",
-      ownershipStatus: finalOwnershipStatus || "",
-      timelineUrgency: finalTimeline || "",
-      chargerConnectionType: finalChargerType || "",
-      nemaConfiguration: finalNemaConfig || "",
+      fullName: finalFullName,
+      phoneNumber: finalPhone,
+      emailAddress: finalEmail,
+      preferredContactMethod: finalPreferredContact,
+      streetAddress: finalStreetAddress,
+      apartmentUnit: finalApartment,
+      city: finalCity,
+      state: finalState,
+      zipCode: finalZipCode,
+      propertyType: finalPropertyType,
+      ownershipStatus: finalOwnershipStatus,
+      timelineUrgency: finalTimeline,
+      chargerConnectionType: finalChargerType,
+      nemaConfiguration: finalNemaConfig,
       chargerProvidedByUser: finalProvidingCharger === "Yes",
-      chargerStatus: finalChargerStatus || "",
-      installationLocation: finalInstallationLocation || "",
-      panelLocation: finalPanelLocation || "",
-      panelDistance: finalPanelDistance || "",
+      chargerStatus: finalChargerStatus,
+      installationLocation: finalInstallationLocation,
+      panelLocation: finalPanelLocation,
+      panelDistance: finalPanelDistance,
       areaPhoto: finalAreaPhoto,
       panelPhotos: finalPanelPhotos,
       additionalInformation: localAdditionalInfo || "",

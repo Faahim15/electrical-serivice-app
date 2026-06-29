@@ -18,7 +18,6 @@ import {
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { EvChargerInstallationResponse } from "@/src/types/evCharger.api.types";
-import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -29,19 +28,19 @@ import { toast } from "sonner-native";
 const CURRENT_STEP = 7;
 const TOTAL_STEPS = 9;
 
-// ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
   return formData;
 };
 
-// Type guard to check if draft is EV Charger type
 const isEvChargerDraft = (
-  draft: ServiceCallResponse | EvChargerInstallationResponse,
+  draft: any,
 ): draft is EvChargerInstallationResponse => {
   return (
-    (draft as EvChargerInstallationResponse).chargerConnectionType !== undefined
+    draft &&
+    typeof draft === "object" &&
+    draft.chargerConnectionType !== undefined
   );
 };
 
@@ -78,7 +77,6 @@ export default function PhotosNeeded() {
     serviceTypeParam || selectedCategory?.title || "EV Charger Installation";
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
 
-  // ─── Ensure category is set ──────────────────────────────────────────────────
   useEffect(() => {
     if (!categoryData || categoryData.categoryId !== "2") {
       dispatch(selectCategory("2"));
@@ -95,191 +93,188 @@ export default function PhotosNeeded() {
       ? (categoryData.details as any)?.panelPhotos || []
       : [];
 
-  console.log("=== PhotosNeeded Component ===");
-  console.log("chargerAreaPhotos from Redux:", chargerAreaPhotos);
-  console.log("panelPhotos from Redux:", panelPhotos);
-  console.log("categoryData:", categoryData);
+  const reduxChargerType =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerType || ""
+      : "";
+  const reduxNemaConfig =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.nemaConfig || ""
+      : "";
+  const reduxProvidingCharger =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.providingCharger || ""
+      : "";
+  const reduxChargerStatus =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.chargerStatus || ""
+      : "";
+  const reduxInstallationLocation =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.installationLocation || ""
+      : "";
+  const reduxPanelLocation =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.panelLocation || ""
+      : "";
+  const reduxPanelDistance =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.panelDistance || ""
+      : "";
+  const reduxAdditionalInfo =
+    categoryData?.categoryId === "2"
+      ? (categoryData.details as any)?.additionalInfo || ""
+      : "";
 
   // ─── API hooks ────────────────────────────────────────────────────────────────
   const { createDraft, updateDraft, isSaving } = useDraftSave();
   const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
+  const isEvCharger = isEvChargerDraft(draftData);
   const [uploadImages] = useUploadImagesMutation();
   const [deleteImage] = useDeleteImageMutation();
 
   // ─── Prefill from API draft ───────────────────────────────────────────────────
   useEffect(() => {
-    if (draftData && isEvChargerDraft(draftData)) {
-      console.log("Draft data loaded:", draftData);
-
-      // First, ensure category is set to EV Charger
-      if (!categoryData || categoryData.categoryId !== "2") {
-        dispatch(selectCategory("2"));
-      }
-
-      // Set area photo
-      if (draftData.areaPhoto) {
-        console.log("Setting area photo from draft:", draftData.areaPhoto);
-        dispatch(
-          updateEVChargerDetails({
-            chargerAreaPhotos: [draftData.areaPhoto],
-          }),
-        );
-      } else {
-        // Ensure empty array if no photo
-        dispatch(
-          updateEVChargerDetails({
-            chargerAreaPhotos: [],
-          }),
-        );
-      }
-
-      // Set panel photos
-      if (draftData.panelPhotos && draftData.panelPhotos.length > 0) {
-        console.log("Setting panel photos from draft:", draftData.panelPhotos);
-        dispatch(
-          updateEVChargerDetails({
-            panelPhotos: draftData.panelPhotos,
-          }),
-        );
-      } else {
-        // Ensure empty array if no photos
-        dispatch(
-          updateEVChargerDetails({
-            panelPhotos: [],
-          }),
-        );
-      }
+    if (!draftData) return;
+    if (isEvCharger) {
+      dispatch(
+        updateEVChargerDetails({
+          chargerAreaPhotos: draftData.areaPhoto ? [draftData.areaPhoto] : [],
+        }),
+      );
+      dispatch(
+        updateEVChargerDetails({
+          panelPhotos:
+            (draftData?.panelPhotos?.length as any) > 0
+              ? draftData.panelPhotos
+              : [],
+        }),
+      );
     }
   }, [draftData]);
 
-  // ─── Upload single image ─────────────────────────────────────────────────────
-  const uploadSingleImage = async (localUri: string): Promise<string> => {
-    console.log("Uploading image:", localUri);
+  // ─── Upload helpers ───────────────────────────────────────────────────────────
+  const uploadImage = async (localUri: string): Promise<string> => {
     const formData = new FormData();
     formData.append("images", {
       uri: localUri,
       name: "photo.jpg",
       type: "image/jpeg",
     } as any);
-
     const res = await uploadImages(formData).unwrap();
-    console.log("Upload response:", res);
     return res.data[0];
   };
 
-  // ─── Delete single image ─────────────────────────────────────────────────────
-  const deleteSingleImage = async (imageUrl: string) => {
-    console.log("Deleting image:", imageUrl);
-    await deleteImage({ imageUrl }).unwrap();
-  };
-
-  // ─── Handle Area Photos Change ──────────────────────────────────────────────
+  // ─── Area photo handlers ──────────────────────────────────────────────────────
   const handleAreaPhotosChange = (updated: string[]) => {
-    console.log("Area photos changed - new array:", updated);
-    // Ensure category is set before updating
-    if (!categoryData || categoryData.categoryId !== "2") {
-      dispatch(selectCategory("2"));
-    }
     dispatch(updateEVChargerDetails({ chargerAreaPhotos: updated }));
   };
 
-  // ─── Handle Panel Photos Change ──────────────────────────────────────────────
-  const handlePanelPhotosChange = (updated: string[]) => {
-    console.log("Panel photos changed - new array:", updated);
-    // Ensure category is set before updating
-    if (!categoryData || categoryData.categoryId !== "2") {
-      dispatch(selectCategory("2"));
+  const handleAreaUploadSingle = async (localUri: string): Promise<string> => {
+    try {
+      setUploadingSection("area");
+      const uploadedUrl = await uploadImage(localUri);
+      toast.success("Photo uploaded!");
+      return uploadedUrl;
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to upload photo.");
+      throw error;
+    } finally {
+      setUploadingSection(null);
     }
+  };
+
+  // ─── Panel photo handlers ─────────────────────────────────────────────────────
+  const handlePanelPhotosChange = (updated: string[]) => {
     dispatch(updateEVChargerDetails({ panelPhotos: updated }));
+  };
+
+  const handlePanelUploadSingle = async (localUri: string): Promise<string> => {
+    try {
+      setUploadingSection("panel");
+      const uploadedUrl = await uploadImage(localUri);
+      toast.success("Photo uploaded!");
+      return uploadedUrl;
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to upload photo.");
+      throw error;
+    } finally {
+      setUploadingSection(null);
+    }
+  };
+
+  // ─── Delete handler ───────────────────────────────────────────────────────────
+  const handleDeleteSingle = async (imageUrl: string) => {
+    try {
+      await deleteImage({ imageUrl }).unwrap();
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to delete photo.");
+      throw error;
+    }
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
-    // Get all required data from Redux or draft
-    const finalFullName = draftData?.fullName || contactDetails.fullName;
-    const finalEmail = draftData?.emailAddress || contactDetails.email;
-    const finalPhone = draftData?.phoneNumber || contactDetails.phone;
-    const finalPreferredContact =
-      draftData?.preferredContactMethod || contactDetails.preferredContact;
-    const finalStreetAddress =
-      draftData?.streetAddress || serviceAddress.streetAddress;
-    const finalApartment = draftData?.apartmentUnit || serviceAddress.apartment;
-    const finalCity = draftData?.city || serviceAddress.city;
-    const finalState = draftData?.state || serviceAddress.state;
-    const finalZipCode = draftData?.zipCode || serviceAddress.zipCode;
-    const finalPropertyType =
-      draftData?.propertyType || projectBasics.propertyType;
-    const finalOwnershipStatus =
-      draftData?.ownershipStatus || projectBasics.ownershipStatus;
-    const finalTimeline = draftData?.timelineUrgency || projectBasics.timeline;
-
-    // Get previous step data from Redux or draft
-    const previousData =
-      categoryData?.categoryId === "2" ? (categoryData.details as any) : {};
-
-    let finalChargerType = previousData.chargerType;
-    let finalNemaConfig = previousData.nemaConfig;
-    let finalProvidingCharger = previousData.providingCharger;
-    let finalChargerStatus = previousData.chargerStatus;
-    let finalInstallationLocation = previousData.installationLocation;
-    let finalPanelLocation = previousData.panelLocation;
-    let finalPanelDistance = previousData.panelDistance;
-
-    if (draftData && isEvChargerDraft(draftData)) {
-      finalChargerType = draftData.chargerConnectionType || finalChargerType;
-      finalNemaConfig = draftData.nemaConfiguration || finalNemaConfig;
-      finalProvidingCharger =
-        draftData.chargerProvidedByUser !== undefined
-          ? draftData.chargerProvidedByUser
-            ? "Yes"
-            : "No"
-          : finalProvidingCharger;
-      finalChargerStatus = draftData.chargerStatus || finalChargerStatus;
-      finalInstallationLocation =
-        draftData.installationLocation || finalInstallationLocation;
-      finalPanelLocation = draftData.panelLocation || finalPanelLocation;
-      finalPanelDistance = draftData.panelDistance || finalPanelDistance;
-    }
-
-    // Build payload matching the EV Charger API structure
     const payload = {
-      fullName: finalFullName || "",
-      phoneNumber: finalPhone || "",
-      emailAddress: finalEmail || "",
-      preferredContactMethod: finalPreferredContact || "Call",
-      streetAddress: finalStreetAddress || "",
-      apartmentUnit: finalApartment || "",
-      city: finalCity || "",
-      state: finalState || "",
-      zipCode: finalZipCode || "",
-      propertyType: finalPropertyType || "",
-      ownershipStatus: finalOwnershipStatus || "",
-      timelineUrgency: finalTimeline || "",
-      chargerConnectionType: finalChargerType || "",
-      nemaConfiguration: finalNemaConfig || "",
-      chargerProvidedByUser: finalProvidingCharger === "Yes",
-      chargerStatus: finalChargerStatus || "",
-      installationLocation: finalInstallationLocation || "",
-      panelLocation: finalPanelLocation || "",
-      panelDistance: finalPanelDistance || "",
-      areaPhoto: chargerAreaPhotos.length > 0 ? chargerAreaPhotos[0] : "",
-      panelPhotos: panelPhotos || [],
+      fullName: draftData?.fullName || contactDetails.fullName || "",
+      emailAddress: draftData?.emailAddress || contactDetails.email || "",
+      phoneNumber: draftData?.phoneNumber || contactDetails.phone || "",
+      preferredContactMethod:
+        draftData?.preferredContactMethod ||
+        contactDetails.preferredContact ||
+        "Call",
+      streetAddress:
+        draftData?.streetAddress || serviceAddress.streetAddress || "",
+      apartmentUnit: draftData?.apartmentUnit || serviceAddress.apartment || "",
+      city: draftData?.city || serviceAddress.city || "",
+      state: draftData?.state || serviceAddress.state || "",
+      zipCode: draftData?.zipCode || serviceAddress.zipCode || "",
+      propertyType: draftData?.propertyType || projectBasics.propertyType || "",
+      ownershipStatus:
+        draftData?.ownershipStatus || projectBasics.ownershipStatus || "",
+      timelineUrgency:
+        draftData?.timelineUrgency || projectBasics.timeline || "",
+      chargerConnectionType:
+        (isEvCharger && draftData.chargerConnectionType) ||
+        reduxChargerType ||
+        "",
+      nemaConfiguration:
+        (isEvCharger && draftData.nemaConfiguration) || reduxNemaConfig || "",
+      chargerProvidedByUser:
+        isEvCharger && draftData.chargerProvidedByUser !== undefined
+          ? draftData.chargerProvidedByUser
+          : reduxProvidingCharger === "Yes",
+      chargerStatus:
+        (isEvCharger && draftData.chargerStatus) || reduxChargerStatus || "",
+      installationLocation:
+        (isEvCharger && draftData.installationLocation) ||
+        reduxInstallationLocation ||
+        "",
+      panelLocation:
+        (isEvCharger && draftData.panelLocation) || reduxPanelLocation || "",
+      panelDistance:
+        (isEvCharger && draftData.panelDistance) || reduxPanelDistance || "",
+      areaPhoto:
+        (isEvCharger && draftData.areaPhoto) ||
+        (chargerAreaPhotos.length > 0 ? chargerAreaPhotos[0] : ""),
+      panelPhotos: (isEvCharger && draftData.panelPhotos) || panelPhotos || [],
+      additionalInformation:
+        (isEvCharger && draftData.additionalInformation) ||
+        reduxAdditionalInfo ||
+        "",
       status: "draft" as const,
       completionPercentage,
     };
 
-    const formData = createFormData(payload);
-
     try {
       if (serviceCallId) {
-        await updateDraft(serviceCallId, serviceType, formData);
+        await updateDraft(serviceCallId, serviceType, createFormData(payload));
       } else {
-        await createDraft(serviceType, formData);
+        await createDraft(serviceType, createFormData(payload));
       }
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
     } catch (error: any) {
-      console.log("Save draft error:", error);
       toast.error(
         error?.data?.message || "Failed to save draft. Please try again.",
       );
@@ -329,8 +324,8 @@ export default function PhotosNeeded() {
             photos={chargerAreaPhotos || []}
             maxPhotos={1}
             onPhotosChange={handleAreaPhotosChange}
-            onUploadSingle={uploadSingleImage}
-            onDeleteSingle={deleteSingleImage}
+            onUploadSingle={handleAreaUploadSingle}
+            onDeleteSingle={handleDeleteSingle}
             isUploading={uploadingSection === "area"}
           />
 
@@ -338,8 +333,8 @@ export default function PhotosNeeded() {
             label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
             photos={panelPhotos || []}
             onPhotosChange={handlePanelPhotosChange}
-            onUploadSingle={uploadSingleImage}
-            onDeleteSingle={deleteSingleImage}
+            onUploadSingle={handlePanelUploadSingle}
+            onDeleteSingle={handleDeleteSingle}
             isUploading={uploadingSection === "panel"}
           />
 

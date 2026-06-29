@@ -214,6 +214,7 @@ export default function PermitInfo() {
               label="Enter permit number"
               textInputConfig={{
                 placeholder: "Permit number",
+                keyboardType: "number-pad",
                 value: permitNumber,
                 onChangeText: (text) =>
                   dispatch(updateRemodelingDetails({ permitNumber: text })),

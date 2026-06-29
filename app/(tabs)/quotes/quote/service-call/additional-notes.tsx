@@ -12,10 +12,6 @@ import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
 import {
   selectCategory,
-  toggleServiceCallTag,
-  updateContactDetails,
-  updateProjectBasics,
-  updateServiceAddress,
   updateServiceCallDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
@@ -23,7 +19,7 @@ import { ServiceCallResponse } from "@/src/types/quotes.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { createSelector } from "@reduxjs/toolkit";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
@@ -72,7 +68,6 @@ const selectQuickTags = createSelector([selectCategoryData_], (data) => {
 
 export default function AdditionalNotes() {
   const dispatch = useDispatch();
-  const hasLoadedDraft = useRef(false);
   const [localNotes, setLocalNotes] = useState("");
   const [localQuickTags, setLocalQuickTags] = useState<string[]>([]);
 
@@ -86,6 +81,48 @@ export default function AdditionalNotes() {
   const reduxAdditionalNotes = useSelector(selectAdditionalNotes);
   const reduxQuickTags = useSelector(selectQuickTags);
   const categoryData = useSelector(selectCategoryData_);
+
+  // ─── All Redux state for fallbacks ────────────────────────────────────────
+  const { fullName, email, phone, preferredContact } = useSelector(
+    selectContactDetails_,
+  );
+  const { streetAddress, apartment, city, state, zipCode } = useSelector(
+    selectServiceAddress_,
+  );
+  const { propertyType, ownershipStatus, timeline } =
+    useSelector(selectProjectBasics_);
+
+  // ─── Service call specific Redux state ────────────────────────────────────
+  const issueDescription = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.projectDetails;
+    return "";
+  });
+  const preferredTime = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.preferredTime;
+    return "";
+  });
+  const schedulingDays = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.schedulingDays;
+    return [];
+  });
+  const panelPhotos = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.panelPhotos;
+    return [];
+  });
+  const workAreaPhotos = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.workAreaPhotos;
+    return [];
+  });
+  const referencePhotos = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "1") return data?.details?.referencePhotos;
+    return [];
+  });
 
   const selectedCategory = useSelector(
     (state: RootState) => state.categoryRoute.selectedCategory,
@@ -104,152 +141,26 @@ export default function AdditionalNotes() {
   // Initialize category if not exists
   useEffect(() => {
     if (!categoryData || categoryData.categoryId !== "1") {
-      console.log("Initializing category to 1");
       dispatch(selectCategory("1"));
     }
   }, []);
 
-  // Load draft data into local state and Redux
+  // Load draft data
   useEffect(() => {
-    if (!draft || hasLoadedDraft.current) return;
+    if (!draft) return;
 
-    console.log("Loading draft data into Redux:", draft);
-
-    // Update contact details
-    if (draft.fullName) {
-      dispatch(updateContactDetails({ fullName: draft.fullName }));
-    }
-    if (draft.emailAddress) {
-      dispatch(updateContactDetails({ email: draft.emailAddress }));
-    }
-    if (draft.phoneNumber) {
-      dispatch(updateContactDetails({ phone: draft.phoneNumber }));
-    }
-    if (draft.preferredContactMethod) {
-      dispatch(
-        updateContactDetails({
-          preferredContact: draft.preferredContactMethod as
-            | "Call"
-            | "Text"
-            | "Email",
-        }),
-      );
-    }
-
-    // Update service address
-    if (draft.streetAddress) {
-      dispatch(updateServiceAddress({ streetAddress: draft.streetAddress }));
-    }
-    if (draft.apartmentUnit !== undefined) {
-      dispatch(updateServiceAddress({ apartment: draft.apartmentUnit }));
-    }
-    if (draft.city) {
-      dispatch(updateServiceAddress({ city: draft.city }));
-    }
-    if (draft.state) {
-      dispatch(updateServiceAddress({ state: draft.state }));
-    }
-    if (draft.zipCode) {
-      dispatch(updateServiceAddress({ zipCode: draft.zipCode }));
-    }
-
-    // Update project basics
-    if (draft.propertyType) {
-      dispatch(
-        updateProjectBasics({ propertyType: draft.propertyType as any }),
-      );
-    }
-    if (draft.ownershipStatus) {
-      dispatch(
-        updateProjectBasics({ ownershipStatus: draft.ownershipStatus as any }),
-      );
-    }
-    if (draft.timelineUrgency) {
-      dispatch(updateProjectBasics({ timeline: draft.timelineUrgency as any }));
-    }
-
-    // Update service call details - NOTES
+    // ─── Load additional notes ──────────────────────────────────────────────
     if (draft.notes) {
-      console.log("Setting additional notes from draft:", draft.notes);
       setLocalNotes(draft.notes);
       dispatch(updateServiceCallDetails({ additionalNotes: draft.notes }));
     }
 
-    if (draft.issueDescription) {
-      dispatch(
-        updateServiceCallDetails({ projectDetails: draft.issueDescription }),
-      );
-    }
-
-    if (draft.preferredTime) {
-      const validPreferredTime =
-        draft.preferredTime === "AM (8-11)" ||
-        draft.preferredTime === "PM (12-2)"
-          ? (draft.preferredTime as "AM (8-11)" | "PM (12-2)")
-          : "";
-      if (validPreferredTime) {
-        dispatch(
-          updateServiceCallDetails({ preferredTime: validPreferredTime }),
-        );
-      }
-    }
-
-    if (draft.schedulingPreference && draft.schedulingPreference.length > 0) {
-      dispatch(
-        updateServiceCallDetails({
-          schedulingDays: draft.schedulingPreference,
-        }),
-      );
-    }
-
-    if (draft.panelPhotos && draft.panelPhotos.length > 0) {
-      dispatch(updateServiceCallDetails({ panelPhotos: draft.panelPhotos }));
-    }
-
-    if (draft.workAreaPhotos && draft.workAreaPhotos.length > 0) {
-      dispatch(
-        updateServiceCallDetails({ workAreaPhotos: draft.workAreaPhotos }),
-      );
-    }
-
-    if (draft.extraReferencePhotos && draft.extraReferencePhotos.length > 0) {
-      dispatch(
-        updateServiceCallDetails({
-          referencePhotos: draft.extraReferencePhotos,
-        }),
-      );
-    }
-
-    // Update QUICK TAGS
+    // ─── Load quick tags ────────────────────────────────────────────────────
     if (draft.quickTags && draft.quickTags.length > 0) {
-      console.log("Setting quick tags from draft:", draft.quickTags);
       setLocalQuickTags(draft.quickTags);
-      const currentTags = [...reduxQuickTags];
-      if (currentTags.length > 0) {
-        currentTags.forEach((tag: string) => {
-          dispatch(toggleServiceCallTag(tag));
-        });
-      }
-      draft.quickTags.forEach((tag) => {
-        console.log("Adding tag to Redux:", tag);
-        dispatch(toggleServiceCallTag(tag));
-      });
+      dispatch(updateServiceCallDetails({ quickTags: draft.quickTags }));
     }
-
-    hasLoadedDraft.current = true;
-
-    setTimeout(() => {
-      console.log("After load - reduxAdditionalNotes:", reduxAdditionalNotes);
-      console.log("After load - reduxQuickTags:", reduxQuickTags);
-      console.log("After load - localNotes:", localNotes);
-      console.log("After load - localQuickTags:", localQuickTags);
-    }, 100);
-  }, [draft, dispatch]);
-
-  // Use either Redux or local state
-  const displayNotes = localNotes || reduxAdditionalNotes;
-  const displayQuickTags =
-    localQuickTags.length > 0 ? localQuickTags : reduxQuickTags;
+  }, [draft]);
 
   // ─── Helper to convert payload to FormData ──────────────────────────────────
   const createFormData = (payload: Record<string, any>) => {
@@ -259,35 +170,33 @@ export default function AdditionalNotes() {
   };
 
   const handleSaveForLater = async () => {
+    // ✅ draft first, then Redux as fallback for ALL fields
     const payload = {
-      serviceType,
-      fullName: draft?.fullName || "",
-      emailAddress: draft?.emailAddress || "",
-      phoneNumber: draft?.phoneNumber || "",
-      preferredContactMethod: draft?.preferredContactMethod || "Call",
-      streetAddress: draft?.streetAddress || "",
-      apartmentUnit: draft?.apartmentUnit || "",
-      city: draft?.city || "",
-      state: draft?.state || "",
-      zipCode: draft?.zipCode || "",
-      propertyType: draft?.propertyType || "",
-      ownershipStatus: draft?.ownershipStatus || "",
-      timelineUrgency: draft?.timelineUrgency || "",
-      issueDescription: draft?.issueDescription || "",
-      preferredTime: draft?.preferredTime || "",
-      schedulingPreference: draft?.schedulingPreference || [],
-      panelPhotos: draft?.panelPhotos || [],
-      workAreaPhotos: draft?.workAreaPhotos || [],
-      extraReferencePhotos: draft?.extraReferencePhotos || [],
-      notes: displayNotes || "",
-      quickTags: displayQuickTags || [],
+      fullName: draft?.fullName || fullName || "",
+      emailAddress: draft?.emailAddress || email || "",
+      phoneNumber: draft?.phoneNumber || phone || "",
+      preferredContactMethod:
+        draft?.preferredContactMethod || preferredContact || "Call",
+      streetAddress: draft?.streetAddress || streetAddress || "",
+      apartmentUnit: draft?.apartmentUnit || apartment || "",
+      city: draft?.city || city || "",
+      state: draft?.state || state || "",
+      zipCode: draft?.zipCode || zipCode || "",
+      propertyType: draft?.propertyType || propertyType || "",
+      ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
+      timelineUrgency: draft?.timelineUrgency || timeline || "",
+      issueDescription: draft?.issueDescription || issueDescription || "",
+      preferredTime: draft?.preferredTime || preferredTime || "",
+      schedulingPreference: draft?.schedulingPreference || schedulingDays || [],
+      panelPhotos: draft?.panelPhotos || panelPhotos || [],
+      workAreaPhotos: draft?.workAreaPhotos || workAreaPhotos || [],
+      extraReferencePhotos:
+        draft?.extraReferencePhotos || referencePhotos || [],
+      notes: draft?.notes || reduxAdditionalNotes || "",
+      quickTags: draft?.quickTags || reduxQuickTags || [],
       status: "draft" as const,
       completionPercentage: Math.round((CURRENT_STEP / TOTAL_STEPS) * 100),
     };
-
-    console.log("Saving payload:", payload);
-    console.log("Saving notes:", displayNotes);
-    console.log("Saving quickTags:", displayQuickTags);
 
     try {
       if (serviceCallId) {
@@ -314,13 +223,19 @@ export default function AdditionalNotes() {
   };
 
   const handleTagToggle = (tag: string) => {
+    let updatedTags;
     if (localQuickTags.includes(tag)) {
-      setLocalQuickTags(localQuickTags.filter((t) => t !== tag));
+      updatedTags = localQuickTags.filter((t) => t !== tag);
     } else {
-      setLocalQuickTags([...localQuickTags, tag]);
+      updatedTags = [...localQuickTags, tag];
     }
-    dispatch(toggleServiceCallTag(tag));
+    setLocalQuickTags(updatedTags);
+    dispatch(updateServiceCallDetails({ quickTags: updatedTags }));
   };
+
+  // Use Redux as single source of truth for display
+  const displayNotes = reduxAdditionalNotes;
+  const displayQuickTags = reduxQuickTags;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>

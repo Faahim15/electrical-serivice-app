@@ -19,7 +19,9 @@ export interface EvChargerInstallationResponse {
   chargerProvidedByUser?: boolean;
   chargerStatus?: string;
   installationLocation?: string;
+  installationLocationOther?: string;
   panelLocation?: string;
+  panelLocationOther?: string;
   panelDistance?: string;
   environment?: string;
   budget?: string;
@@ -31,6 +33,7 @@ export interface EvChargerInstallationResponse {
   status:
     | "draft"
     | "submitted"
+    | "pending"
     | "in_review"
     | "quoted"
     | "scheduled"
@@ -39,6 +42,12 @@ export interface EvChargerInstallationResponse {
   completionPercentage: number;
   createdAt?: string;
   updatedAt?: string;
+  internalNote?: string;
+  qId?: string;
+  statusTimeline?: Array<{
+    status: string;
+    changedAt: string;
+  }>;
 }
 
 export interface CreateEvChargerInstallationPayload {
@@ -59,7 +68,9 @@ export interface CreateEvChargerInstallationPayload {
   chargerProvidedByUser?: boolean;
   chargerStatus?: string;
   installationLocation?: string;
+  installationLocationOther?: string;
   panelLocation?: string;
+  panelLocationOther?: string;
   panelDistance?: string;
   environment?: string;
   budget?: string;
@@ -71,6 +82,7 @@ export interface CreateEvChargerInstallationPayload {
   status?:
     | "draft"
     | "submitted"
+    | "pending"
     | "in_review"
     | "quoted"
     | "scheduled"

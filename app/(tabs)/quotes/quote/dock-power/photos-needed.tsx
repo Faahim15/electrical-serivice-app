@@ -15,6 +15,7 @@ import {
 import { updateDockPowerDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
@@ -24,7 +25,6 @@ import { toast } from "sonner-native";
 const CURRENT_STEP = 8;
 const TOTAL_STEPS = 10;
 
-// ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
@@ -38,10 +38,7 @@ export default function DockPhotosNeeded() {
   >(null);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
-    useLocalSearchParams<{
-      serviceCallId?: string;
-      serviceType?: string;
-    }>();
+    useLocalSearchParams<{ serviceCallId?: string; serviceType?: string }>();
 
   const serviceType = serviceTypeParam || "Dock Power";
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
@@ -63,24 +60,33 @@ export default function DockPhotosNeeded() {
     (state: RootState) => state.serviceForm.projectBasics,
   );
 
-  const existingSpacePhotos = useSelector((state: RootState) => {
+  const reduxExistingSpacePhotos = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.existingSpacePhotos || [];
     return [];
   });
 
-  const panelPhotos = useSelector((state: RootState) => {
+  const reduxPanelPhotos = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "7" && data.details)
       return data.details.panelPhotos || [];
     return [];
   });
 
+  // ─── Local state ──────────────────────────────────────────────────────────────
+  const [existingSpacePhotos, setExistingSpacePhotos] = useState<string[]>(
+    reduxExistingSpacePhotos || [],
+  );
+  const [panelPhotos, setPanelPhotos] = useState<string[]>(
+    reduxPanelPhotos || [],
+  );
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.existingSpacePhotos?.length) {
+      setExistingSpacePhotos(draft.existingSpacePhotos);
       dispatch(
         updateDockPowerDetails({
           existingSpacePhotos: draft.existingSpacePhotos,
@@ -88,6 +94,7 @@ export default function DockPhotosNeeded() {
       );
     }
     if (draft.panelPhotos?.length) {
+      setPanelPhotos(draft.panelPhotos);
       dispatch(updateDockPowerDetails({ panelPhotos: draft.panelPhotos }));
     }
   }, [draft]);
@@ -134,8 +141,23 @@ export default function DockPhotosNeeded() {
     }
   };
 
+  const handleExistingPhotosChange = (updated: string[]) => {
+    setExistingSpacePhotos(updated);
+    dispatch(updateDockPowerDetails({ existingSpacePhotos: updated }));
+  };
+
+  const handlePanelPhotosChange = (updated: string[]) => {
+    setPanelPhotos(updated);
+    dispatch(updateDockPowerDetails({ panelPhotos: updated }));
+  };
+
   const deleteImageHandler = async (imageUrl: string) => {
-    await deleteImage({ imageUrl }).unwrap();
+    try {
+      await deleteImage({ imageUrl }).unwrap();
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to delete photo.");
+      throw error;
+    }
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
@@ -154,8 +176,28 @@ export default function DockPhotosNeeded() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      existingSpacePhotos: existingSpacePhotos || [],
-      panelPhotos: panelPhotos || [],
+      isDockBuilt: draft?.isDockBuilt ?? false,
+      electricalNeedsDetails: draft?.electricalNeedsDetails || "",
+      receptacleCount: draft?.receptacleCount ?? 0,
+      electricalServiceType: draft?.electricalServiceType || "",
+      subPanelSize: draft?.subPanelSize || "",
+      panelLocation: draft?.panelLocation || "",
+      routeDistanceDetails: draft?.routeDistanceDetails || "",
+      privateUtilitiesDetails: draft?.privateUtilitiesDetails || "",
+      hasPlansDrawings: draft?.hasPlansDrawings ?? false,
+      plansDrawingsPhotos: draft?.plansDrawingsPhotos || [],
+      permitApplied: draft?.permitApplied ?? false,
+      existingSpacePhotos: draft?.existingSpacePhotos?.length
+        ? draft.existingSpacePhotos
+        : existingSpacePhotos.length
+          ? existingSpacePhotos
+          : reduxExistingSpacePhotos,
+      panelPhotos: draft?.panelPhotos?.length
+        ? draft.panelPhotos
+        : panelPhotos.length
+          ? panelPhotos
+          : reduxPanelPhotos,
+      additionalInformation: draft?.additionalInformation || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -193,7 +235,7 @@ export default function DockPhotosNeeded() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -204,10 +246,8 @@ export default function DockPhotosNeeded() {
 
           <PhotoUploadSection
             label="Upload photos of the dock and surrounding area"
-            photos={existingSpacePhotos || []}
-            onPhotosChange={(p) =>
-              dispatch(updateDockPowerDetails({ existingSpacePhotos: p }))
-            }
+            photos={existingSpacePhotos}
+            onPhotosChange={handleExistingPhotosChange}
             onUploadSingle={handleExistingUploadSingle}
             onDeleteSingle={deleteImageHandler}
             isUploading={uploadingSection === "existing"}
@@ -215,10 +255,8 @@ export default function DockPhotosNeeded() {
 
           <PhotoUploadSection
             label="Please upload clear photo of electrical panel up close so we can see the numbers and about 10 ft away."
-            photos={panelPhotos || []}
-            onPhotosChange={(p) =>
-              dispatch(updateDockPowerDetails({ panelPhotos: p }))
-            }
+            photos={panelPhotos}
+            onPhotosChange={handlePanelPhotosChange}
             onUploadSingle={handlePanelUploadSingle}
             onDeleteSingle={deleteImageHandler}
             isUploading={uploadingSection === "panel"}

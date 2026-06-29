@@ -294,7 +294,6 @@ export default function PlansPermit() {
           <AuthHeading title="Plans, Permit & Timeline" subtitle="" />
 
           <OptionGrid
-            key={`plans-${hasPlans}`}
             label="Do you have any plans/drawings for the accessory building?"
             options={["Yes", "No"]}
             selected={hasPlans}
@@ -311,7 +310,6 @@ export default function PlansPermit() {
 
           {hasPlans === "Yes" && (
             <PhotoUploadSection
-              key={`plans-photos-${planDrawingPhotos.length}`}
               label="Please Upload the plans Drawing"
               photos={planDrawingPhotos}
               onPhotosChange={(p) =>
@@ -326,7 +324,6 @@ export default function PlansPermit() {
           )}
 
           <OptionGrid
-            key={`permit-${hasPermit}`}
             label="Has a permit been applied for?"
             options={["Yes", "No"]}
             selected={hasPermit}
@@ -343,7 +340,6 @@ export default function PlansPermit() {
 
           {hasPermit === "Yes" && (
             <CustomInput
-              key="permit-number"
               label="What is your permit number?"
               textInputConfig={{
                 placeholder: "Permit number",
