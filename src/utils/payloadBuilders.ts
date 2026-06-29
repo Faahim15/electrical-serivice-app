@@ -179,7 +179,12 @@ export const buildPayload = (
           det?.serviceType,
         ),
         serviceSize: resolve(d?.serviceSize, det?.serviceSize),
-        panelLocation: resolve(d?.panelLocation, det?.panelLocation),
+        panelLocation: resolve(
+          d?.panelLocation,
+          det?.panelLocation === "Other (please specify)"
+            ? det?.panelLocationOther
+            : det?.panelLocation,
+        ),
         routeDetails: resolve(d?.routeDetails, det?.routeDetails),
         hasPlansDrawings: resolveBool(
           d?.hasPlansDrawings,
@@ -207,7 +212,8 @@ export const buildPayload = (
           d?.hasDigitalManual,
           det?.hasUserManual === "Yes",
         ),
-        manualDocument: resolveArr(d?.manualDocument, det?.userManualPhotos),
+        manualDocument:
+          resolveArr(d?.manualDocument, det?.userManualPhotos)[0] ?? "",
         hotTubManufacturer: resolve(d?.hotTubManufacturer, det?.manufacturer),
         hotTubModelNumber: resolve(d?.hotTubModelNumber, det?.modelNumber),
         amperageNeeded: resolve(d?.amperageNeeded, det?.amperage),

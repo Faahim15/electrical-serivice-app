@@ -62,6 +62,7 @@ export default function HotTubInfo() {
     (state: RootState) => state.serviceForm.projectBasics,
   );
 
+  // ✅ Add key to force re-render when values change
   const hasUserManual = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "6" && data.details)
@@ -90,6 +91,7 @@ export default function HotTubInfo() {
     return "";
   });
 
+  // ✅ Ensure category is selected
   useEffect(() => {
     dispatch(selectCategory("6"));
   }, []);
@@ -97,21 +99,28 @@ export default function HotTubInfo() {
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
+
+    let hasChanges = false;
+
     if (draft.hasDigitalManual !== undefined) {
       dispatch(
         updateHotTubDetails({
           hasUserManual: draft.hasDigitalManual ? "Yes" : "No",
         }),
       );
+      hasChanges = true;
     }
     if (draft.manualDocument?.length) {
       dispatch(updateHotTubDetails({ userManualPhotos: draft.manualDocument }));
+      hasChanges = true;
     }
     if (draft.hotTubManufacturer) {
       dispatch(updateHotTubDetails({ manufacturer: draft.hotTubManufacturer }));
+      hasChanges = true;
     }
     if (draft.hotTubModelNumber) {
       dispatch(updateHotTubDetails({ modelNumber: draft.hotTubModelNumber }));
+      hasChanges = true;
     }
   }, [draft]);
 
@@ -215,6 +224,7 @@ export default function HotTubInfo() {
           <AuthHeading title="Hot tub information" subtitle="" />
 
           <OptionGrid
+            key={`manual-${hasUserManual}`}
             label="Do you have a digital copy of the user manual?"
             options={["Yes", "No"]}
             selected={hasUserManual}
@@ -233,8 +243,10 @@ export default function HotTubInfo() {
 
           {hasUserManual === "Yes" && (
             <PhotoUploadSection
-              label="upload the document."
+              key={`manual-photos-${userManualPhotos.length}`}
+              label="Upload the document."
               photos={userManualPhotos}
+              maxPhotos={1}
               onPhotosChange={(p) =>
                 dispatch(updateHotTubDetails({ userManualPhotos: p }))
               }
@@ -247,6 +259,7 @@ export default function HotTubInfo() {
           {hasUserManual === "No" && (
             <>
               <CustomInput
+                key={`manufacturer-${manufacturer}`}
                 label="Hot tub manufacturer"
                 textInputConfig={{
                   placeholder: "Type here",
@@ -256,6 +269,7 @@ export default function HotTubInfo() {
                 }}
               />
               <CustomInput
+                key={`model-${modelNumber}`}
                 label="Hot tub model number"
                 textInputConfig={{
                   placeholder: "Type here",

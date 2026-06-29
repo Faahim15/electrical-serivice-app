@@ -8,7 +8,10 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateAccessoryBuildingDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateAccessoryBuildingDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { router, useLocalSearchParams } from "expo-router";
@@ -175,6 +178,11 @@ export default function RouteDetails() {
     return "";
   });
 
+  // ✅ Ensure category is selected
+  useEffect(() => {
+    dispatch(selectCategory("5"));
+  }, []);
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -212,20 +220,27 @@ export default function RouteDetails() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      entireSquareFootage: Number(squareFootage) || 0,
-      intendedUse: intendedUse || "",
-      buildingStatus: buildingStatus || "",
-      constructionType: constructionType || "",
-      floorType: floorType || "",
-      electricalNeeds: electricalNeeds || "",
-      hasHeatingOrCooling: hasHeatingCooling === "Yes",
-      electricalServiceType: serviceTypeSelected || "",
-      serviceSize: resolvedServiceSize || "",
+      entireSquareFootage:
+        draft?.entireSquareFootage || Number(squareFootage) || 0,
+      intendedUse: draft?.intendedUse || intendedUse || "",
+      buildingStatus: draft?.buildingStatus || buildingStatus || "",
+      constructionType: draft?.constructionType || constructionType || "",
+      floorType: draft?.floorType || floorType || "",
+      electricalNeeds: draft?.electricalNeeds || electricalNeeds || "",
+      hasHeatingOrCooling:
+        draft?.hasHeatingOrCooling !== undefined
+          ? draft.hasHeatingOrCooling
+          : hasHeatingCooling === "Yes",
+      electricalServiceType:
+        draft?.electricalServiceType || serviceTypeSelected || "",
+      serviceSize: draft?.serviceSize || resolvedServiceSize || "",
       panelLocation:
-        panelLocation === "Other (please specify)"
+        draft?.panelLocation ||
+        (panelLocation === "Other (please specify)"
           ? panelLocationOther
-          : panelLocation || "",
-      routeDetails: combinedRouteDetails || "",
+          : panelLocation) ||
+        "",
+      routeDetails: draft?.routeDetails || combinedRouteDetails || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -273,6 +288,7 @@ export default function RouteDetails() {
           <AuthHeading title="Route Details" subtitle="" />
 
           <TextAreaInput
+            key="private-utilities"
             label="Please list any known private utilities between the house and accessory building"
             placeholder="Irrigation, private sewer/well, water, propane, etc."
             value={privateUtilities}
@@ -285,6 +301,7 @@ export default function RouteDetails() {
           />
 
           <TextAreaInput
+            key="route-distance"
             label="Please provide a general idea of the distance and route between the main electrical panel and the accessory building location"
             placeholder="E.g., Panel is in the basement, building is 50 ft away across the backyard"
             value={routeDistance}

@@ -9,7 +9,10 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateAccessoryBuildingDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateAccessoryBuildingDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { router, useLocalSearchParams } from "expo-router";
@@ -96,12 +99,14 @@ export default function ElectricalNeeds() {
     return "" as const;
   });
 
+  // ✅ Ensure category is selected
+  useEffect(() => {
+    dispatch(selectCategory("5"));
+  }, []);
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
-    if (draft.routeDetails) {
-      // not relevant here
-    }
     if ((draft as any).electricalNeeds) {
       dispatch(
         updateAccessoryBuildingDetails({
@@ -141,13 +146,17 @@ export default function ElectricalNeeds() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      entireSquareFootage: Number(squareFootage) || 0,
-      intendedUse: intendedUse || "",
-      buildingStatus: buildingStatus || "",
-      constructionType: constructionType || "",
-      floorType: floorType || "",
-      electricalNeeds: electricalNeeds || "",
-      hasHeatingOrCooling: hasHeatingCooling === "Yes",
+      entireSquareFootage:
+        draft?.entireSquareFootage || Number(squareFootage) || 0,
+      intendedUse: draft?.intendedUse || intendedUse || "",
+      buildingStatus: draft?.buildingStatus || buildingStatus || "",
+      constructionType: draft?.constructionType || constructionType || "",
+      floorType: draft?.floorType || floorType || "",
+      electricalNeeds: draft?.electricalNeeds || electricalNeeds || "",
+      hasHeatingOrCooling:
+        draft?.hasHeatingOrCooling !== undefined
+          ? draft.hasHeatingOrCooling
+          : hasHeatingCooling === "Yes",
       status: "draft" as const,
       completionPercentage,
     };
@@ -196,6 +205,7 @@ export default function ElectricalNeeds() {
           <AuthHeading title="Electrical needs" subtitle="" />
 
           <TextAreaInput
+            key="electrical-needs"
             label="What are the electrical needs for the accessory building?"
             placeholder="Describe lighting, outlets, equipment, etc."
             value={electricalNeeds}
@@ -208,6 +218,7 @@ export default function ElectricalNeeds() {
           />
 
           <OptionGrid
+            key={`heating-cooling-${hasHeatingCooling}`}
             label="Will there be any heating or cooling equipment in the accessory building?"
             options={["Yes", "No"]}
             selected={hasHeatingCooling}

@@ -138,12 +138,13 @@ export default function ConstructionDetails() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      entireSquareFootage: Number(squareFootage) || 0,
-      intendedUse: intendedUse || "",
-      buildingStatus: buildingStatus || "",
-      constructionType: constructionType || "",
-      floorType: floorType || "",
-      status: "draft" as const,
+      entireSquareFootage:
+        draft?.entireSquareFootage || Number(squareFootage) || 0,
+      intendedUse: draft?.intendedUse || intendedUse || "",
+      buildingStatus: draft?.buildingStatus || buildingStatus || "",
+      constructionType: draft?.constructionType || constructionType || "",
+      floorType: draft?.floorType || floorType || "",
+      status: "draft",
       completionPercentage,
     };
 
@@ -158,7 +159,8 @@ export default function ConstructionDetails() {
       }
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
-    } catch {
+    } catch (error: any) {
+      console.log(error.data);
       toast.error("Failed to save draft. Please try again.");
     }
   };

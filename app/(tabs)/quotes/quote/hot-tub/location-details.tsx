@@ -9,7 +9,10 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateHotTubDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateHotTubDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { HotTubRecord } from "@/src/types/quotes/hot-tub.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
@@ -112,17 +115,49 @@ export default function LocationDetails() {
     return "";
   });
 
+  // ─── Ensure category is selected so selectors return correct data ────────────
+  useEffect(() => {
+    dispatch(selectCategory("6"));
+  }, []);
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
+
+    // ─── Placement / location ─────────────────────────────────────────────────
     if (draft.location) {
-      dispatch(updateHotTubDetails({ placement: draft.location as any }));
+      const isKnownPlacement = PLACEMENT_OPTIONS.includes(draft.location);
+      if (isKnownPlacement) {
+        // e.g. "Concrete pad" — select it directly
+        dispatch(updateHotTubDetails({ placement: draft.location as any }));
+      } else {
+        // Custom "Other" text — set selection to "Other" and fill the text field
+        dispatch(updateHotTubDetails({ placement: "Other" as any }));
+        dispatch(updateHotTubDetails({ placementOther: draft.location }));
+      }
     }
+
+    // ─── Panel location ───────────────────────────────────────────────────────
     if (draft.panelLocation) {
-      dispatch(
-        updateHotTubDetails({ panelLocation: draft.panelLocation as any }),
-      );
+      const isKnownPanel = PANEL_LOCATIONS.includes(draft.panelLocation);
+      if (isKnownPanel) {
+        dispatch(
+          updateHotTubDetails({ panelLocation: draft.panelLocation as any }),
+        );
+      } else {
+        // Custom "Other (please specify)" text
+        dispatch(
+          updateHotTubDetails({
+            panelLocation: "Other (please specify)" as any,
+          }),
+        );
+        dispatch(
+          updateHotTubDetails({ panelLocationOther: draft.panelLocation }),
+        );
+      }
     }
+
+    // ─── Panel distance ───────────────────────────────────────────────────────
     if (draft.panelDistance) {
       dispatch(
         updateHotTubDetails({ panelDistance: draft.panelDistance as any }),
@@ -132,6 +167,14 @@ export default function LocationDetails() {
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    // ⭐ If "Other" is selected, save the custom text instead of the label
+    const resolvedLocation =
+      placement === "Other" ? placementOther || "Other" : placement;
+    const resolvedPanelLocation =
+      panelLocation === "Other (please specify)"
+        ? panelLocationOther || "Other (please specify)"
+        : panelLocation;
+
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -146,8 +189,8 @@ export default function LocationDetails() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      location: placement || "",
-      panelLocation: panelLocation || "",
+      location: resolvedLocation || "",
+      panelLocation: resolvedPanelLocation || "",
       panelDistance: panelDistance || "",
       status: "draft" as const,
       completionPercentage,
@@ -200,9 +243,13 @@ export default function LocationDetails() {
               label="What will the hot tub be placed on?"
               options={PLACEMENT_OPTIONS}
               selected={placement}
-              onSelect={(val) =>
-                dispatch(updateHotTubDetails({ placement: val as any }))
-              }
+              onSelect={(val) => {
+                dispatch(updateHotTubDetails({ placement: val as any }));
+                // ⭐ Clear "Other" text when switching away
+                if (val !== "Other") {
+                  dispatch(updateHotTubDetails({ placementOther: "" }));
+                }
+              }}
               numColumns={1}
             />
             {placement === "Other" && (
@@ -220,9 +267,13 @@ export default function LocationDetails() {
                 label="Where is your electrical panel located?"
                 options={PANEL_LOCATIONS}
                 selected={panelLocation}
-                onSelect={(val) =>
-                  dispatch(updateHotTubDetails({ panelLocation: val as any }))
-                }
+                onSelect={(val) => {
+                  dispatch(updateHotTubDetails({ panelLocation: val as any }));
+                  // ⭐ Clear "Other" text when switching away
+                  if (val !== "Other (please specify)") {
+                    dispatch(updateHotTubDetails({ panelLocationOther: "" }));
+                  }
+                }}
                 numColumns={1}
               />
             </View>

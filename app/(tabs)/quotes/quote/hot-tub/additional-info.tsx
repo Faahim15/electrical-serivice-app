@@ -8,7 +8,10 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateHotTubDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateHotTubDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { HotTubRecord } from "@/src/types/quotes/hot-tub.api.types";
 import { router, useLocalSearchParams } from "expo-router";
@@ -59,6 +62,11 @@ export default function AdditionalInfo() {
       return data.details.additionalInfo;
     return "";
   });
+
+  // ✅ Ensure category is selected
+  useEffect(() => {
+    dispatch(selectCategory("6"));
+  }, []);
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -139,6 +147,7 @@ export default function AdditionalInfo() {
           />
 
           <TextAreaInput
+            key={`additional-${additionalInfo}`}
             label="Additional Information"
             placeholder="any additional information you feel we should know for your quote"
             value={additionalInfo}

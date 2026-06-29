@@ -7,11 +7,12 @@ import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import HomeScreenSkeleton from "@/src/components/skeleton/HomeScreenSkeleton";
 import { quickActions } from "@/src/constants/tabs.home.constant";
 import {
+  useGetNotificationsQuery,
   useGetProfileQuery,
   useGetRecentActivityQuery,
 } from "@/src/redux/api-slices/home/home-api";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   Pressable,
@@ -43,8 +44,29 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, refetch: refetchProfile } = useGetProfileQuery();
-  const { data: activityData, refetch: refetchActivity } =
-    useGetRecentActivityQuery();
+  const {
+    data: activityData,
+    refetch: refetchActivity,
+    isLoading: recentActivityLoader,
+  } = useGetRecentActivityQuery();
+
+  const {
+    data: notificationData,
+    isLoading: notificationLoader,
+    refetch: refetchNotification,
+  } = useGetNotificationsQuery({
+    page: 1,
+    limit: 100,
+  });
+
+  const unreadCount = notificationData?.meta?.unreadCount ?? 0;
+
+  // ── Refetch notifications on screen focus ─────────────────────────────────
+  useFocusEffect(
+    useCallback(() => {
+      refetchNotification();
+    }, [refetchNotification]),
+  );
 
   const profile = data?.data;
   const firstName = profile?.name?.split(" ")[0] ?? "";
@@ -52,12 +74,15 @@ export default function HomeScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchProfile(), refetchActivity()]);
+    await Promise.all([
+      refetchProfile(),
+      refetchActivity(),
+      refetchNotification(),
+    ]);
     setRefreshing(false);
-  }, [refetchProfile, refetchActivity]);
+  }, [refetchProfile, refetchActivity, refetchNotification]);
 
   // ── Map API data → ActivityCard shape, first 4 only ──────────────────────
-
   type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
   const recentActivities = (activityData?.data ?? [])
@@ -69,6 +94,20 @@ export default function HomeScreen() {
           : item.type === "reminder"
             ? "alarm-outline"
             : "document-text-outline";
+
+      const iconColor =
+        item.type === "guide"
+          ? "#F59E0B"
+          : item.type === "reminder"
+            ? "#8B5CF6"
+            : "#3B82F6";
+
+      const iconBg =
+        item.type === "guide"
+          ? "#FEF3C7"
+          : item.type === "reminder"
+            ? "#F3F0FF"
+            : "#EFF6FF";
 
       const badgeColor =
         item.status === "pending"
@@ -99,12 +138,12 @@ export default function HomeScreen() {
         badgeColor,
         route: route as any,
         type: item.type,
-        iconColor: item.iconColor,
-        iconBg: item.iconBg,
+        iconColor,
+        iconBg,
       };
     });
 
-  if (isLoading) {
+  if (isLoading || notificationLoader || recentActivityLoader) {
     return (
       <ScreenWrapper>
         <HomeScreenSkeleton />
@@ -153,6 +192,21 @@ export default function HomeScreen() {
                   size={20}
                   color="#374151"
                 />
+
+                {/* 🔴 Notification Badge */}
+                {unreadCount > 0 && (
+                  <View
+                    className="absolute -top-1 -right-1 bg-red-500 rounded-full items-center justify-center"
+                    style={{ minWidth: 16, height: 16, paddingHorizontal: 3 }}
+                  >
+                    <Text
+                      className="font-Inter_Bold text-white"
+                      style={{ fontSize: 9, lineHeight: 12 }}
+                    >
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Text>
+                  </View>
+                )}
               </Pressable>
 
               <Pressable

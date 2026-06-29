@@ -27,6 +27,8 @@ export interface AccessoryBuildingPayload {
   panelPhotos?: string[];
   existingSpacePhotos?: string[];
   plansDrawings?: string[];
+  permitNumber: number;
+  electricalNeeds: string;
 }
 
 export interface AccessoryBuildingRecord extends AccessoryBuildingPayload {

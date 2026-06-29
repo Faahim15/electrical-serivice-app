@@ -73,23 +73,34 @@ export const getResumeRoute = (
   }
 
   // ─── Accessory Building / Shed Power ────────────────────────────────────────
-  if (serviceType === "Accessory Building / Shed Power") {
-    if (completionPercentage <= 11)
+  if (
+    serviceType
+      .replace(/\s+/g, " ")
+      .includes("Accessory Building / Shed Power") ||
+    serviceType === "Accessory Building / Shed Power"
+  ) {
+    if (completionPercentage <= 8)
       return "/(tabs)/quotes/quote/common/contact-details";
-    if (completionPercentage <= 22)
+    if (completionPercentage <= 17)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 33)
+    if (completionPercentage <= 25)
       return "/(tabs)/quotes/quote/common/project-basics";
-    if (completionPercentage <= 44)
+    if (completionPercentage <= 33)
       return "/(tabs)/quotes/quote/accessory-building/building-basics";
-    if (completionPercentage <= 56)
+    if (completionPercentage <= 42)
       return "/(tabs)/quotes/quote/accessory-building/construction-details";
-    if (completionPercentage <= 67)
+    if (completionPercentage <= 50)
       return "/(tabs)/quotes/quote/accessory-building/electrical-needs";
-    if (completionPercentage <= 78)
+    if (completionPercentage <= 58)
       return "/(tabs)/quotes/quote/accessory-building/service-type";
-    if (completionPercentage <= 89)
+    if (completionPercentage <= 67)
       return "/(tabs)/quotes/quote/accessory-building/route-details";
+    if (completionPercentage <= 75)
+      return "/(tabs)/quotes/quote/accessory-building/plans-permit";
+    if (completionPercentage <= 83)
+      return "/(tabs)/quotes/quote/accessory-building/photos-needed";
+    if (completionPercentage <= 92)
+      return "/(tabs)/quotes/quote/accessory-building/additional-info";
 
     return "/(tabs)/quotes/quote/accessory-building/route-details";
   }

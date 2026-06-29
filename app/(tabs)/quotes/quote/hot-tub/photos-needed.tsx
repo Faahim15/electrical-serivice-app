@@ -12,7 +12,10 @@ import {
   useDeleteImageMutation,
   useUploadImagesMutation,
 } from "@/src/redux/api-slices/quote/quote-api";
-import { updateHotTubDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateHotTubDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { HotTubRecord } from "@/src/types/quotes/hot-tub.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
@@ -64,6 +67,11 @@ export default function PhotosNeeded() {
   const [uploadImages] = useUploadImagesMutation();
   const [deleteImage] = useDeleteImageMutation();
 
+  // ─── Ensure category is selected so selectors return correct data ────────────
+  useEffect(() => {
+    dispatch(selectCategory("6"));
+  }, []);
+
   const panelPhotos = useSelector((state: RootState) => {
     const data = state.serviceForm.categoryData;
     if (data?.categoryId === "6" && data.details)
@@ -88,18 +96,24 @@ export default function PhotosNeeded() {
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
+
+    let hasChanges = false;
+
     if (draft.panelPhotos?.length) {
       dispatch(updateHotTubDetails({ panelPhotos: draft.panelPhotos }));
+      hasChanges = true;
     }
     if (draft.hotTubPhotos?.length) {
       dispatch(
         updateHotTubDetails({ installLocationPhotos: draft.hotTubPhotos }),
       );
+      hasChanges = true;
     }
     if (draft.receptaclePhotos?.length) {
       dispatch(
         updateHotTubDetails({ receptaclePhotos: draft.receptaclePhotos }),
       );
+      hasChanges = true;
     }
   }, [draft]);
 
@@ -232,6 +246,7 @@ export default function PhotosNeeded() {
           <AuthHeading title="Photos needed" subtitle="" />
 
           <PhotoUploadSection
+            key={`panel-${panelPhotos.length}`}
             label="Upload photos of your electrical panel"
             photos={panelPhotos || []}
             onPhotosChange={(p) =>
@@ -243,6 +258,7 @@ export default function PhotosNeeded() {
           />
 
           <PhotoUploadSection
+            key={`install-${installLocationPhotos.length}`}
             label="Upload a photo of where your hot tub will be installed"
             photos={installLocationPhotos || []}
             onPhotosChange={(p) =>
@@ -254,6 +270,7 @@ export default function PhotosNeeded() {
           />
 
           <PhotoUploadSection
+            key={`receptacle-${receptaclePhotos.length}`}
             label="Upload a photo of where the receptacle or disconnect might be installed"
             photos={receptaclePhotos || []}
             onPhotosChange={(p) =>

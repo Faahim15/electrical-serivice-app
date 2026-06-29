@@ -29,6 +29,25 @@ const formatTime = (iso: string): string => {
   });
 };
 
+const handleNotificationPress = (item: Notification) => {
+  if (item.type === "QUOTE_SUBMITTED" || item.type === "STATUS_CHANGED") {
+    router.push({
+      pathname: "/(tabs)/home/details",
+      params: {
+        id: item.serviceId,
+        qId: item.qId,
+        status: item.status,
+        type: item.serviceType,
+      },
+    });
+  } else if (item.type === "MAINTENANCE_REMINDER") {
+    router.push({
+      pathname: "/(tabs)/home/maintenance-details",
+      params: { title: item.title },
+    });
+  }
+};
+
 // ─── Notification Card ────────────────────────────────────────────────────────
 
 function NotificationCard({
@@ -40,7 +59,10 @@ function NotificationCard({
 }) {
   return (
     <Pressable
-      onPress={() => onPress(item._id)}
+      onPress={() => {
+        onPress(item._id);
+        handleNotificationPress(item);
+      }}
       style={{
         backgroundColor: "#fff",
         borderRadius: 16,
@@ -140,7 +162,7 @@ function EmptyState() {
 export default function Notifications() {
   const { data, isLoading, isError } = useGetNotificationsQuery({
     page: 1,
-    limit: 10,
+    limit: 100,
   });
 
   const [markAsRead] = useMarkNotificationAsReadMutation();
@@ -216,7 +238,7 @@ export default function Notifications() {
             contentContainerStyle={{
               padding: 16,
               gap: 10,
-              paddingBottom: verticalScale(100),
+              paddingBottom: verticalScale(200),
             }}
             ListEmptyComponent={<EmptyState />}
             renderItem={({ item }) => (

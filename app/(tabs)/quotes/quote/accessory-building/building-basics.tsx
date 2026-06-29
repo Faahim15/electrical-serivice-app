@@ -65,6 +65,7 @@ export default function BuildingBasics() {
     return "";
   });
 
+  // ✅ Already present - good
   useEffect(() => {
     dispatch(selectCategory("5"));
   }, []);
@@ -109,8 +110,9 @@ export default function BuildingBasics() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      entireSquareFootage: Number(squareFootage) || 0,
-      intendedUse: intendedUse || "",
+      entireSquareFootage:
+        draft?.entireSquareFootage || Number(squareFootage) || 0,
+      intendedUse: draft?.intendedUse || intendedUse || "",
       status: "draft" as const,
       completionPercentage,
     };

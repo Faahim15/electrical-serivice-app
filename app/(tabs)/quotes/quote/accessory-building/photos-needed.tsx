@@ -12,7 +12,10 @@ import {
   useDeleteImageMutation,
   useUploadImagesMutation,
 } from "@/src/redux/api-slices/quote/quote-api";
-import { updateAccessoryBuildingDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateAccessoryBuildingDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
@@ -120,6 +123,11 @@ export default function GeneratorPhotosNeeded() {
     return [];
   });
 
+  // ✅ Ensure category is selected
+  useEffect(() => {
+    dispatch(selectCategory("5"));
+  }, []);
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -208,26 +216,48 @@ export default function GeneratorPhotosNeeded() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      entireSquareFootage: Number(squareFootage) || 0,
-      intendedUse: intendedUse || "",
-      buildingStatus: buildingStatus || "",
-      constructionType: constructionType || "",
-      floorType: floorType || "",
-      electricalNeeds: electricalNeeds || "",
-      hasHeatingOrCooling: hasHeatingCooling === "Yes",
-      electricalServiceType: serviceTypeSelected || "",
-      serviceSize: resolvedServiceSize || "",
+      entireSquareFootage:
+        draft?.entireSquareFootage || Number(squareFootage) || 0,
+      intendedUse: draft?.intendedUse || intendedUse || "",
+      buildingStatus: draft?.buildingStatus || buildingStatus || "",
+      constructionType: draft?.constructionType || constructionType || "",
+      floorType: draft?.floorType || floorType || "",
+      electricalNeeds: draft?.electricalNeeds || electricalNeeds || "",
+      hasHeatingOrCooling:
+        draft?.hasHeatingOrCooling !== undefined
+          ? draft.hasHeatingOrCooling
+          : hasHeatingCooling === "Yes",
+      electricalServiceType:
+        draft?.electricalServiceType || serviceTypeSelected || "",
+      serviceSize: draft?.serviceSize || resolvedServiceSize || "",
       panelLocation:
-        panelLocation === "Other (please specify)"
+        draft?.panelLocation ||
+        (panelLocation === "Other (please specify)"
           ? panelLocationOther
-          : panelLocation || "",
-      routeDetails: combinedRouteDetails || "",
-      hasPlansDrawings: hasPlans === "Yes",
-      plansDrawings: planDrawingPhotos || [],
-      permitApplied: hasPermit === "Yes",
-      permitNumber: permitNumber || "",
-      existingSpacePhotos: existingSpacePhotos || [],
-      panelPhotos: panelPhotos || [],
+          : panelLocation) ||
+        "",
+      routeDetails: draft?.routeDetails || combinedRouteDetails || "",
+      hasPlansDrawings:
+        draft?.hasPlansDrawings !== undefined
+          ? draft.hasPlansDrawings
+          : hasPlans === "Yes",
+      plansDrawings:
+        (draft?.plansDrawings?.length ?? 0) > 0
+          ? draft!.plansDrawings
+          : planDrawingPhotos || [],
+      permitApplied:
+        draft?.permitApplied !== undefined
+          ? draft.permitApplied
+          : hasPermit === "Yes",
+      permitNumber: draft?.permitNumber || permitNumber || "",
+      existingSpacePhotos:
+        (draft?.existingSpacePhotos?.length ?? 0) > 0
+          ? draft!.existingSpacePhotos
+          : existingSpacePhotos || [],
+      panelPhotos:
+        (draft?.panelPhotos?.length ?? 0) > 0
+          ? draft!.panelPhotos
+          : panelPhotos || [],
       status: "draft" as const,
       completionPercentage,
     };
@@ -275,6 +305,7 @@ export default function GeneratorPhotosNeeded() {
           <AuthHeading title="Photos needed" subtitle="" />
 
           <PhotoUploadSection
+            key={`existing-${existingSpacePhotos.length}`}
             label="Upload photos of route"
             photos={existingSpacePhotos}
             onPhotosChange={(p) =>
@@ -288,6 +319,7 @@ export default function GeneratorPhotosNeeded() {
           />
           <View className="mt-1">
             <PhotoUploadSection
+              key={`panel-${panelPhotos.length}`}
               label="Please upload clear photo of electrical panel up close so we can see the numbers and about 10 ft away."
               photos={panelPhotos}
               onPhotosChange={(p) =>

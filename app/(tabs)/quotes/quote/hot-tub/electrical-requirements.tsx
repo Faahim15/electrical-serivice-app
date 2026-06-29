@@ -8,7 +8,10 @@ import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
 import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateHotTubDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateHotTubDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { HotTubRecord } from "@/src/types/quotes/hot-tub.api.types";
 import { router, useLocalSearchParams } from "expo-router";
@@ -67,6 +70,11 @@ export default function ElectricalRequirements() {
     if (data?.categoryId === "6" && data.details) return data.details.amperage;
     return "";
   });
+
+  // ─── Ensure category is selected so selectors return correct data ────────────
+  useEffect(() => {
+    dispatch(selectCategory("6"));
+  }, []);
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {

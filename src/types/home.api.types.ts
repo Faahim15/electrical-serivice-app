@@ -20,6 +20,9 @@ export interface UserProfile {
   authProvider: string;
   role: string;
   addresses: Address[];
+  Quotes: number;
+  Reminder: number;
+  savedPartner: number;
 }
 
 export interface GetProfileResponse {

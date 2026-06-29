@@ -9,6 +9,7 @@ import MenuRowProfile from "@/src/components/profile/MenuRowProfile";
 import StatCardProfile from "@/src/components/profile/StatCardProfile";
 import UserProfileCard from "@/src/components/profile/UserProfileCard";
 import ScreenWrapper from "@/src/components/shared/ScreenWrapper";
+import { useGetProfileQuery } from "@/src/redux/api-slices/home/home-api";
 import { Href } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, ScrollView, Text, View } from "react-native";
@@ -22,6 +23,7 @@ type MenuRowProps = {
   subtitle: string;
   delay: number;
 };
+
 const menuItems: MenuRowProps[] = [
   {
     emoji: notesIcon,
@@ -67,6 +69,9 @@ const Profile = () => {
   const cardScale = useRef(new Animated.Value(0.93)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
 
+  const { data } = useGetProfileQuery();
+  const profile = data?.data;
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(headerOpacity, {
@@ -104,37 +109,49 @@ const Profile = () => {
             transform: [{ translateY: headerSlide }],
             opacity: headerOpacity,
           }}
-          className=" pb-4"
+          className="pb-4"
         >
-          <Text className="text-2xl font-Inter_Bold  text-[#0F172A]">
+          <Text className="text-2xl font-Inter_Bold text-[#0F172A]">
             Profile
           </Text>
         </Animated.View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          className="flex-1 "
+          className="flex-1"
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          {/*---------------------------- Profile card */}
+          {/* Profile card */}
           <UserProfileCard />
           <View className="mb-4" />
 
-          {/* ---------------------Stats row */}
-          <View className="flex-row  mb-4">
-            <StatCardProfile value={8} label="Quotes" delay={250} />
-            <StatCardProfile value={5} label="Reminders" delay={320} />
-            <StatCardProfile value={12} label="Saved" delay={390} />
+          {/* Stats row */}
+          <View className="flex-row mb-4">
+            <StatCardProfile
+              value={profile?.Quotes ?? 0}
+              label="Quotes"
+              delay={250}
+            />
+            <StatCardProfile
+              value={profile?.Reminder ?? 0}
+              label="Reminders"
+              delay={320}
+            />
+            <StatCardProfile
+              value={profile?.savedPartner ?? 0}
+              label="Saved"
+              delay={390}
+            />
           </View>
 
-          {/* --------------Menu items */}
-          <View className="">
+          {/* Menu items */}
+          <View>
             {menuItems.map((item) => (
               <MenuRowProfile key={item.title} {...item} />
             ))}
           </View>
 
-          {/* --------------Footer */}
+          {/* Footer */}
           <View className="items-center mt-6">
             <Text className="text-xs text-[#94A3B8] font-Inter_Regular">
               Four Elements Electric

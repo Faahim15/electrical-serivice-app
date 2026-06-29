@@ -195,6 +195,7 @@ const SubmitQuoteRequest = () => {
       toast.success("Request submitted! We'll be in touch soon. 🎉");
       router.push("/(tabs)/quotes/quote/common/request-received");
     } catch (error: any) {
+      console.log(error.data);
       toast.error("Submission failed. Please try again.");
     } finally {
       setIsSubmitting(false);

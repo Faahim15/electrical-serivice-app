@@ -8,7 +8,10 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateAccessoryBuildingDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateAccessoryBuildingDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { router, useLocalSearchParams } from "expo-router";
@@ -105,7 +108,12 @@ export default function AdditionalInfo() {
     return "";
   });
 
-  // ─── Prefill from draft ──────────────────────────────────────────────────────
+  // ✅ Ensure category is selected
+  useEffect(() => {
+    dispatch(selectCategory("5"));
+  }, []);
+
+  // ─── Prefill from draft — draft priority ─────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.additionalInformation) {
@@ -127,6 +135,7 @@ export default function AdditionalInfo() {
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const payload = {
+      // draft first, Redux as fallback for every field
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
@@ -140,27 +149,50 @@ export default function AdditionalInfo() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      entireSquareFootage: Number(squareFootage) || 0,
-      intendedUse: intendedUse || "",
-      buildingStatus: buildingStatus || "",
-      constructionType: constructionType || "",
-      floorType: floorType || "",
+      entireSquareFootage:
+        draft?.entireSquareFootage || Number(squareFootage) || 0,
+      intendedUse: draft?.intendedUse || intendedUse || "",
+      buildingStatus: draft?.buildingStatus || buildingStatus || "",
+      constructionType: draft?.constructionType || constructionType || "",
+      floorType: draft?.floorType || floorType || "",
       electricalNeeds: electricalNeeds || "",
-      hasHeatingOrCooling: hasHeatingCooling === "Yes",
-      electricalServiceType: serviceTypeSelected || "",
-      serviceSize: resolvedServiceSize || "",
+      hasHeatingOrCooling:
+        draft?.hasHeatingOrCooling !== undefined
+          ? draft.hasHeatingOrCooling
+          : hasHeatingCooling === "Yes",
+      electricalServiceType:
+        draft?.electricalServiceType || serviceTypeSelected || "",
+      serviceSize: draft?.serviceSize || resolvedServiceSize || "",
       panelLocation:
-        panelLocation === "Other (please specify)"
+        draft?.panelLocation ||
+        (panelLocation === "Other (please specify)"
           ? panelLocationOther
-          : panelLocation || "",
-      routeDetails: combinedRouteDetails || "",
-      hasPlansDrawings: hasPlans === "Yes",
-      plansDrawings: planDrawingPhotos || [],
-      permitApplied: hasPermit === "Yes",
-      permitNumber: permitNumber || "",
-      existingSpacePhotos: existingSpacePhotos || [],
-      panelPhotos: panelPhotos || [],
-      additionalInformation: additionalInfo || "",
+          : panelLocation) ||
+        "",
+      routeDetails: draft?.routeDetails || combinedRouteDetails || "",
+      hasPlansDrawings:
+        draft?.hasPlansDrawings !== undefined
+          ? draft.hasPlansDrawings
+          : hasPlans === "Yes",
+      plansDrawings:
+        (draft?.plansDrawings?.length ?? 0) > 0
+          ? draft!.plansDrawings
+          : planDrawingPhotos || [],
+      permitApplied:
+        draft?.permitApplied !== undefined
+          ? draft.permitApplied
+          : hasPermit === "Yes",
+      permitNumber: draft?.permitNumber || permitNumber || "",
+      existingSpacePhotos:
+        (draft?.existingSpacePhotos?.length ?? 0) > 0
+          ? draft!.existingSpacePhotos
+          : existingSpacePhotos || [],
+      panelPhotos:
+        (draft?.panelPhotos?.length ?? 0) > 0
+          ? draft!.panelPhotos
+          : panelPhotos || [],
+      additionalInformation:
+        draft?.additionalInformation || additionalInfo || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -176,7 +208,8 @@ export default function AdditionalInfo() {
       }
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
-    } catch {
+    } catch (error: any) {
+      console.log(error.data);
       toast.error("Failed to save draft. Please try again.");
     }
   };
@@ -211,6 +244,7 @@ export default function AdditionalInfo() {
           />
 
           <TextAreaInput
+            key={`additional-${additionalInfo}`}
             label="Additional Information"
             placeholder="any additional information you feel we should know for your quote"
             value={additionalInfo}

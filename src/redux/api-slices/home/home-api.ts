@@ -29,7 +29,7 @@ const homeApi = baseApi.injectEndpoints({
       GetNotificationsResponse,
       GetNotificationsParams
     >({
-      query: ({ page = 1, limit = 10 } = {}) => ({
+      query: ({ page = 1, limit = 100 } = {}) => ({
         url: `/notifications?page=${page}&limit=${limit}`,
         method: "GET",
       }),

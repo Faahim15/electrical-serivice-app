@@ -14,7 +14,10 @@ import {
   useDeleteImageMutation,
   useUploadImagesMutation,
 } from "@/src/redux/api-slices/quote/quote-api";
-import { updateAccessoryBuildingDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateAccessoryBuildingDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
@@ -131,6 +134,11 @@ export default function PlansPermit() {
     return "";
   });
 
+  // ✅ Ensure category is selected
+  useEffect(() => {
+    dispatch(selectCategory("5"));
+  }, []);
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -204,24 +212,40 @@ export default function PlansPermit() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      entireSquareFootage: Number(squareFootage) || 0,
-      intendedUse: intendedUse || "",
-      buildingStatus: buildingStatus || "",
-      constructionType: constructionType || "",
-      floorType: floorType || "",
-      electricalNeeds: electricalNeeds || "",
-      hasHeatingOrCooling: hasHeatingCooling === "Yes",
-      electricalServiceType: serviceTypeSelected || "",
-      serviceSize: resolvedServiceSize || "",
+      entireSquareFootage:
+        draft?.entireSquareFootage || Number(squareFootage) || 0,
+      intendedUse: draft?.intendedUse || intendedUse || "",
+      buildingStatus: draft?.buildingStatus || buildingStatus || "",
+      constructionType: draft?.constructionType || constructionType || "",
+      floorType: draft?.floorType || floorType || "",
+      electricalNeeds: draft?.electricalNeeds || electricalNeeds || "",
+      hasHeatingOrCooling:
+        draft?.hasHeatingOrCooling !== undefined
+          ? draft.hasHeatingOrCooling
+          : hasHeatingCooling === "Yes",
+      electricalServiceType:
+        draft?.electricalServiceType || serviceTypeSelected || "",
+      serviceSize: draft?.serviceSize || resolvedServiceSize || "",
       panelLocation:
-        panelLocation === "Other (please specify)"
+        draft?.panelLocation ||
+        (panelLocation === "Other (please specify)"
           ? panelLocationOther
-          : panelLocation || "",
-      routeDetails: combinedRouteDetails || "",
-      hasPlansDrawings: hasPlans === "Yes",
-      plansDrawings: planDrawingPhotos || [],
-      permitApplied: hasPermit === "Yes",
-      permitNumber: permitNumber || "",
+          : panelLocation) ||
+        "",
+      routeDetails: draft?.routeDetails || combinedRouteDetails || "",
+      hasPlansDrawings:
+        draft?.hasPlansDrawings !== undefined
+          ? draft.hasPlansDrawings
+          : hasPlans === "Yes",
+      plansDrawings:
+        (draft?.plansDrawings?.length ?? 0) > 0
+          ? draft!.plansDrawings
+          : planDrawingPhotos || [],
+      permitApplied:
+        draft?.permitApplied !== undefined
+          ? draft.permitApplied
+          : hasPermit === "Yes",
+      permitNumber: draft?.permitNumber || permitNumber || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -237,7 +261,8 @@ export default function PlansPermit() {
       }
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
-    } catch {
+    } catch (err: any) {
+      console.log(err.data);
       toast.error("Failed to save draft. Please try again.");
     }
   };
@@ -269,6 +294,7 @@ export default function PlansPermit() {
           <AuthHeading title="Plans, Permit & Timeline" subtitle="" />
 
           <OptionGrid
+            key={`plans-${hasPlans}`}
             label="Do you have any plans/drawings for the accessory building?"
             options={["Yes", "No"]}
             selected={hasPlans}
@@ -285,6 +311,7 @@ export default function PlansPermit() {
 
           {hasPlans === "Yes" && (
             <PhotoUploadSection
+              key={`plans-photos-${planDrawingPhotos.length}`}
               label="Please Upload the plans Drawing"
               photos={planDrawingPhotos}
               onPhotosChange={(p) =>
@@ -299,6 +326,7 @@ export default function PlansPermit() {
           )}
 
           <OptionGrid
+            key={`permit-${hasPermit}`}
             label="Has a permit been applied for?"
             options={["Yes", "No"]}
             selected={hasPermit}
@@ -315,6 +343,7 @@ export default function PlansPermit() {
 
           {hasPermit === "Yes" && (
             <CustomInput
+              key="permit-number"
               label="What is your permit number?"
               textInputConfig={{
                 placeholder: "Permit number",

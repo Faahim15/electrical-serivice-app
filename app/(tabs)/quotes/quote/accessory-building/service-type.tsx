@@ -8,7 +8,10 @@ import StepProgressBar from "@/src/components/shared/StepProgressBar";
 import TextAreaInput from "@/src/components/shared/TextAreaInput";
 import { useDraftDetails } from "@/src/hooks/useDraftDetails";
 import { useDraftSave } from "@/src/hooks/useDraftSave";
-import { updateAccessoryBuildingDetails } from "@/src/redux/slices/serviceFormSlice";
+import {
+  selectCategory,
+  updateAccessoryBuildingDetails,
+} from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
@@ -180,6 +183,11 @@ export default function AccessoryServiceType() {
   const isDedicatedCircuits = serviceTypeSelected === "1-2 dedicated circuits";
   const showPanelSection = isNewService || isSubPanel || isDedicatedCircuits;
 
+  // ✅ Ensure category is selected
+  useEffect(() => {
+    dispatch(selectCategory("5"));
+  }, []);
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -192,25 +200,63 @@ export default function AccessoryServiceType() {
     }
     if (draft.serviceSize) {
       if (draft.electricalServiceType === "New Service") {
-        dispatch(
-          updateAccessoryBuildingDetails({
-            newServiceSize: draft.serviceSize as any,
-          }),
+        // Check if serviceSize matches any predefined option
+        const matchedSize = NEW_SERVICE_SIZES.find(
+          (size) => size === draft.serviceSize,
         );
+        if (matchedSize) {
+          dispatch(
+            updateAccessoryBuildingDetails({
+              newServiceSize: matchedSize as any,
+            }),
+          );
+        } else {
+          // If not matched, set as "Other" and store in Other field
+          dispatch(
+            updateAccessoryBuildingDetails({
+              newServiceSize: "Other",
+              newServiceSizeOther: draft.serviceSize,
+            }),
+          );
+        }
       } else if (draft.electricalServiceType === "Sub-panel") {
-        dispatch(
-          updateAccessoryBuildingDetails({
-            subPanelSize: draft.serviceSize as any,
-          }),
+        const matchedSize = SUB_PANEL_SIZES.find(
+          (size) => size === draft.serviceSize,
         );
+        if (matchedSize) {
+          dispatch(
+            updateAccessoryBuildingDetails({
+              subPanelSize: matchedSize as any,
+            }),
+          );
+        } else {
+          dispatch(
+            updateAccessoryBuildingDetails({
+              subPanelSize: "Other",
+              subPanelSizeOther: draft.serviceSize,
+            }),
+          );
+        }
       }
     }
     if (draft.panelLocation) {
-      dispatch(
-        updateAccessoryBuildingDetails({
-          panelLocation: draft.panelLocation as any,
-        }),
+      const matchedLocation = PANEL_LOCATIONS.find(
+        (loc) => loc === draft.panelLocation,
       );
+      if (matchedLocation) {
+        dispatch(
+          updateAccessoryBuildingDetails({
+            panelLocation: matchedLocation as any,
+          }),
+        );
+      } else {
+        dispatch(
+          updateAccessoryBuildingDetails({
+            panelLocation: "Other (please specify)",
+            panelLocationOther: draft.panelLocation,
+          }),
+        );
+      }
     }
   }, [draft]);
 
@@ -250,19 +296,26 @@ export default function AccessoryServiceType() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      entireSquareFootage: Number(squareFootage) || 0,
-      intendedUse: intendedUse || "",
-      buildingStatus: buildingStatus || "",
-      constructionType: constructionType || "",
-      floorType: floorType || "",
-      electricalNeeds: electricalNeeds || "",
-      hasHeatingOrCooling: hasHeatingCooling === "Yes",
-      electricalServiceType: serviceTypeSelected || "",
-      serviceSize: resolvedServiceSize || "",
+      entireSquareFootage:
+        draft?.entireSquareFootage || Number(squareFootage) || 0,
+      intendedUse: draft?.intendedUse || intendedUse || "",
+      buildingStatus: draft?.buildingStatus || buildingStatus || "",
+      constructionType: draft?.constructionType || constructionType || "",
+      floorType: draft?.floorType || floorType || "",
+      electricalNeeds: draft?.electricalNeeds || electricalNeeds || "",
+      hasHeatingOrCooling:
+        draft?.hasHeatingOrCooling !== undefined
+          ? draft.hasHeatingOrCooling
+          : hasHeatingCooling === "Yes",
+      electricalServiceType:
+        draft?.electricalServiceType || serviceTypeSelected || "",
+      serviceSize: draft?.serviceSize || resolvedServiceSize || "",
       panelLocation:
-        panelLocation === "Other (please specify)"
+        draft?.panelLocation ||
+        (panelLocation === "Other (please specify)"
           ? panelLocationOther
-          : panelLocation || "",
+          : panelLocation) ||
+        "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -278,7 +331,8 @@ export default function AccessoryServiceType() {
       }
       toast.success("Draft saved successfully!");
       router.push("/(tabs)/home/saved-draft");
-    } catch {
+    } catch (err: any) {
+      console.log(err.data);
       toast.error("Failed to save draft. Please try again.");
     }
   };
@@ -310,6 +364,7 @@ export default function AccessoryServiceType() {
           <CategoryTag title={serviceType} />
 
           <OptionGrid
+            key={`service-type-${serviceTypeSelected}`}
             label="Will you need a new service (panel and meter), sub-panel, or 1-2 dedicated circuits to power the accessory building?"
             options={SERVICE_TYPES}
             selected={serviceTypeSelected}
@@ -330,6 +385,7 @@ export default function AccessoryServiceType() {
           {isNewService && (
             <>
               <OptionGrid
+                key={`new-service-${newServiceSize}`}
                 label="What size service do you need?"
                 options={NEW_SERVICE_SIZES}
                 selected={newServiceSize}
@@ -344,6 +400,7 @@ export default function AccessoryServiceType() {
               />
               {newServiceSize === "Other" && (
                 <TextAreaInput
+                  key="new-service-other"
                   label="Please specify"
                   placeholder="Describe your service size"
                   value={newServiceSizeOther ?? ""}
@@ -362,6 +419,7 @@ export default function AccessoryServiceType() {
           {isSubPanel && (
             <>
               <OptionGrid
+                key={`sub-panel-${subPanelSize}`}
                 label="What size sub-panel do you need?"
                 options={SUB_PANEL_SIZES}
                 selected={subPanelSize}
@@ -376,6 +434,7 @@ export default function AccessoryServiceType() {
               />
               {subPanelSize === "Other" && (
                 <TextAreaInput
+                  key="sub-panel-other"
                   label="Please specify"
                   placeholder="Describe your sub-panel size"
                   value={subPanelSizeOther ?? ""}
@@ -394,6 +453,7 @@ export default function AccessoryServiceType() {
           {isDedicatedCircuits && (
             <>
               <OptionGrid
+                key={`circuit-count-${circuitCount}`}
                 label="Would you like 1 or 2 circuits"
                 options={CIRCUIT_COUNTS}
                 selected={circuitCount}
@@ -407,6 +467,7 @@ export default function AccessoryServiceType() {
                 numColumns={1}
               />
               <OptionGrid
+                key={`amp-rating-${ampRating}`}
                 label="What amp rating for the circuit(s)?"
                 options={AMP_RATINGS}
                 selected={ampRating}
@@ -423,6 +484,7 @@ export default function AccessoryServiceType() {
           {showPanelSection && (
             <>
               <OptionGrid
+                key={`panel-location-${panelLocation}`}
                 label="Where is your electrical panel located?"
                 options={PANEL_LOCATIONS}
                 selected={panelLocation}
@@ -437,6 +499,7 @@ export default function AccessoryServiceType() {
               />
               {panelLocation === "Other (please specify)" && (
                 <TextAreaInput
+                  key="panel-location-other"
                   label="Please specify"
                   placeholder="Describe your panel location"
                   value={panelLocationOther ?? ""}
