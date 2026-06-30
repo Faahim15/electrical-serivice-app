@@ -15,7 +15,7 @@ import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
@@ -363,17 +363,18 @@ export default function PowerRequirements() {
               )}
             </>
           )}
-
-          <GradientButton
-            label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/dock-power/route-details",
-                params: { serviceCallId, serviceType },
-              })
-            }
-            disabled={isSaving}
-          />
+          <View className="mt-[3%]">
+            <GradientButton
+              label="Continue"
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/quotes/quote/dock-power/route-details",
+                  params: { serviceCallId, serviceType },
+                })
+              }
+              disabled={isSaving}
+            />
+          </View>
           <SavedEditAction
             onPress={handleSaveForLater}
             title={isSaving ? "Saving..." : "Save for Later"}

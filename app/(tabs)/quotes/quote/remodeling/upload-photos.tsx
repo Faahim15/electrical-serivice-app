@@ -14,17 +14,109 @@ import {
 } from "@/src/redux/api-slices/quote/quote-api";
 import { updateRemodelingDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  RemodelingUploadPhotosFormData,
+  remodelingUploadPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { RemodelingRecord } from "@/src/types/quotes/remodeling.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createSelector } from "@reduxjs/toolkit";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const SERVICE_TYPE = "Remodeling";
 const CURRENT_STEP = 7;
 const TOTAL_STEPS = 9;
+
+// ─── Memoized Selectors ──────────────────────────────────────────────────────
+const selectCategoryData = (state: RootState) => state.serviceForm.categoryData;
+
+const selectExistingSpacePhotos = createSelector(
+  [selectCategoryData],
+  (data) => {
+    if (data?.categoryId === "4" && data.details) {
+      return data.details.existingSpacePhotos ?? [];
+    }
+    return [];
+  },
+);
+
+const selectPanelPhotos = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "4" && data.details) {
+    return data.details.panelPhotos ?? [];
+  }
+  return [];
+});
+
+const selectPanelLocation = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "4" && data.details) {
+    return data.details.panelLocation ?? "";
+  }
+  return "";
+});
+
+const selectPanelLocationOther = createSelector(
+  [selectCategoryData],
+  (data) => {
+    if (data?.categoryId === "4" && data.details) {
+      return data.details.panelLocationOther ?? "";
+    }
+    return "";
+  },
+);
+
+const selectRemodlingArea = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "4" && data.details) {
+    return data.details.remodlingArea ?? "";
+  }
+  return "";
+});
+
+const selectHasPlans = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "4" && data.details) {
+    return data.details.hasPlans ?? "";
+  }
+  return "";
+});
+
+const selectPlanPhotos = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "4" && data.details) {
+    return data.details.planPhotos ?? [];
+  }
+  return [];
+});
+
+const selectElectricalNeeds = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "4" && data.details) {
+    return data.details.electricalNeeds ?? "";
+  }
+  return "";
+});
+
+const selectHasPermit = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "4" && data.details) {
+    return data.details.hasPermit ?? "";
+  }
+  return "";
+});
+
+const selectPermitNumber = createSelector([selectCategoryData], (data) => {
+  if (data?.categoryId === "4" && data.details) {
+    return data.details.permitNumber ?? "";
+  }
+  return "";
+});
 
 export default function RemodelingUploadPhotos() {
   const dispatch = useDispatch();
@@ -48,6 +140,7 @@ export default function RemodelingUploadPhotos() {
   const [uploadImages] = useUploadImagesMutation();
   const [deleteImage] = useDeleteImageMutation();
 
+  // ─── Redux state with memoized selectors ──────────────────────────────────
   const { fullName, email, phone, preferredContact } = useSelector(
     (state: RootState) => state.serviceForm.contactDetails,
   );
@@ -58,72 +151,31 @@ export default function RemodelingUploadPhotos() {
     (state: RootState) => state.serviceForm.projectBasics,
   );
 
-  const panelLocation = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details)
-      return data.details.panelLocation;
-    return "";
-  });
+  const panelLocation = useSelector(selectPanelLocation);
+  const panelLocationOther = useSelector(selectPanelLocationOther);
+  const remodlingArea = useSelector(selectRemodlingArea);
+  const hasPlans = useSelector(selectHasPlans);
+  const planPhotos = useSelector(selectPlanPhotos);
+  const electricalNeeds = useSelector(selectElectricalNeeds);
+  const hasPermit = useSelector(selectHasPermit);
+  const permitNumber = useSelector(selectPermitNumber);
+  const existingSpacePhotos = useSelector(selectExistingSpacePhotos);
+  const panelPhotos = useSelector(selectPanelPhotos);
 
-  const panelLocationOther = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details)
-      return data.details.panelLocationOther;
-    return "";
-  });
-
-  const remodlingArea = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details)
-      return data.details.remodlingArea;
-    return "";
-  });
-
-  const hasPlans = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details) return data.details.hasPlans;
-    return "";
-  });
-
-  const planPhotos = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details)
-      return data.details.planPhotos ?? [];
-    return [];
-  });
-
-  const electricalNeeds = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details)
-      return data.details.electricalNeeds;
-    return "";
-  });
-
-  const hasPermit = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details) return data.details.hasPermit;
-    return "";
-  });
-
-  const permitNumber = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details)
-      return data.details.permitNumber;
-    return "";
-  });
-
-  const existingSpacePhotos = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details)
-      return data.details.existingSpacePhotos ?? [];
-    return [];
-  });
-
-  const panelPhotos = useSelector((state: RootState) => {
-    const data = state.serviceForm.categoryData;
-    if (data?.categoryId === "4" && data.details)
-      return data.details.panelPhotos ?? [];
-    return [];
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<RemodelingUploadPhotosFormData>({
+    resolver: zodResolver(remodelingUploadPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      existingSpacePhotos: existingSpacePhotos || [],
+      panelPhotos: panelPhotos || [],
+    },
   });
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
@@ -135,11 +187,29 @@ export default function RemodelingUploadPhotos() {
           existingSpacePhotos: draft.existingSpacePhotos,
         }),
       );
+      setValue("existingSpacePhotos", draft.existingSpacePhotos);
     }
     if (draft.panelPhotos?.length) {
       dispatch(updateRemodelingDetails({ panelPhotos: draft.panelPhotos }));
+      setValue("panelPhotos", draft.panelPhotos);
     }
+    trigger(["existingSpacePhotos", "panelPhotos"]);
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (existingSpacePhotos.length > 0) {
+      setValue("existingSpacePhotos", existingSpacePhotos);
+      trigger("existingSpacePhotos");
+    }
+  }, [existingSpacePhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -160,6 +230,7 @@ export default function RemodelingUploadPhotos() {
       setUploadingSection("existing");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("existingSpacePhotos");
       return url;
     } catch (error) {
       console.error("[Remodeling] Existing space upload error:", error);
@@ -175,6 +246,7 @@ export default function RemodelingUploadPhotos() {
       setUploadingSection("panel");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return url;
     } catch (error) {
       console.error("[Remodeling] Panel upload error:", error);
@@ -216,14 +288,21 @@ export default function RemodelingUploadPhotos() {
         panelLocation === "Other (please specify)"
           ? panelLocationOther
           : panelLocation || "",
-      remodelingAreas: remodlingArea || "",
-      hasPlansDrawings: hasPlans === "Yes",
-      plansDrawings: planPhotos || [],
-      electricalNeeds: electricalNeeds || "",
-      permitApplied: hasPermit === "Yes",
-      permitNumber: permitNumber || "",
-      existingSpacePhotos: existingSpacePhotos || [],
-      panelPhotos: panelPhotos || [],
+      remodelingAreas: draft?.remodelingAreas || remodlingArea || "",
+      hasPlansDrawings:
+        draft?.hasPlansDrawings !== undefined
+          ? draft.hasPlansDrawings
+          : hasPlans === "Yes",
+      plansDrawings: draft?.plansDrawings || planPhotos || [],
+      electricalNeeds: draft?.electricalNeeds || electricalNeeds || "",
+      permitApplied:
+        draft?.permitApplied !== undefined
+          ? draft.permitApplied
+          : hasPermit === "Yes",
+      permitNumber: draft?.permitNumber || permitNumber || "",
+      existingSpacePhotos:
+        draft?.existingSpacePhotos || existingSpacePhotos || [],
+      panelPhotos: draft?.panelPhotos || panelPhotos || [],
       status: "draft" as const,
       completionPercentage,
     };
@@ -243,6 +322,17 @@ export default function RemodelingUploadPhotos() {
       toast.error("Failed to save draft. Please try again.");
     }
   };
+
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: RemodelingUploadPhotosFormData) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/remodeling/additional-info",
+      params: { serviceType, serviceCallId },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -276,36 +366,66 @@ export default function RemodelingUploadPhotos() {
             subtitle="Please upload these photos"
           />
 
-          <PhotoUploadSection
-            label="Upload photo of existing space"
-            photos={existingSpacePhotos}
-            onPhotosChange={(p) =>
-              dispatch(updateRemodelingDetails({ existingSpacePhotos: p }))
-            }
-            onUploadSingle={handleExistingUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "existing"}
+          {/* Existing Space Photos with Controller */}
+          <Controller
+            control={control}
+            name="existingSpacePhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photo of existing space"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(
+                      updateRemodelingDetails({ existingSpacePhotos: p }),
+                    );
+                    setValue("existingSpacePhotos", p);
+                    trigger("existingSpacePhotos");
+                  }}
+                  onUploadSingle={handleExistingUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "existing"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
-            photos={panelPhotos}
-            onPhotosChange={(p) =>
-              dispatch(updateRemodelingDetails({ panelPhotos: p }))
-            }
-            onUploadSingle={handlePanelUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
+          {/* Panel Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(updateRemodelingDetails({ panelPhotos: p }));
+                    setValue("panelPhotos", p);
+                    trigger("panelPhotos");
+                  }}
+                  onUploadSingle={handlePanelUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/remodeling/additional-info",
-                params: { serviceType, serviceCallId },
-              })
-            }
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

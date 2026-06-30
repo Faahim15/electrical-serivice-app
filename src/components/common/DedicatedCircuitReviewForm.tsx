@@ -77,9 +77,17 @@ const DedicatedCircuitReviewForm = ({
           draftData?.whyNeedDedicatedCircuit ||
           details.whyNeedDedicatedCircuit ||
           "",
+        whyNeedDedicatedCircuitOther:
+          draftData?.whyNeedDedicatedCircuitOther ||
+          details.whyNeedDedicatedCircuitOther ||
+          "",
         electricalPanelLocation:
           draftData?.electricalPanelLocation ||
           details.electricalPanelLocation ||
+          "",
+        electricalPanelLocationOther:
+          draftData?.electricalPanelLocationOther ||
+          details.electricalPanelLocationOther ||
           "",
         whereWillDedicatedCircuitInstalled:
           draftData?.whereWillDedicatedCircuitInstalled ||
@@ -90,6 +98,10 @@ const DedicatedCircuitReviewForm = ({
         distanceElectricalPanelToInstallationArea:
           draftData?.distanceElectricalPanelToInstallationArea ||
           details.distanceElectricalPanelToInstallationArea ||
+          "",
+        distanceElectricalPanelToInstallationAreaOther:
+          draftData?.distanceElectricalPanelToInstallationAreaOther ||
+          details.distanceElectricalPanelToInstallationAreaOther ||
           "",
         ampsNeeded: draftData?.ampsNeeded || details.ampsNeeded || "",
         voltsNeeded: draftData?.voltsNeeded || details.voltsNeeded || "",
@@ -111,10 +123,13 @@ const DedicatedCircuitReviewForm = ({
     }
     return {
       whyNeedDedicatedCircuit: "",
+      whyNeedDedicatedCircuitOther: "",
       electricalPanelLocation: "",
+      electricalPanelLocationOther: "",
       whereWillDedicatedCircuitInstalled: "",
       aboveBelowArea: "",
       distanceElectricalPanelToInstallationArea: "",
+      distanceElectricalPanelToInstallationAreaOther: "",
       ampsNeeded: "",
       voltsNeeded: "",
       NEMAConfiguration: "",
@@ -126,17 +141,37 @@ const DedicatedCircuitReviewForm = ({
 
   const details = getDedicatedCircuitDetails();
 
+  // ─── Helper function to get display value for "Other" fields ──────────────
+  const getDisplayValue = (
+    value: string,
+    otherValue: string,
+    label: string,
+  ) => {
+    if (value === "Other" || value === "Other (please specify)") {
+      return otherValue || value;
+    }
+    return value || "Not specified";
+  };
+
   return (
     <View>
       {/* ─── Circuit Details ────────────────────────────────────────────────── */}
       <ReviewSectionTitle title="Circuit Details" />
       <ReviewRow
         label="Intended Use"
-        value={details.whyNeedDedicatedCircuit || "Not specified"}
+        value={getDisplayValue(
+          details.whyNeedDedicatedCircuit,
+          details.whyNeedDedicatedCircuitOther,
+          "Intended Use",
+        )}
       />
       <ReviewRow
         label="Panel Location"
-        value={details.electricalPanelLocation || "Not specified"}
+        value={getDisplayValue(
+          details.electricalPanelLocation,
+          details.electricalPanelLocationOther,
+          "Panel Location",
+        )}
       />
       <ReviewRow
         label="Install Location"
@@ -148,9 +183,11 @@ const DedicatedCircuitReviewForm = ({
       />
       <ReviewRow
         label="Panel Distance"
-        value={
-          details.distanceElectricalPanelToInstallationArea || "Not specified"
-        }
+        value={getDisplayValue(
+          details.distanceElectricalPanelToInstallationArea,
+          details.distanceElectricalPanelToInstallationAreaOther,
+          "Panel Distance",
+        )}
       />
 
       {/* ─── Electrical Specifications ─────────────────────────────────────── */}

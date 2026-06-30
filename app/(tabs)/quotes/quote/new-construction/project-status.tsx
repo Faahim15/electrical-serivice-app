@@ -15,9 +15,16 @@ import {
 } from "@/src/redux/api-slices/quote/quote-api";
 import { updateNewConstructionDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  NewConstructionPhotosFormData,
+  newConstructionPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { NewConstructionRecord } from "@/src/types/quotes/new-construction.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -116,6 +123,26 @@ export default function ProjectStatus() {
   const isYes = constructionBegun === "Yes";
   const isNo = constructionBegun === "No";
 
+  // Determine which photos to validate
+  const showPhotoValidation = isYes || (isNo && hasBuildingPlans === "Yes");
+
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<NewConstructionPhotosFormData>({
+    resolver: zodResolver(newConstructionPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      buildingPlanPhotos: isYes
+        ? buildingPlanPhotos
+        : buildingPlanPhotos2 || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -146,8 +173,19 @@ export default function ProjectStatus() {
           buildingPlanPhotos: draft.photosOfBuildingPlans,
         }),
       );
+      setValue("buildingPlanPhotos", draft.photosOfBuildingPlans);
     }
+    trigger("buildingPlanPhotos");
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    const currentPhotos = isYes ? buildingPlanPhotos : buildingPlanPhotos2;
+    if (currentPhotos.length > 0) {
+      setValue("buildingPlanPhotos", currentPhotos);
+      trigger("buildingPlanPhotos");
+    }
+  }, [buildingPlanPhotos, buildingPlanPhotos2, isYes, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -168,6 +206,7 @@ export default function ProjectStatus() {
       setUploadingSection("plans1");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("buildingPlanPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -184,6 +223,7 @@ export default function ProjectStatus() {
       setUploadingSection("plans2");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("buildingPlanPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -239,6 +279,38 @@ export default function ProjectStatus() {
     }
   };
 
+  // ─── Handle Continue ──────────────────────────────────────────────────────
+  const handleContinue = () => {
+    // If photos are required, validate
+    if (showPhotoValidation) {
+      handleSubmit(
+        (data) => {
+          router.push({
+            pathname: "/(tabs)/quotes/quote/common/review-request",
+            params: { serviceCallId, serviceType },
+          });
+        },
+        (errors) => {
+          toast.error("Please upload at least one photo of the building plans");
+        },
+      )();
+    } else {
+      // No photo validation needed
+      router.push({
+        pathname: "/(tabs)/quotes/quote/common/review-request",
+        params: { serviceCallId, serviceType },
+      });
+    }
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = () => {
+    if (showPhotoValidation) {
+      return isValid && uploadingSection === null && !isSaving;
+    }
+    return uploadingSection === null && !isSaving;
+  };
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -256,7 +328,7 @@ export default function ProjectStatus() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -304,17 +376,34 @@ export default function ProjectStatus() {
                 Building plans
               </Text>
 
-              <PhotoUploadSection
-                label="Upload building plans"
-                photos={buildingPlanPhotos}
-                onPhotosChange={(p) =>
-                  dispatch(
-                    updateNewConstructionDetails({ buildingPlanPhotos: p }),
-                  )
-                }
-                onUploadSingle={handlePlans1UploadSingle}
-                onDeleteSingle={deleteImageHandler}
-                isUploading={uploadingSection === "plans1"}
+              <Controller
+                control={control}
+                name="buildingPlanPhotos"
+                render={({ field: { value }, fieldState: { error } }) => (
+                  <View>
+                    <PhotoUploadSection
+                      label="Upload building plans"
+                      photos={value || []}
+                      onPhotosChange={(p) => {
+                        dispatch(
+                          updateNewConstructionDetails({
+                            buildingPlanPhotos: p,
+                          }),
+                        );
+                        setValue("buildingPlanPhotos", p);
+                        trigger("buildingPlanPhotos");
+                      }}
+                      onUploadSingle={handlePlans1UploadSingle}
+                      onDeleteSingle={deleteImageHandler}
+                      isUploading={uploadingSection === "plans1"}
+                    />
+                    {error && (
+                      <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                        {error.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
               />
             </>
           )}
@@ -341,17 +430,34 @@ export default function ProjectStatus() {
               />
 
               {hasBuildingPlans === "Yes" && (
-                <PhotoUploadSection
-                  label="Upload building plans"
-                  photos={buildingPlanPhotos2}
-                  onPhotosChange={(p) =>
-                    dispatch(
-                      updateNewConstructionDetails({ buildingPlanPhotos2: p }),
-                    )
-                  }
-                  onUploadSingle={handlePlans2UploadSingle}
-                  onDeleteSingle={deleteImageHandler}
-                  isUploading={uploadingSection === "plans2"}
+                <Controller
+                  control={control}
+                  name="buildingPlanPhotos"
+                  render={({ field: { value }, fieldState: { error } }) => (
+                    <View>
+                      <PhotoUploadSection
+                        label="Upload building plans"
+                        photos={value || []}
+                        onPhotosChange={(p) => {
+                          dispatch(
+                            updateNewConstructionDetails({
+                              buildingPlanPhotos2: p,
+                            }),
+                          );
+                          setValue("buildingPlanPhotos", p);
+                          trigger("buildingPlanPhotos");
+                        }}
+                        onUploadSingle={handlePlans2UploadSingle}
+                        onDeleteSingle={deleteImageHandler}
+                        isUploading={uploadingSection === "plans2"}
+                      />
+                      {error && (
+                        <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                          {error.message}
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 />
               )}
             </>
@@ -359,13 +465,8 @@ export default function ProjectStatus() {
           <View className="mt-[3%]">
             <GradientButton
               label="Continue"
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/quotes/quote/common/review-request",
-                  params: { serviceCallId, serviceType },
-                })
-              }
-              disabled={isSaving || uploadingSection !== null}
+              onPress={handleContinue}
+              disabled={!isFormValid()}
             />
           </View>
           <SavedEditAction

@@ -17,12 +17,12 @@ import { RootState } from "@/src/redux/store";
 import { StarlinkRecord } from "@/src/types/quotes/starlink.api.types";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 4;
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
@@ -63,18 +63,18 @@ export default function StarlinkDetails() {
 
   // ─── Ensure category is set ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!categoryData || categoryData.categoryId !== "13") {
-      dispatch(selectCategory("13"));
+    if (!categoryData || categoryData.categoryId !== "12") {
+      dispatch(selectCategory("12"));
     }
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
   const reduxHaveStarlinkEquipment =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.haveStarlinkEquipment || ""
       : "";
   const reduxWhenHaveEquipment =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.whenHaveEquipment || ""
       : "";
 
@@ -222,12 +222,13 @@ export default function StarlinkDetails() {
               minHeight={80}
             />
           )}
-
-          <GradientButton
-            label="Continue"
-            onPress={handleContinue}
-            disabled={isSaving}
-          />
+          <View className="mt-[3%]">
+            <GradientButton
+              label="Continue"
+              onPress={handleContinue}
+              disabled={isSaving}
+            />
+          </View>
           <SavedEditAction
             onPress={handleSaveForLater}
             title={isSaving ? "Saving..." : "Save for Later"}

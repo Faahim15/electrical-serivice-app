@@ -280,10 +280,13 @@ export const buildPayload = (
       return {
         ...common,
         inspectionType: resolve(d?.inspectionType, det?.inspectionType),
+        // panelNeedForInspected should come from draft first, then from panelCount in Redux
         panelNeedForInspected: resolve(
           d?.panelNeedForInspected,
-          det?.squareFootage || det?.panelCount,
+          det?.panelCount ? Number(det.panelCount) : 0,
         ),
+        // squareFootage should come from draft first, then from Redux
+        squareFootage: resolve(d?.squareFootage, det?.squareFootage),
         panelPhotos: resolveArr(d?.panelPhotos, det?.panelPhotos),
         additionalInformation: resolve(
           d?.additionalInformation,

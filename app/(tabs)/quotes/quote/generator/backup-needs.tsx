@@ -12,13 +12,14 @@ import { useDraftSave } from "@/src/hooks/useDraftSave";
 import { updateGeneratorDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { GeneratorRecord } from "@/src/types/quotes/generator.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
-const CURRENT_STEP = 6;
+const CURRENT_STEP = 5;
 const TOTAL_STEPS = 7;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
@@ -116,9 +117,13 @@ export default function BackupNeeds() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      backupNeeds: backedUpCircuits || "",
-      isHavePropane: hasPropane === "Yes",
-      electricPanelLocation: panelLocation || "",
+      backupNeeds: draft?.backupNeeds || backedUpCircuits || "",
+      isHavePropane:
+        draft?.isHavePropane !== undefined
+          ? draft.isHavePropane
+          : hasPropane === "Yes",
+      electricPanelLocation:
+        draft?.electricPanelLocation || panelLocation || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -156,7 +161,7 @@ export default function BackupNeeds() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}

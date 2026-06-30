@@ -31,6 +31,14 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+// Import React Hook Form and Zod
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+
+import {
+  UploadPhotosFormData,
+  uploadPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 
 const CURRENT_STEP = 6;
 const TOTAL_STEPS = 8;
@@ -63,6 +71,23 @@ export default function UploadPhotos() {
   const selectedCategory = useSelector(
     (state: RootState) => state.categoryRoute.selectedCategory,
   );
+
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<UploadPhotosFormData>({
+    resolver: zodResolver(uploadPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      panelPhotos: panelPhotos,
+      workAreaPhotos: workAreaPhotos,
+      referencePhotos: referencePhotos,
+    },
+  });
 
   // ─── Redux state for fallbacks ──────────────────────────────────────────────
   const { fullName, email, phone, preferredContact } = useSelector(
@@ -112,6 +137,28 @@ export default function UploadPhotos() {
   const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
   const draft = draftData as ServiceCallResponse | undefined;
 
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (workAreaPhotos.length > 0) {
+      setValue("workAreaPhotos", workAreaPhotos);
+      trigger("workAreaPhotos");
+    }
+  }, [workAreaPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (referencePhotos.length > 0) {
+      setValue("referencePhotos", referencePhotos);
+      trigger("referencePhotos");
+    }
+  }, [referencePhotos, setValue, trigger]);
+
   useEffect(() => {
     if (!draft) return;
     if (draft.panelPhotos?.length) {
@@ -150,6 +197,8 @@ export default function UploadPhotos() {
 
   const handlePanelPhotosChange = (updated: string[]) => {
     dispatch(updateServiceCallDetails({ panelPhotos: updated }));
+    setValue("panelPhotos", updated);
+    trigger("panelPhotos");
   };
 
   const handlePanelUploadSingle = async (localUri: string): Promise<string> => {
@@ -157,6 +206,7 @@ export default function UploadPhotos() {
       setUploadingSection("panel");
       const uploadedUrl = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return uploadedUrl;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -168,6 +218,8 @@ export default function UploadPhotos() {
 
   const handleWorkAreaPhotosChange = (updated: string[]) => {
     dispatch(updateServiceCallDetails({ workAreaPhotos: updated }));
+    setValue("workAreaPhotos", updated);
+    trigger("workAreaPhotos");
   };
 
   const handleWorkAreaUploadSingle = async (
@@ -177,6 +229,7 @@ export default function UploadPhotos() {
       setUploadingSection("workArea");
       const uploadedUrl = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("workAreaPhotos");
       return uploadedUrl;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -188,6 +241,8 @@ export default function UploadPhotos() {
 
   const handleReferencePhotosChange = (updated: string[]) => {
     dispatch(updateServiceCallDetails({ referencePhotos: updated }));
+    setValue("referencePhotos", updated);
+    trigger("referencePhotos");
   };
 
   const handleReferenceUploadSingle = async (
@@ -197,6 +252,7 @@ export default function UploadPhotos() {
       setUploadingSection("reference");
       const uploadedUrl = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("referencePhotos");
       return uploadedUrl;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -233,13 +289,11 @@ export default function UploadPhotos() {
       preferredTime: draft?.preferredTime || preferredTime || "",
       schedulingPreference: draft?.schedulingPreference || schedulingDays || [],
 
-      // draft first, then Redux as fallback for photos
       panelPhotos: draft?.panelPhotos || panelPhotos || [],
       workAreaPhotos: draft?.workAreaPhotos || workAreaPhotos || [],
       extraReferencePhotos:
         draft?.extraReferencePhotos || referencePhotos || [],
 
-      // Remove notes and quickTags - they belong to the next screen
       status: "draft" as const,
       completionPercentage: Math.round((CURRENT_STEP / TOTAL_STEPS) * 100),
     };
@@ -260,12 +314,17 @@ export default function UploadPhotos() {
     }
   };
 
-  const handleContinue = async () => {
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: UploadPhotosFormData) => {
+    // All validation passed, proceed to next screen
     router.push({
       pathname: "/(tabs)/quotes/quote/service-call/additional-notes",
       params: { serviceType, serviceCallId },
     });
   };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isLoading;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -330,37 +389,79 @@ export default function UploadPhotos() {
             ))}
           </View>
 
-          <PhotoUploadSection
-            label="Please upload clear photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
-            photos={panelPhotos}
-            onPhotosChange={handlePanelPhotosChange}
-            onUploadSingle={handlePanelUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
+          {/* Panel Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Please upload clear photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
+                  photos={value}
+                  onPhotosChange={handlePanelPhotosChange}
+                  onUploadSingle={handlePanelUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            label="Work Area Photos"
-            photos={workAreaPhotos}
-            onPhotosChange={handleWorkAreaPhotosChange}
-            onUploadSingle={handleWorkAreaUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "workArea"}
+          {/* Work Area Photos with Controller */}
+          <Controller
+            control={control}
+            name="workAreaPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Work Area Photos"
+                  photos={value}
+                  onPhotosChange={handleWorkAreaPhotosChange}
+                  onUploadSingle={handleWorkAreaUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "workArea"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            label="Extra Reference Photos"
-            photos={referencePhotos}
-            onPhotosChange={handleReferencePhotosChange}
-            onUploadSingle={handleReferenceUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "reference"}
+          {/* Reference Photos with Controller */}
+          <Controller
+            control={control}
+            name="referencePhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Extra Reference Photos"
+                  photos={value}
+                  onPhotosChange={handleReferencePhotosChange}
+                  onUploadSingle={handleReferenceUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "reference"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={handleContinue}
-            disabled={isLoading || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
 
           <SavedEditAction

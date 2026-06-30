@@ -14,11 +14,23 @@ import {
 } from "@/src/redux/api-slices/quote/quote-api";
 import { updateDockPowerDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  DockPowerPhotosFormData,
+  dockPowerPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
@@ -82,6 +94,22 @@ export default function DockPhotosNeeded() {
     reduxPanelPhotos || [],
   );
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<DockPowerPhotosFormData>({
+    resolver: zodResolver(dockPowerPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      existingSpacePhotos: existingSpacePhotos || [],
+      panelPhotos: panelPhotos || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -92,12 +120,30 @@ export default function DockPhotosNeeded() {
           existingSpacePhotos: draft.existingSpacePhotos,
         }),
       );
+      setValue("existingSpacePhotos", draft.existingSpacePhotos);
     }
     if (draft.panelPhotos?.length) {
       setPanelPhotos(draft.panelPhotos);
       dispatch(updateDockPowerDetails({ panelPhotos: draft.panelPhotos }));
+      setValue("panelPhotos", draft.panelPhotos);
     }
+    trigger(["existingSpacePhotos", "panelPhotos"]);
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (existingSpacePhotos.length > 0) {
+      setValue("existingSpacePhotos", existingSpacePhotos);
+      trigger("existingSpacePhotos");
+    }
+  }, [existingSpacePhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -118,6 +164,7 @@ export default function DockPhotosNeeded() {
       setUploadingSection("existing");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("existingSpacePhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -132,6 +179,7 @@ export default function DockPhotosNeeded() {
       setUploadingSection("panel");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -144,11 +192,15 @@ export default function DockPhotosNeeded() {
   const handleExistingPhotosChange = (updated: string[]) => {
     setExistingSpacePhotos(updated);
     dispatch(updateDockPowerDetails({ existingSpacePhotos: updated }));
+    setValue("existingSpacePhotos", updated);
+    trigger("existingSpacePhotos");
   };
 
   const handlePanelPhotosChange = (updated: string[]) => {
     setPanelPhotos(updated);
     dispatch(updateDockPowerDetails({ panelPhotos: updated }));
+    setValue("panelPhotos", updated);
+    trigger("panelPhotos");
   };
 
   const deleteImageHandler = async (imageUrl: string) => {
@@ -218,6 +270,17 @@ export default function DockPhotosNeeded() {
     }
   };
 
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: DockPowerPhotosFormData) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/dock-power/addtional-info",
+      params: { serviceCallId, serviceType },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -244,33 +307,56 @@ export default function DockPhotosNeeded() {
           <CategoryTag title={serviceType} />
           <AuthHeading title="Photos needed" subtitle="" />
 
-          <PhotoUploadSection
-            label="Upload photos of the dock and surrounding area"
-            photos={existingSpacePhotos}
-            onPhotosChange={handleExistingPhotosChange}
-            onUploadSingle={handleExistingUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "existing"}
+          {/* Existing Space Photos with Controller */}
+          <Controller
+            control={control}
+            name="existingSpacePhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of the dock and surrounding area"
+                  photos={value || []}
+                  onPhotosChange={handleExistingPhotosChange}
+                  onUploadSingle={handleExistingUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "existing"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            label="Please upload clear photo of electrical panel up close so we can see the numbers and about 10 ft away."
-            photos={panelPhotos}
-            onPhotosChange={handlePanelPhotosChange}
-            onUploadSingle={handlePanelUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
+          {/* Panel Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Please upload clear photo of electrical panel up close so we can see the numbers and about 10 ft away."
+                  photos={value || []}
+                  onPhotosChange={handlePanelPhotosChange}
+                  onUploadSingle={handlePanelUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/dock-power/addtional-info",
-                params: { serviceCallId, serviceType },
-              })
-            }
-            disabled={isSaving || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

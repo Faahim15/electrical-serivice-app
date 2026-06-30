@@ -34,7 +34,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 6;
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 const AMP_OPTIONS = [15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150];
 const VOLT_OPTIONS = ["110 or 120", "220 or 240", "110/220 or 120/240"];
@@ -49,9 +49,6 @@ const createFormData = (payload: Record<string, any>) => {
 export default function CircuitSpecs() {
   const dispatch = useDispatch();
   const { width: screenWidth } = useWindowDimensions();
-  const [localAmps, setLocalAmps] = useState<number | null>(null);
-  const [localVolts, setLocalVolts] = useState("");
-  const [localNema, setLocalNema] = useState("");
   const [nemaFocused, setNemaFocused] = useState(false);
   const [isNemaChartVisible, setIsNemaChartVisible] = useState(false);
 
@@ -91,8 +88,8 @@ export default function CircuitSpecs() {
   // ─── Get values from Redux ───────────────────────────────────────────────────
   const reduxAmps =
     categoryData?.categoryId === "13"
-      ? (categoryData.details as any)?.ampsNeeded || null
-      : null;
+      ? (categoryData.details as any)?.ampsNeeded || ""
+      : "";
   const reduxVolts =
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.voltsNeeded || ""
@@ -101,35 +98,57 @@ export default function CircuitSpecs() {
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.NEMAConfiguration || ""
       : "";
+  const reduxCircuit =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.whyNeedDedicatedCircuit || ""
+      : "";
+  const reduxPanel =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.electricalPanelLocation || ""
+      : "";
+  const reduxInstallLocation =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.whereWillDedicatedCircuitInstalled || ""
+      : "";
+  const reduxAboveBelow =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.aboveBelowArea || ""
+      : "";
+  const reduxDistance =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)
+          ?.distanceElectricalPanelToInstallationArea || ""
+      : "";
+  const reduxDistanceOther =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)
+          ?.distanceElectricalPanelToInstallationAreaOther || ""
+      : "";
 
-  // ─── Sync local state with Redux ────────────────────────────────────────────
-  useEffect(() => {
-    if (reduxAmps) setLocalAmps(reduxAmps);
-  }, [reduxAmps]);
-
-  useEffect(() => {
-    if (reduxVolts) setLocalVolts(reduxVolts);
-  }, [reduxVolts]);
-
-  useEffect(() => {
-    if (reduxNema) setLocalNema(reduxNema);
-  }, [reduxNema]);
-
+  const reduxMeterPhotos =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.photosOfElectricalMeter || []
+      : [];
+  const reduxInstallationPhotos =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.photosOfInstallationLocation || []
+      : [];
+  const reduxAdditionalNotes =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.additionalInformation || ""
+      : "";
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.ampsNeeded) {
-      setLocalAmps(parseInt(draft.ampsNeeded));
       dispatch(updateDedicatedCircuitDetails({ ampsNeeded: draft.ampsNeeded }));
     }
     if (draft.voltsNeeded) {
-      setLocalVolts(draft.voltsNeeded);
       dispatch(
         updateDedicatedCircuitDetails({ voltsNeeded: draft.voltsNeeded }),
       );
     }
     if (draft.NEMAConfiguration) {
-      setLocalNema(draft.NEMAConfiguration);
       dispatch(
         updateDedicatedCircuitDetails({
           NEMAConfiguration: draft.NEMAConfiguration,
@@ -140,40 +159,53 @@ export default function CircuitSpecs() {
 
   // ─── Handlers ──────────────────────────────────────────────────────────────────
   const handleAmpSelect = (val: string) => {
-    const numVal = parseInt(val);
-    setLocalAmps(numVal);
     dispatch(updateDedicatedCircuitDetails({ ampsNeeded: val }));
   };
 
   const handleVoltSelect = (val: string) => {
-    setLocalVolts(val);
     dispatch(updateDedicatedCircuitDetails({ voltsNeeded: val }));
   };
 
   const handleNemaChange = (text: string) => {
-    setLocalNema(text);
     dispatch(updateDedicatedCircuitDetails({ NEMAConfiguration: text }));
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const payload = {
+      // Contact Details
       fullName: draft?.fullName || fullName || "",
-      emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
+      emailAddress: draft?.emailAddress || email || "",
       preferredContactMethod:
         draft?.preferredContactMethod || preferredContact || "Call",
+
+      // Address Details
       streetAddress: draft?.streetAddress || streetAddress || "",
       apartmentUnit: draft?.apartmentUnit || apartment || "",
       city: draft?.city || city || "",
       state: draft?.state || state || "",
       zipCode: draft?.zipCode || zipCode || "",
+
+      // Project Basics
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      ampsNeeded: localAmps ? String(localAmps) : "",
-      voltsNeeded: localVolts || "",
-      NEMAConfiguration: localNema || "",
+
+      // Dedicated Circuit Specific Fields
+      whyNeedDedicatedCircuit:
+        draft?.whyNeedDedicatedCircuit || reduxCircuit || "",
+      electricalPanelLocation:
+        draft?.electricalPanelLocation || reduxPanel || "",
+      whereWillDedicatedCircuitInstalled:
+        draft?.whereWillDedicatedCircuitInstalled || reduxInstallLocation || "",
+      aboveBelowArea: draft?.aboveBelowArea || reduxAboveBelow || "",
+      distanceElectricalPanelToInstallationArea:
+        draft?.distanceElectricalPanelToInstallationArea || reduxDistance || "",
+      ampsNeeded: draft?.ampsNeeded || reduxAmps || "",
+      voltsNeeded: draft?.voltsNeeded || reduxVolts || "",
+      NEMAConfiguration: draft?.NEMAConfiguration || reduxNema || "",
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -198,17 +230,6 @@ export default function CircuitSpecs() {
   };
 
   const handleContinue = () => {
-    if (localAmps) {
-      dispatch(
-        updateDedicatedCircuitDetails({ ampsNeeded: String(localAmps) }),
-      );
-    }
-    if (localVolts) {
-      dispatch(updateDedicatedCircuitDetails({ voltsNeeded: localVolts }));
-    }
-    if (localNema) {
-      dispatch(updateDedicatedCircuitDetails({ NEMAConfiguration: localNema }));
-    }
     router.push({
       pathname: "/(tabs)/quotes/quote/dedicated-circuit/circuit-photos",
       params: { serviceCallId, serviceType },
@@ -246,7 +267,7 @@ export default function CircuitSpecs() {
           <OptionGrid
             label="How many amps do you need?"
             options={AMP_OPTIONS.map(String)}
-            selected={localAmps ? String(localAmps) : ""}
+            selected={reduxAmps}
             onSelect={handleAmpSelect}
             numColumns={2}
           />
@@ -254,7 +275,7 @@ export default function CircuitSpecs() {
           <OptionGrid
             label="How many volts do you need?"
             options={VOLT_OPTIONS}
-            selected={localVolts}
+            selected={reduxVolts}
             onSelect={handleVoltSelect}
             numColumns={1}
           />
@@ -295,7 +316,7 @@ export default function CircuitSpecs() {
               }}
             >
               <TextInput
-                value={localNema}
+                value={reduxNema}
                 onChangeText={handleNemaChange}
                 onFocus={() => setNemaFocused(true)}
                 onBlur={() => setNemaFocused(false)}

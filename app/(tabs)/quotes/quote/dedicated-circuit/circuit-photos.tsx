@@ -17,16 +17,28 @@ import {
   updateDedicatedCircuitDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  DedicatedCircuitPhotosFormData,
+  dedicatedCircuitPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { DedicatedCircuitRecord } from "@/src/types/quotes/dedicated-circuit.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 7;
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
@@ -40,9 +52,8 @@ export default function CircuitPhotos() {
   const [uploadingSection, setUploadingSection] = useState<
     "meter" | "path" | null
   >(null);
-  const [localMeterPhotos, setLocalMeterPhotos] = useState<string[]>([]);
-  const [localPathPhotos, setLocalPathPhotos] = useState<string[]>([]);
   const isInitialMount = useRef(true);
+  const isUpdatingFromRedux = useRef(false);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -89,43 +100,114 @@ export default function CircuitPhotos() {
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.photosOfInstallationLocation || []
       : [];
+  const reduxWhyNeedDedicatedCircuit =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.whyNeedDedicatedCircuit || ""
+      : "";
+  const reduxElectricalPanelLocation =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.electricalPanelLocation || ""
+      : "";
+  const reduxWhereWillDedicatedCircuitInstalled =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.whereWillDedicatedCircuitInstalled || ""
+      : "";
+  const reduxAboveBelowArea =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.aboveBelowArea || ""
+      : "";
+  const reduxDistance =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)
+          ?.distanceElectricalPanelToInstallationArea || ""
+      : "";
+  const reduxAmpsNeeded =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.ampsNeeded || ""
+      : "";
+  const reduxVoltsNeeded =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.voltsNeeded || ""
+      : "";
+  const reduxNEMAConfiguration =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.NEMAConfiguration || ""
+      : "";
+  const reduxAdditionalNotes =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.additionalNotes || ""
+      : "";
 
-  // ─── Sync local state with Redux ────────────────────────────────────────────
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<DedicatedCircuitPhotosFormData>({
+    resolver: zodResolver(dedicatedCircuitPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      photosOfElectricalMeter: reduxMeterPhotos || [],
+      photosOfInstallationLocation: reduxPathPhotos || [],
+    },
+  });
+
+  // ─── Sync photos from Redux to form ──────────────────────────────────────────
   useEffect(() => {
-    const photosChanged =
-      JSON.stringify(reduxMeterPhotos) !== JSON.stringify(localMeterPhotos);
-    if (photosChanged && !isInitialMount.current) {
-      setLocalMeterPhotos(reduxMeterPhotos);
+    if (reduxMeterPhotos.length > 0 && !isInitialMount.current) {
+      isUpdatingFromRedux.current = true;
+      setValue("photosOfElectricalMeter", reduxMeterPhotos);
+      trigger("photosOfElectricalMeter");
+      setTimeout(() => {
+        isUpdatingFromRedux.current = false;
+      }, 0);
     }
-  }, [reduxMeterPhotos]);
+  }, [reduxMeterPhotos, setValue, trigger]);
 
   useEffect(() => {
-    const photosChanged =
-      JSON.stringify(reduxPathPhotos) !== JSON.stringify(localPathPhotos);
-    if (photosChanged && !isInitialMount.current) {
-      setLocalPathPhotos(reduxPathPhotos);
+    if (reduxPathPhotos.length > 0 && !isInitialMount.current) {
+      isUpdatingFromRedux.current = true;
+      setValue("photosOfInstallationLocation", reduxPathPhotos);
+      trigger("photosOfInstallationLocation");
+      setTimeout(() => {
+        isUpdatingFromRedux.current = false;
+      }, 0);
     }
-  }, [reduxPathPhotos]);
+  }, [reduxPathPhotos, setValue, trigger]);
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
+
     if (draft.photosOfElectricalMeter?.length) {
-      setLocalMeterPhotos(draft.photosOfElectricalMeter);
+      const photos = draft.photosOfElectricalMeter;
       dispatch(
         updateDedicatedCircuitDetails({
-          photosOfElectricalMeter: draft.photosOfElectricalMeter,
+          photosOfElectricalMeter: photos,
         }),
       );
+      reset({
+        photosOfElectricalMeter: photos,
+        photosOfInstallationLocation: draft.photosOfInstallationLocation || [],
+      });
     }
+
     if (draft.photosOfInstallationLocation?.length) {
-      setLocalPathPhotos(draft.photosOfInstallationLocation);
+      const photos = draft.photosOfInstallationLocation;
       dispatch(
         updateDedicatedCircuitDetails({
-          photosOfInstallationLocation: draft.photosOfInstallationLocation,
+          photosOfInstallationLocation: photos,
         }),
       );
+      reset({
+        photosOfElectricalMeter: draft.photosOfElectricalMeter || [],
+        photosOfInstallationLocation: photos,
+      });
     }
+
     isInitialMount.current = false;
   }, [draft]);
 
@@ -146,6 +228,7 @@ export default function CircuitPhotos() {
       setUploadingSection("meter");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("photosOfElectricalMeter");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -160,6 +243,7 @@ export default function CircuitPhotos() {
       setUploadingSection("path");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("photosOfInstallationLocation");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -173,33 +257,69 @@ export default function CircuitPhotos() {
     await deleteImage({ imageUrl }).unwrap();
   };
 
-  // ─── Photo change handlers ──────────────────────────────────────────────────
+  // ─── Handlers ──────────────────────────────────────────────────────────────────
   const handleMeterPhotosChange = (photos: string[]) => {
-    setLocalMeterPhotos(photos);
+    if (!isUpdatingFromRedux.current) {
+      setValue("photosOfElectricalMeter", photos);
+      trigger("photosOfElectricalMeter");
+    }
   };
 
   const handlePathPhotosChange = (photos: string[]) => {
-    setLocalPathPhotos(photos);
+    if (!isUpdatingFromRedux.current) {
+      setValue("photosOfInstallationLocation", photos);
+      trigger("photosOfInstallationLocation");
+    }
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    const currentMeterPhotos =
+      control._formValues.photosOfElectricalMeter || [];
+    const currentPathPhotos =
+      control._formValues.photosOfInstallationLocation || [];
+
     const payload = {
+      // Contact Details
       fullName: draft?.fullName || fullName || "",
-      emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
+      emailAddress: draft?.emailAddress || email || "",
       preferredContactMethod:
         draft?.preferredContactMethod || preferredContact || "Call",
+
+      // Address Details
       streetAddress: draft?.streetAddress || streetAddress || "",
       apartmentUnit: draft?.apartmentUnit || apartment || "",
       city: draft?.city || city || "",
       state: draft?.state || state || "",
       zipCode: draft?.zipCode || zipCode || "",
+
+      // Project Basics
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      photosOfElectricalMeter: localMeterPhotos || [],
-      photosOfInstallationLocation: localPathPhotos || [],
+
+      // Dedicated Circuit Specific Fields
+      whyNeedDedicatedCircuit:
+        draft?.whyNeedDedicatedCircuit || reduxWhyNeedDedicatedCircuit || "",
+      electricalPanelLocation:
+        draft?.electricalPanelLocation || reduxElectricalPanelLocation || "",
+      whereWillDedicatedCircuitInstalled:
+        draft?.whereWillDedicatedCircuitInstalled ||
+        reduxWhereWillDedicatedCircuitInstalled ||
+        "",
+      aboveBelowArea: draft?.aboveBelowArea || reduxAboveBelowArea || "",
+      distanceElectricalPanelToInstallationArea:
+        draft?.distanceElectricalPanelToInstallationArea || reduxDistance || "",
+      ampsNeeded: draft?.ampsNeeded || reduxAmpsNeeded || "",
+      voltsNeeded: draft?.voltsNeeded || reduxVoltsNeeded || "",
+      NEMAConfiguration:
+        draft?.NEMAConfiguration || reduxNEMAConfiguration || "",
+      photosOfElectricalMeter:
+        draft?.photosOfElectricalMeter || currentMeterPhotos || [],
+      photosOfInstallationLocation:
+        draft?.photosOfInstallationLocation || currentPathPhotos || [],
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -223,19 +343,20 @@ export default function CircuitPhotos() {
     }
   };
 
-  const handleContinue = () => {
-    // Save final values to Redux before navigating
-    if (localMeterPhotos.length > 0) {
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: DedicatedCircuitPhotosFormData) => {
+    // Save latest values to Redux before navigating
+    if (data.photosOfElectricalMeter.length > 0) {
       dispatch(
         updateDedicatedCircuitDetails({
-          photosOfElectricalMeter: localMeterPhotos,
+          photosOfElectricalMeter: data.photosOfElectricalMeter,
         }),
       );
     }
-    if (localPathPhotos.length > 0) {
+    if (data.photosOfInstallationLocation.length > 0) {
       dispatch(
         updateDedicatedCircuitDetails({
-          photosOfInstallationLocation: localPathPhotos,
+          photosOfInstallationLocation: data.photosOfInstallationLocation,
         }),
       );
     }
@@ -244,6 +365,9 @@ export default function CircuitPhotos() {
       params: { serviceCallId, serviceType },
     });
   };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -272,28 +396,56 @@ export default function CircuitPhotos() {
 
           <AuthHeading title="Photos Upload" subtitle="" />
 
-          <PhotoUploadSection
-            label="Upload photos of your electrical meter (up close so we can see the numbers and about 10 ft away.)"
-            photos={localMeterPhotos}
-            onPhotosChange={handleMeterPhotosChange}
-            onUploadSingle={handleMeterUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "meter"}
+          {/* Meter Photos with Controller */}
+          <Controller
+            control={control}
+            name="photosOfElectricalMeter"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of your electrical meter (up close so we can see the numbers and about 10 ft away.)"
+                  photos={value || []}
+                  onPhotosChange={handleMeterPhotosChange}
+                  onUploadSingle={handleMeterUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "meter"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            label="Upload a photo showing path from circuit to panel install location"
-            photos={localPathPhotos}
-            onPhotosChange={handlePathPhotosChange}
-            onUploadSingle={handlePathUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "path"}
+          {/* Installation Location Photos with Controller */}
+          <Controller
+            control={control}
+            name="photosOfInstallationLocation"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload a photo showing path from circuit to panel install location"
+                  photos={value || []}
+                  onPhotosChange={handlePathPhotosChange}
+                  onUploadSingle={handlePathUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "path"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={handleContinue}
-            disabled={isSaving || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

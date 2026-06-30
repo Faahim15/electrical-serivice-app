@@ -90,7 +90,7 @@ export default function GeneratorType() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      generatorType: generatorType || "",
+      generatorType: draft?.generatorType || generatorType || "",
       status: "draft" as const,
       completionPercentage,
     };

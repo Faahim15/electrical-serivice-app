@@ -19,16 +19,28 @@ import {
   updateStarlinkDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  StarlinkRouterFormData,
+  starlinkRouterSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { StarlinkRecord } from "@/src/types/quotes/starlink.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 6;
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 const ROOM_CONDITIONS = [
   "Attic above",
@@ -52,9 +64,9 @@ export default function StarlinkRouter() {
     null,
   );
   const [localRoomCondition, setLocalRoomCondition] = useState("");
-  const [localRouterPhotos, setLocalRouterPhotos] = useState<string[]>([]);
   const [localRoomOfRouterIn, setLocalRoomOfRouterIn] = useState("");
   const isInitialMount = useRef(true);
+  const isUpdatingFromRedux = useRef(false);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -87,24 +99,64 @@ export default function StarlinkRouter() {
 
   // ─── Ensure category is set ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!categoryData || categoryData.categoryId !== "13") {
-      dispatch(selectCategory("13"));
+    if (!categoryData || categoryData.categoryId !== "12") {
+      dispatch(selectCategory("12"));
     }
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
   const reduxRoomOfRouterIn =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.roomOfRouterIn || ""
       : "";
   const reduxRoomCondition =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.roomCondition || ""
       : "";
   const reduxRouterPhotos =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.photosOfRoomForRouter || []
       : [];
+  const reduxHaveStarlinkEquipment =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.haveStarlinkEquipment || ""
+      : "";
+  const reduxWhenHaveEquipment =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.whenHaveEquipment || ""
+      : "";
+  const reduxDishLocation =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.dishLocation || ""
+      : "";
+  const reduxHaveMountingEquipment =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.haveMountingEquipment || ""
+      : "";
+  const reduxAreaPhotos =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.areaOfInstallationPhotos || []
+      : [];
+  const reduxAdditionalNotes =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.additionalNotes || ""
+      : "";
+
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<StarlinkRouterFormData>({
+    resolver: zodResolver(starlinkRouterSchema),
+    mode: "onChange",
+    defaultValues: {
+      photosOfRoomForRouter: reduxRouterPhotos || [],
+    },
+  });
 
   // ─── Sync local state with Redux ────────────────────────────────────────────
   useEffect(() => {
@@ -119,14 +171,17 @@ export default function StarlinkRouter() {
     }
   }, [reduxRoomCondition]);
 
-  // ─── Sync photos - use ref to prevent infinite loop ──────────────────────────
+  // ─── Sync photos from Redux to form ──────────────────────────────────────────
   useEffect(() => {
-    const photosChanged =
-      JSON.stringify(reduxRouterPhotos) !== JSON.stringify(localRouterPhotos);
-    if (photosChanged && !isInitialMount.current) {
-      setLocalRouterPhotos(reduxRouterPhotos);
+    if (reduxRouterPhotos.length > 0 && !isInitialMount.current) {
+      isUpdatingFromRedux.current = true;
+      setValue("photosOfRoomForRouter", reduxRouterPhotos);
+      trigger("photosOfRoomForRouter");
+      setTimeout(() => {
+        isUpdatingFromRedux.current = false;
+      }, 0);
     }
-  }, [reduxRouterPhotos]);
+  }, [reduxRouterPhotos, setValue, trigger]);
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -149,12 +204,16 @@ export default function StarlinkRouter() {
       );
     }
     if (draft.photosOfRoomForRouter?.length) {
-      setLocalRouterPhotos(draft.photosOfRoomForRouter);
+      const photos = draft.photosOfRoomForRouter;
       dispatch(
         updateStarlinkDetails({
-          photosOfRoomForRouter: draft.photosOfRoomForRouter,
+          photosOfRoomForRouter: photos,
         }),
       );
+      // Update form using reset
+      reset({
+        photosOfRoomForRouter: photos,
+      });
     }
 
     isInitialMount.current = false;
@@ -179,6 +238,7 @@ export default function StarlinkRouter() {
       setUploadingSection("router");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("photosOfRoomForRouter");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -194,7 +254,6 @@ export default function StarlinkRouter() {
 
   // ─── Handlers ──────────────────────────────────────────────────────────────────
   const handleRoomConditionSelect = (val: string) => {
-    console.log("Selected room condition:", val);
     setLocalRoomCondition(val);
     dispatch(
       updateStarlinkDetails({
@@ -204,7 +263,11 @@ export default function StarlinkRouter() {
   };
 
   const handleRouterPhotosChange = (photos: string[]) => {
-    setLocalRouterPhotos(photos);
+    // Only update if not coming from Redux sync
+    if (!isUpdatingFromRedux.current) {
+      setValue("photosOfRoomForRouter", photos);
+      trigger("photosOfRoomForRouter");
+    }
   };
 
   const handleRoomOfRouterChange = (text: string) => {
@@ -218,23 +281,48 @@ export default function StarlinkRouter() {
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    const currentPhotos = control._formValues.photosOfRoomForRouter || [];
+
     const payload = {
+      // Contact Details
       fullName: draft?.fullName || fullName || "",
-      emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
+      emailAddress: draft?.emailAddress || email || "",
       preferredContactMethod:
         draft?.preferredContactMethod || preferredContact || "Call",
+
+      // Address Details
       streetAddress: draft?.streetAddress || streetAddress || "",
       apartmentUnit: draft?.apartmentUnit || apartment || "",
       city: draft?.city || city || "",
       state: draft?.state || state || "",
       zipCode: draft?.zipCode || zipCode || "",
+
+      // Project Basics
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      roomOfRouterIn: localRoomOfRouterIn || "",
-      roomCondition: localRoomCondition || "",
-      photosOfRoomForRouter: localRouterPhotos || [],
+
+      // Starlink Specific Fields
+      haveStarlinkEquipment:
+        draft?.haveStarlinkEquipment !== undefined
+          ? draft.haveStarlinkEquipment
+          : reduxHaveStarlinkEquipment === "Yes",
+      whenHaveEquipment:
+        draft?.whenHaveEquipment || reduxWhenHaveEquipment || "",
+      dishLocation: draft?.dishLocation || reduxDishLocation || "",
+      haveMountingEquipment:
+        draft?.haveMountingEquipment !== undefined
+          ? draft.haveMountingEquipment
+          : reduxHaveMountingEquipment === "Yes",
+      roomOfRouterIn: draft?.roomOfRouterIn || localRoomOfRouterIn || "",
+      roomCondition: draft?.roomCondition || localRoomCondition || "",
+      areaOfInstallationPhotos:
+        draft?.areaOfInstallationPhotos || reduxAreaPhotos || [],
+      photosOfRoomForRouter:
+        draft?.photosOfRoomForRouter || currentPhotos || [],
+      additionalNotes: draft?.additionalNotes || reduxAdditionalNotes || "",
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -258,7 +346,8 @@ export default function StarlinkRouter() {
     }
   };
 
-  const handleContinue = () => {
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: StarlinkRouterFormData) => {
     // Save latest values to Redux before navigating
     if (localRoomOfRouterIn) {
       dispatch(
@@ -274,10 +363,10 @@ export default function StarlinkRouter() {
         }),
       );
     }
-    if (localRouterPhotos.length > 0) {
+    if (data.photosOfRoomForRouter.length > 0) {
       dispatch(
         updateStarlinkDetails({
-          photosOfRoomForRouter: localRouterPhotos,
+          photosOfRoomForRouter: data.photosOfRoomForRouter,
         }),
       );
     }
@@ -286,6 +375,9 @@ export default function StarlinkRouter() {
       params: { serviceCallId, serviceType },
     });
   };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -304,7 +396,7 @@ export default function StarlinkRouter() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
+          contentContainerStyle={{ paddingBottom: verticalScale(122) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -333,19 +425,32 @@ export default function StarlinkRouter() {
             numColumns={1}
           />
 
-          <PhotoUploadSection
-            label="Upload photo of room to install WiFi router"
-            photos={localRouterPhotos}
-            onPhotosChange={handleRouterPhotosChange}
-            onUploadSingle={handleRouterUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "router"}
+          <Controller
+            control={control}
+            name="photosOfRoomForRouter"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photo of room to install WiFi router"
+                  photos={value || []}
+                  onPhotosChange={handleRouterPhotosChange}
+                  onUploadSingle={handleRouterUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "router"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={handleContinue}
-            disabled={isSaving || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

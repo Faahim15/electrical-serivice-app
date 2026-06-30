@@ -12,8 +12,9 @@ export interface ElectricPayload {
   ownershipStatus: string;
   timelineUrgency: string;
   inspectionType: string;
-  panelNeedForInspected: string;
+  panelNeedForInspected: number;
   additionalInformation?: string;
+  squareFootage?: string;
   panelPhotos?: string[];
 }
 

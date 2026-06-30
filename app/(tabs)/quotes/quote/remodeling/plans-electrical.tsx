@@ -18,15 +18,33 @@ import { updateRemodelingDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { RemodelingRecord } from "@/src/types/quotes/remodeling.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+import { z } from "zod";
 
 const SERVICE_TYPE = "Remodeling";
 const CURRENT_STEP = 5;
 const TOTAL_STEPS = 9;
+
+// ─── Zod Schema ──────────────────────────────────────────────────────────────
+const remodelingUploadSchema = z.object({
+  planPhotos: z
+    .array(z.string())
+    .min(1, "Please upload at least one photo of the plans/drawings"),
+});
+
+type RemodelingUploadFormData = z.infer<typeof remodelingUploadSchema>;
 
 export default function PlansElectrical() {
   const dispatch = useDispatch();
@@ -101,6 +119,21 @@ export default function PlansElectrical() {
     return "";
   });
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<RemodelingUploadFormData>({
+    resolver: zodResolver(remodelingUploadSchema),
+    mode: "onChange",
+    defaultValues: {
+      planPhotos: planPhotos || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -113,13 +146,23 @@ export default function PlansElectrical() {
     }
     if (draft.plansDrawings?.length) {
       dispatch(updateRemodelingDetails({ planPhotos: draft.plansDrawings }));
+      setValue("planPhotos", draft.plansDrawings);
     }
     if (draft.electricalNeeds) {
       dispatch(
         updateRemodelingDetails({ electricalNeeds: draft.electricalNeeds }),
       );
     }
+    trigger("planPhotos");
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (planPhotos.length > 0) {
+      setValue("planPhotos", planPhotos);
+      trigger("planPhotos");
+    }
+  }, [planPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -138,6 +181,7 @@ export default function PlansElectrical() {
       setUploadingSection("plans");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("planPhotos");
       return url;
     } catch (error) {
       console.error("[Remodeling] Plans upload error:", error);
@@ -179,10 +223,13 @@ export default function PlansElectrical() {
         panelLocation === "Other (please specify)"
           ? panelLocationOther
           : panelLocation || "",
-      remodelingAreas: remodlingArea || "",
-      hasPlansDrawings: hasPlans === "Yes",
-      plansDrawings: planPhotos || [],
-      electricalNeeds: electricalNeeds || "",
+      remodelingAreas: draft?.remodelingAreas || remodlingArea || "",
+      hasPlansDrawings:
+        draft?.hasPlansDrawings !== undefined
+          ? draft.hasPlansDrawings
+          : hasPlans === "Yes",
+      plansDrawings: draft?.plansDrawings || planPhotos || [],
+      electricalNeeds: draft?.electricalNeeds || electricalNeeds || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -201,6 +248,28 @@ export default function PlansElectrical() {
     } catch {
       toast.error("Failed to save draft. Please try again.");
     }
+  };
+
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: RemodelingUploadFormData) => {
+    // Only proceed if hasPlans is "Yes" and photos are uploaded
+    if (hasPlans === "Yes" && data.planPhotos.length === 0) {
+      toast.error("Please upload the plans/drawings");
+      return;
+    }
+    router.push({
+      pathname: "/(tabs)/quotes/quote/remodeling/permit-info",
+      params: { serviceType, serviceCallId },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = () => {
+    if (hasPlans === "Yes") {
+      return isValid && uploadingSection === null && !isSaving;
+    }
+    // If hasPlans is "No", no validation needed for photos
+    return uploadingSection === null && !isSaving;
   };
 
   return (
@@ -246,15 +315,30 @@ export default function PlansElectrical() {
           />
 
           {hasPlans === "Yes" && (
-            <PhotoUploadSection
-              label="Please upload the plans/drawings"
-              photos={planPhotos}
-              onPhotosChange={(p) =>
-                dispatch(updateRemodelingDetails({ planPhotos: p }))
-              }
-              onUploadSingle={handlePlansUploadSingle}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "plans"}
+            <Controller
+              control={control}
+              name="planPhotos"
+              render={({ field: { value }, fieldState: { error } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Please upload the plans/drawings"
+                    photos={value || []}
+                    onPhotosChange={(p) => {
+                      dispatch(updateRemodelingDetails({ planPhotos: p }));
+                      setValue("planPhotos", p);
+                      trigger("planPhotos");
+                    }}
+                    onUploadSingle={handlePlansUploadSingle}
+                    onDeleteSingle={deleteImageHandler}
+                    isUploading={uploadingSection === "plans"}
+                  />
+                  {error && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {error.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           )}
 
@@ -270,12 +354,8 @@ export default function PlansElectrical() {
 
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/remodeling/permit-info",
-                params: { serviceType, serviceCallId },
-              })
-            }
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid()}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

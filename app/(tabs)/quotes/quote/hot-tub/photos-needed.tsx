@@ -17,16 +17,29 @@ import {
   updateHotTubDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  HotTubPhotosFormData,
+  hotTubPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { HotTubRecord } from "@/src/types/quotes/hot-tub.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
-
 const CURRENT_STEP = 7;
 const TOTAL_STEPS = 9;
+
+// ─── Zod Schema ──────────────────────────────────────────────────────────────
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
@@ -93,6 +106,23 @@ export default function PhotosNeeded() {
     return [];
   });
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<HotTubPhotosFormData>({
+    resolver: zodResolver(hotTubPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      panelPhotos: panelPhotos || [],
+      installLocationPhotos: installLocationPhotos || [],
+      receptaclePhotos: receptaclePhotos || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -101,21 +131,47 @@ export default function PhotosNeeded() {
 
     if (draft.panelPhotos?.length) {
       dispatch(updateHotTubDetails({ panelPhotos: draft.panelPhotos }));
+      setValue("panelPhotos", draft.panelPhotos);
       hasChanges = true;
     }
     if (draft.hotTubPhotos?.length) {
       dispatch(
         updateHotTubDetails({ installLocationPhotos: draft.hotTubPhotos }),
       );
+      setValue("installLocationPhotos", draft.hotTubPhotos);
       hasChanges = true;
     }
     if (draft.receptaclePhotos?.length) {
       dispatch(
         updateHotTubDetails({ receptaclePhotos: draft.receptaclePhotos }),
       );
+      setValue("receptaclePhotos", draft.receptaclePhotos);
       hasChanges = true;
     }
+    trigger(["panelPhotos", "installLocationPhotos", "receptaclePhotos"]);
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (installLocationPhotos.length > 0) {
+      setValue("installLocationPhotos", installLocationPhotos);
+      trigger("installLocationPhotos");
+    }
+  }, [installLocationPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (receptaclePhotos.length > 0) {
+      setValue("receptaclePhotos", receptaclePhotos);
+      trigger("receptaclePhotos");
+    }
+  }, [receptaclePhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -134,6 +190,7 @@ export default function PhotosNeeded() {
       setUploadingSection("panel");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -150,6 +207,7 @@ export default function PhotosNeeded() {
       setUploadingSection("installLocation");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("installLocationPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -166,6 +224,7 @@ export default function PhotosNeeded() {
       setUploadingSection("receptacle");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("receptaclePhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -195,9 +254,9 @@ export default function PhotosNeeded() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      panelPhotos: panelPhotos || [],
-      hotTubPhotos: installLocationPhotos || [],
-      receptaclePhotos: receptaclePhotos || [],
+      panelPhotos: draft?.panelPhotos || panelPhotos || [],
+      hotTubPhotos: draft?.hotTubPhotos || installLocationPhotos || [],
+      receptaclePhotos: draft?.receptaclePhotos || receptaclePhotos || [],
       status: "draft" as const,
       completionPercentage,
     };
@@ -217,6 +276,17 @@ export default function PhotosNeeded() {
       toast.error("Failed to save draft. Please try again.");
     }
   };
+
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: HotTubPhotosFormData) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/hot-tub/additional-info",
+      params: { serviceCallId, serviceType },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -245,51 +315,91 @@ export default function PhotosNeeded() {
 
           <AuthHeading title="Photos needed" subtitle="" />
 
-          <PhotoUploadSection
-            key={`panel-${panelPhotos.length}`}
-            label="Upload photos of your electrical panel"
-            photos={panelPhotos || []}
-            onPhotosChange={(p) =>
-              dispatch(updateHotTubDetails({ panelPhotos: p }))
-            }
-            onUploadSingle={handlePanelUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
+          {/* Panel Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of your electrical panel"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(updateHotTubDetails({ panelPhotos: p }));
+                    setValue("panelPhotos", p);
+                    trigger("panelPhotos");
+                  }}
+                  onUploadSingle={handlePanelUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            key={`install-${installLocationPhotos.length}`}
-            label="Upload a photo of where your hot tub will be installed"
-            photos={installLocationPhotos || []}
-            onPhotosChange={(p) =>
-              dispatch(updateHotTubDetails({ installLocationPhotos: p }))
-            }
-            onUploadSingle={handleInstallLocationUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "installLocation"}
+          {/* Install Location Photos with Controller */}
+          <Controller
+            control={control}
+            name="installLocationPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload a photo of where your hot tub will be installed"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(updateHotTubDetails({ installLocationPhotos: p }));
+                    setValue("installLocationPhotos", p);
+                    trigger("installLocationPhotos");
+                  }}
+                  onUploadSingle={handleInstallLocationUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "installLocation"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            key={`receptacle-${receptaclePhotos.length}`}
-            label="Upload a photo of where the receptacle or disconnect might be installed"
-            photos={receptaclePhotos || []}
-            onPhotosChange={(p) =>
-              dispatch(updateHotTubDetails({ receptaclePhotos: p }))
-            }
-            onUploadSingle={handleReceptacleUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "receptacle"}
+          {/* Receptacle Photos with Controller */}
+          <Controller
+            control={control}
+            name="receptaclePhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload a photo of where the receptacle or disconnect might be installed"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(updateHotTubDetails({ receptaclePhotos: p }));
+                    setValue("receptaclePhotos", p);
+                    trigger("receptaclePhotos");
+                  }}
+                  onUploadSingle={handleReceptacleUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "receptacle"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/hot-tub/additional-info",
-                params: { serviceCallId, serviceType },
-              })
-            }
-            disabled={isSaving || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

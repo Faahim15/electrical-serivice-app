@@ -14,15 +14,29 @@ import {
 } from "@/src/redux/api-slices/quote/quote-api";
 import { updateGeneratorDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  GeneratorPhotosFormData,
+  generatorPhotosSchema,
+  GeneratorPhotosWholeHomeFormData,
+  generatorPhotosWholeHomeSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { GeneratorRecord } from "@/src/types/quotes/generator.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
-const CURRENT_STEP = 7;
+const CURRENT_STEP = 6;
 const TOTAL_STEPS = 7;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
@@ -82,6 +96,35 @@ export default function GeneratorPhotosNeeded() {
   const hasExisting = hasGenerator === "Yes";
   const isWholeHomeStandby = generatorType === "Whole Home Standby";
 
+  // ─── Choose schema based on generator type ──────────────────────────────
+  // Ensure we have a valid schema
+  const getSchema = () => {
+    if (isWholeHomeStandby) {
+      return generatorPhotosWholeHomeSchema;
+    }
+    return generatorPhotosSchema;
+  };
+
+  const schema = getSchema();
+
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<GeneratorPhotosFormData | GeneratorPhotosWholeHomeFormData>({
+    resolver: zodResolver(schema),
+    mode: "onChange",
+    defaultValues: {
+      panelPhotos: panelPhotos || [],
+      generatorPhotos: generatorPhotos || [],
+      meterPhotos: meterPhotos || [],
+      installLocationPhotos: installLocationPhotos || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -89,6 +132,7 @@ export default function GeneratorPhotosNeeded() {
       dispatch(
         updateGeneratorDetails({ panelPhotos: draft.electricPanelPhotos }),
       );
+      setValue("panelPhotos", draft.electricPanelPhotos);
     }
     if (draft.photosOfWhereGeneratorWillBeInlet?.length) {
       dispatch(
@@ -96,6 +140,7 @@ export default function GeneratorPhotosNeeded() {
           generatorPhotos: draft.photosOfWhereGeneratorWillBeInlet,
         }),
       );
+      setValue("generatorPhotos", draft.photosOfWhereGeneratorWillBeInlet);
     }
     if (draft.generatorInstallationLocationPhotos?.length) {
       dispatch(
@@ -103,11 +148,16 @@ export default function GeneratorPhotosNeeded() {
           installLocationPhotos: draft.generatorInstallationLocationPhotos,
         }),
       );
+      setValue(
+        "installLocationPhotos",
+        draft.generatorInstallationLocationPhotos,
+      );
     }
     if (draft.photosOfElectricalMeter?.length) {
       dispatch(
         updateGeneratorDetails({ meterPhotos: draft.photosOfElectricalMeter }),
       );
+      setValue("meterPhotos", draft.photosOfElectricalMeter);
     }
     if (draft.photosOfReceptacleOnGenerator?.length) {
       dispatch(
@@ -115,8 +165,44 @@ export default function GeneratorPhotosNeeded() {
           generatorPhotos: draft.photosOfReceptacleOnGenerator,
         }),
       );
+      setValue("generatorPhotos", draft.photosOfReceptacleOnGenerator);
     }
+    trigger([
+      "panelPhotos",
+      "generatorPhotos",
+      "meterPhotos",
+      "installLocationPhotos",
+    ]);
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (generatorPhotos.length > 0) {
+      setValue("generatorPhotos", generatorPhotos);
+      trigger("generatorPhotos");
+    }
+  }, [generatorPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (meterPhotos.length > 0) {
+      setValue("meterPhotos", meterPhotos);
+      trigger("meterPhotos");
+    }
+  }, [meterPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (installLocationPhotos.length > 0) {
+      setValue("installLocationPhotos", installLocationPhotos);
+      trigger("installLocationPhotos");
+    }
+  }, [installLocationPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -138,6 +224,12 @@ export default function GeneratorPhotosNeeded() {
       setUploadingSection(section);
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      // Trigger validation for the specific field
+      if (section === "panel") trigger("panelPhotos");
+      else if (section === "generator" || section === "inlet")
+        trigger("generatorPhotos");
+      else if (section === "meter") trigger("meterPhotos");
+      else if (section === "install") trigger("installLocationPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -167,10 +259,15 @@ export default function GeneratorPhotosNeeded() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      electricPanelPhotos: panelPhotos || [],
-      photosOfWhereGeneratorWillBeInlet: generatorPhotos || [],
-      generatorInstallationLocationPhotos: installLocationPhotos || [],
-      photosOfElectricalMeter: meterPhotos || [],
+      electricPanelPhotos: draft?.electricPanelPhotos || panelPhotos || [],
+      photosOfWhereGeneratorWillBeInlet:
+        draft?.photosOfWhereGeneratorWillBeInlet || generatorPhotos || [],
+      generatorInstallationLocationPhotos:
+        draft?.generatorInstallationLocationPhotos ||
+        installLocationPhotos ||
+        [],
+      photosOfElectricalMeter:
+        draft?.photosOfElectricalMeter || meterPhotos || [],
       status: "draft" as const,
       completionPercentage,
     };
@@ -190,6 +287,19 @@ export default function GeneratorPhotosNeeded() {
       toast.error("Failed to save draft. Please try again.");
     }
   };
+
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (
+    data: GeneratorPhotosFormData | GeneratorPhotosWholeHomeFormData,
+  ) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/common/review-request",
+      params: { serviceCallId, serviceType },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -218,76 +328,155 @@ export default function GeneratorPhotosNeeded() {
 
           <AuthHeading title="Photos needed" subtitle="" />
 
-          <PhotoUploadSection
-            label="Please upload clear photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
-            photos={panelPhotos}
-            onPhotosChange={(p) =>
-              dispatch(updateGeneratorDetails({ panelPhotos: p }))
-            }
-            onUploadSingle={(uri) => handleUploadSingle(uri, "panel")}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
+          {/* Panel Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Please upload clear photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(updateGeneratorDetails({ panelPhotos: p }));
+                    setValue("panelPhotos", p);
+                    trigger("panelPhotos");
+                  }}
+                  onUploadSingle={(uri) => handleUploadSingle(uri, "panel")}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
+          {/* Generator Photos (Existing Generator) */}
           {hasExisting && (
-            <PhotoUploadSection
-              label="Upload photo of the receptacle on the generator"
-              photos={generatorPhotos}
-              onPhotosChange={(p) =>
-                dispatch(updateGeneratorDetails({ generatorPhotos: p }))
-              }
-              onUploadSingle={(uri) => handleUploadSingle(uri, "generator")}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "generator"}
+            <Controller
+              control={control}
+              name="generatorPhotos"
+              render={({ field: { value }, fieldState: { error } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Upload photo of the receptacle on the generator"
+                    photos={value || []}
+                    onPhotosChange={(p) => {
+                      dispatch(updateGeneratorDetails({ generatorPhotos: p }));
+                      setValue("generatorPhotos", p);
+                      trigger("generatorPhotos");
+                    }}
+                    onUploadSingle={(uri) =>
+                      handleUploadSingle(uri, "generator")
+                    }
+                    onDeleteSingle={deleteImageHandler}
+                    isUploading={uploadingSection === "generator"}
+                  />
+                  {error && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {error.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           )}
 
+          {/* Generator Inlet Photos (Not Whole Home Standby) */}
           {!isWholeHomeStandby && (
-            <PhotoUploadSection
-              label="Upload photo of where your generator inlet will be"
-              photos={generatorPhotos}
-              onPhotosChange={(p) =>
-                dispatch(updateGeneratorDetails({ generatorPhotos: p }))
-              }
-              onUploadSingle={(uri) => handleUploadSingle(uri, "inlet")}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "inlet"}
+            <Controller
+              control={control}
+              name="generatorPhotos"
+              render={({ field: { value }, fieldState: { error } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Upload photo of where your generator inlet will be"
+                    photos={value || []}
+                    onPhotosChange={(p) => {
+                      dispatch(updateGeneratorDetails({ generatorPhotos: p }));
+                      setValue("generatorPhotos", p);
+                      trigger("generatorPhotos");
+                    }}
+                    onUploadSingle={(uri) => handleUploadSingle(uri, "inlet")}
+                    onDeleteSingle={deleteImageHandler}
+                    isUploading={uploadingSection === "inlet"}
+                  />
+                  {error && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {error.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           )}
 
+          {/* Meter Photos (Whole Home Standby) - REQUIRED */}
           {isWholeHomeStandby && (
-            <PhotoUploadSection
-              label="Upload photo of your electrical meter"
-              photos={meterPhotos}
-              onPhotosChange={(p) =>
-                dispatch(updateGeneratorDetails({ meterPhotos: p }))
-              }
-              onUploadSingle={(uri) => handleUploadSingle(uri, "meter")}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "meter"}
+            <Controller
+              control={control}
+              name="meterPhotos"
+              render={({ field: { value }, fieldState: { error } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Upload photo of your electrical meter"
+                    photos={value || []}
+                    onPhotosChange={(p) => {
+                      dispatch(updateGeneratorDetails({ meterPhotos: p }));
+                      setValue("meterPhotos", p);
+                      trigger("meterPhotos");
+                    }}
+                    onUploadSingle={(uri) => handleUploadSingle(uri, "meter")}
+                    onDeleteSingle={deleteImageHandler}
+                    isUploading={uploadingSection === "meter"}
+                  />
+                  {error && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {error.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           )}
 
-          <PhotoUploadSection
-            label="Upload photo of where you would like the generator installed"
-            photos={installLocationPhotos}
-            onPhotosChange={(p) =>
-              dispatch(updateGeneratorDetails({ installLocationPhotos: p }))
-            }
-            onUploadSingle={(uri) => handleUploadSingle(uri, "install")}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "install"}
+          {/* Install Location Photos with Controller */}
+          <Controller
+            control={control}
+            name="installLocationPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photo of where you would like the generator installed"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(
+                      updateGeneratorDetails({ installLocationPhotos: p }),
+                    );
+                    setValue("installLocationPhotos", p);
+                    trigger("installLocationPhotos");
+                  }}
+                  onUploadSingle={(uri) => handleUploadSingle(uri, "install")}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "install"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/common/review-request",
-                params: { serviceCallId, serviceType },
-              })
-            }
-            disabled={isSaving || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

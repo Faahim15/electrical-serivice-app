@@ -199,12 +199,18 @@ export default function GeneratorOwnership() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      isAlreadyHaveGenerator: hasGenerator === "Yes",
-      generatorOutputPower: kwOutput || "",
-      preferredBackupInstallation: backupInstallation || "",
-      generatorDistanceFromInletLocation: panelDistance || "",
-      electricPanelLocation: panelLocation || "",
-      sizeOfGeneratorWanted: purchaseSize || "",
+      isAlreadyHaveGenerator:
+        draft?.isAlreadyHaveGenerator !== undefined
+          ? draft.isAlreadyHaveGenerator
+          : hasGenerator === "Yes",
+      generatorOutputPower: draft?.generatorOutputPower || kwOutput || "",
+      preferredBackupInstallation:
+        draft?.preferredBackupInstallation || backupInstallation || "",
+      generatorDistanceFromInletLocation:
+        draft?.generatorDistanceFromInletLocation || panelDistance || "",
+      electricPanelLocation:
+        draft?.electricPanelLocation || panelLocation || "",
+      sizeOfGeneratorWanted: draft?.sizeOfGeneratorWanted || purchaseSize || "",
       status: "draft" as const,
       completionPercentage,
     };

@@ -16,11 +16,24 @@ import { updatePanelUpgradeDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { PanelUpgradeRecord } from "@/src/types/quotes/panel.upgrader.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+// Import from the correct path - make sure this matches your file structure
+import {
+  PanelUpgradeUploadFormData,
+  panelUpgradeUploadSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 
 const SERVICE_TYPE = "Panel Upgrade / Replacement";
 const CURRENT_STEP = 7;
@@ -106,16 +119,50 @@ export default function PanelUploadPhotos() {
     return "";
   });
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<PanelUpgradeUploadFormData>({
+    resolver: zodResolver(panelUpgradeUploadSchema),
+    mode: "onChange",
+    defaultValues: {
+      meterPhotos: meterPhotos || [],
+      panelPhotos: panelPhotos || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.meterPhotos?.length) {
       dispatch(updatePanelUpgradeDetails({ meterPhotos: draft.meterPhotos }));
+      setValue("meterPhotos", draft.meterPhotos);
     }
     if (draft.panelPhotos?.length) {
       dispatch(updatePanelUpgradeDetails({ panelPhotos: draft.panelPhotos }));
+      setValue("panelPhotos", draft.panelPhotos);
     }
+    trigger(["meterPhotos", "panelPhotos"]);
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (meterPhotos.length > 0) {
+      setValue("meterPhotos", meterPhotos);
+      trigger("meterPhotos");
+    }
+  }, [meterPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -134,11 +181,12 @@ export default function PanelUploadPhotos() {
       setUploadingSection("meter");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("meterPhotos");
       return url;
     } catch (error) {
-      console.error("[PanelUpload] Meter upload error:", error); // ← see the real cause
+      console.error("[PanelUpload] Meter upload error:", error);
       toast.error("Failed to upload photo. Please try again.");
-      throw error; // ← rethrow original error, not a generic one
+      throw error;
     } finally {
       setUploadingSection(null);
     }
@@ -149,11 +197,12 @@ export default function PanelUploadPhotos() {
       setUploadingSection("panel");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return url;
     } catch (error) {
-      console.error("[PanelUpload] Panel upload error:", error); // ← see the real cause
+      console.error("[PanelUpload] Panel upload error:", error);
       toast.error("Failed to upload photo. Please try again.");
-      throw error; // ← rethrow original error, not a generic one
+      throw error;
     } finally {
       setUploadingSection(null);
     }
@@ -213,6 +262,18 @@ export default function PanelUploadPhotos() {
     }
   };
 
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: PanelUpgradeUploadFormData) => {
+    // All validation passed, proceed to next screen
+    router.push({
+      pathname: "/(tabs)/quotes/quote/panel-upgrade/additional-info",
+      params: { serviceType, serviceCallId },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -245,36 +306,64 @@ export default function PanelUploadPhotos() {
             subtitle="Please upload these photos"
           />
 
-          <PhotoUploadSection
-            label="Upload photo of your electrical meter up close so we can see the numbers and about 10 ft away"
-            photos={meterPhotos}
-            onPhotosChange={(p) =>
-              dispatch(updatePanelUpgradeDetails({ meterPhotos: p }))
-            }
-            onUploadSingle={handleMeterUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "meter"}
+          {/* Meter Photos with Controller */}
+          <Controller
+            control={control}
+            name="meterPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photo of your electrical meter up close so we can see the numbers and about 10 ft away"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(updatePanelUpgradeDetails({ meterPhotos: p }));
+                    setValue("meterPhotos", p);
+                    trigger("meterPhotos");
+                  }}
+                  onUploadSingle={handleMeterUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "meter"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
-            photos={panelPhotos}
-            onPhotosChange={(p) =>
-              dispatch(updatePanelUpgradeDetails({ panelPhotos: p }))
-            }
-            onUploadSingle={handlePanelUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
+          {/* Panel Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(updatePanelUpgradeDetails({ panelPhotos: p }));
+                    setValue("panelPhotos", p);
+                    trigger("panelPhotos");
+                  }}
+                  onUploadSingle={handlePanelUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/panel-upgrade/additional-info",
-                params: { serviceType, serviceCallId },
-              })
-            }
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

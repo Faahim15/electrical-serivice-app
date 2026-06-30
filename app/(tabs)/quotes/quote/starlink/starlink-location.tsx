@@ -18,16 +18,28 @@ import {
   updateStarlinkDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  StarlinkPhotosFormData,
+  starlinkPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { StarlinkRecord } from "@/src/types/quotes/starlink.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 5;
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 const LOCATION_OPTIONS = ["Roof", "Eave", "Ground"];
 
@@ -43,7 +55,6 @@ export default function StarlinkLocation() {
   const [uploadingSection, setUploadingSection] = useState<"area" | null>(null);
   const [localDishLocation, setLocalDishLocation] = useState("");
   const [localMountingEquipment, setLocalMountingEquipment] = useState("");
-  const [localAreaPhotos, setLocalAreaPhotos] = useState<string[]>([]);
   const isInitialMount = useRef(true);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
@@ -77,24 +88,48 @@ export default function StarlinkLocation() {
 
   // ─── Ensure category is set ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!categoryData || categoryData.categoryId !== "13") {
-      dispatch(selectCategory("13"));
+    if (!categoryData || categoryData.categoryId !== "12") {
+      dispatch(selectCategory("12"));
     }
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
   const reduxDishLocation =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.dishLocation || ""
       : "";
   const reduxMountingEquipment =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.haveMountingEquipment || ""
       : "";
   const reduxAreaPhotos =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.areaOfInstallationPhotos || []
       : [];
+  const reduxHaveStarlinkEquipment =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.haveStarlinkEquipment || ""
+      : "";
+  const reduxWhenHaveEquipment =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.whenHaveEquipment || ""
+      : "";
+
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<StarlinkPhotosFormData>({
+    resolver: zodResolver(starlinkPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      areaOfInstallationPhotos: reduxAreaPhotos || [],
+    },
+  });
 
   // ─── Sync local state with Redux (only on mount and when values actually change) ──
   useEffect(() => {
@@ -111,20 +146,11 @@ export default function StarlinkLocation() {
     }
   }, [reduxMountingEquipment]);
 
-  // ─── Sync photos - use ref to prevent infinite loop ──────────────────────────
-  useEffect(() => {
-    // Only sync if photos are different and not during initial mount
-    const photosChanged =
-      JSON.stringify(reduxAreaPhotos) !== JSON.stringify(localAreaPhotos);
-    if (photosChanged && !isInitialMount.current) {
-      setLocalAreaPhotos(reduxAreaPhotos);
-    }
-  }, [reduxAreaPhotos]);
-
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
 
+    // Set dish location from draft
     if (draft.dishLocation) {
       const capitalized =
         draft.dishLocation.charAt(0).toUpperCase() +
@@ -136,6 +162,8 @@ export default function StarlinkLocation() {
         }),
       );
     }
+
+    // Set mounting equipment from draft
     if (draft.haveMountingEquipment !== undefined) {
       const value = draft.haveMountingEquipment ? "Yes" : "No";
       setLocalMountingEquipment(value);
@@ -145,18 +173,33 @@ export default function StarlinkLocation() {
         }),
       );
     }
+
+    // Set photos from draft - use reset to update form
     if (draft.areaOfInstallationPhotos?.length) {
-      setLocalAreaPhotos(draft.areaOfInstallationPhotos);
+      const photos = draft.areaOfInstallationPhotos;
+      // Update Redux
       dispatch(
         updateStarlinkDetails({
-          areaOfInstallationPhotos: draft.areaOfInstallationPhotos,
+          areaOfInstallationPhotos: photos,
         }),
       );
+      // Update form using reset
+      reset({
+        areaOfInstallationPhotos: photos,
+      });
     }
 
     // Mark initial mount as complete after draft is loaded
     isInitialMount.current = false;
   }, [draft]);
+
+  // ─── Sync Redux photos to form when they change ──────────────────────────
+  useEffect(() => {
+    if (reduxAreaPhotos.length > 0 && !isInitialMount.current) {
+      setValue("areaOfInstallationPhotos", reduxAreaPhotos);
+      trigger("areaOfInstallationPhotos");
+    }
+  }, [reduxAreaPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -175,6 +218,7 @@ export default function StarlinkLocation() {
       setUploadingSection("area");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("areaOfInstallationPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -208,30 +252,54 @@ export default function StarlinkLocation() {
     );
   };
 
-  // ─── Photo change handler - updates local state only ──────────────────────
+  // ─── Photo change handler - updates form ──────────────────────────────────────
   const handleAreaPhotosChange = (photos: string[]) => {
-    setLocalAreaPhotos(photos);
+    setValue("areaOfInstallationPhotos", photos);
+    trigger("areaOfInstallationPhotos");
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const payload = {
+      // Contact Details
       fullName: draft?.fullName || fullName || "",
-      emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
+      emailAddress: draft?.emailAddress || email || "",
       preferredContactMethod:
         draft?.preferredContactMethod || preferredContact || "Call",
+
+      // Address Details
       streetAddress: draft?.streetAddress || streetAddress || "",
       apartmentUnit: draft?.apartmentUnit || apartment || "",
       city: draft?.city || city || "",
       state: draft?.state || state || "",
       zipCode: draft?.zipCode || zipCode || "",
+
+      // Project Basics
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      dishLocation: localDishLocation.toLowerCase() || "",
-      haveMountingEquipment: localMountingEquipment === "Yes",
-      areaOfInstallationPhotos: localAreaPhotos || [],
+
+      // Starlink Specific Fields
+      haveStarlinkEquipment:
+        draft?.haveStarlinkEquipment !== undefined
+          ? draft.haveStarlinkEquipment
+          : reduxHaveStarlinkEquipment === "Yes",
+      whenHaveEquipment:
+        draft?.whenHaveEquipment || reduxWhenHaveEquipment || "",
+      dishLocation:
+        draft?.dishLocation || localDishLocation.toLowerCase() || "",
+      haveMountingEquipment:
+        draft?.haveMountingEquipment !== undefined
+          ? draft.haveMountingEquipment
+          : localMountingEquipment === "Yes",
+      roomOfRouterIn: draft?.roomOfRouterIn || "",
+      roomCondition: draft?.roomCondition || "",
+      areaOfInstallationPhotos:
+        draft?.areaOfInstallationPhotos || reduxAreaPhotos || [],
+      photosOfRoomForRouter: draft?.photosOfRoomForRouter || [],
+      additionalNotes: draft?.additionalNotes || "",
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -255,34 +323,77 @@ export default function StarlinkLocation() {
     }
   };
 
-  // ─── Continue handler ────────────────────────────────────────────────────────
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = () => {
+    // Only validate photos if location is Roof or Eave
+    if (localDishLocation === "Roof" || localDishLocation === "Eave") {
+      return isValid && uploadingSection === null && !isSaving;
+    }
+    // For Ground location, no photo validation needed
+    return uploadingSection === null && !isSaving;
+  };
+
+  // ─── Continue handler with validation ──────────────────────────────────────
   const handleContinue = () => {
-    // Save latest values to Redux before navigating
-    if (localDishLocation) {
-      dispatch(
-        updateStarlinkDetails({
-          dishLocation: localDishLocation.toLowerCase() as any,
-        }),
-      );
+    // For Roof or Eave, validate photos
+    if (localDishLocation === "Roof" || localDishLocation === "Eave") {
+      handleSubmit(
+        (data) => {
+          // Save latest values to Redux before navigating
+          if (localDishLocation) {
+            dispatch(
+              updateStarlinkDetails({
+                dishLocation: localDishLocation.toLowerCase() as any,
+              }),
+            );
+          }
+          if (localMountingEquipment) {
+            dispatch(
+              updateStarlinkDetails({
+                haveMountingEquipment: localMountingEquipment as any,
+              }),
+            );
+          }
+          if (data.areaOfInstallationPhotos.length > 0) {
+            dispatch(
+              updateStarlinkDetails({
+                areaOfInstallationPhotos: data.areaOfInstallationPhotos,
+              }),
+            );
+          }
+          router.push({
+            pathname: "/(tabs)/quotes/quote/starlink/starlink-router",
+            params: { serviceCallId, serviceType },
+          });
+        },
+        (errors) => {
+          toast.error(
+            "Please upload at least one photo of the installation area",
+          );
+        },
+      )();
+    } else {
+      // For Ground location, just navigate
+      // Save latest values to Redux before navigating
+      if (localDishLocation) {
+        dispatch(
+          updateStarlinkDetails({
+            dishLocation: localDishLocation.toLowerCase() as any,
+          }),
+        );
+      }
+      if (localMountingEquipment) {
+        dispatch(
+          updateStarlinkDetails({
+            haveMountingEquipment: localMountingEquipment as any,
+          }),
+        );
+      }
+      router.push({
+        pathname: "/(tabs)/quotes/quote/starlink/starlink-router",
+        params: { serviceCallId, serviceType },
+      });
     }
-    if (localMountingEquipment) {
-      dispatch(
-        updateStarlinkDetails({
-          haveMountingEquipment: localMountingEquipment as any,
-        }),
-      );
-    }
-    if (localAreaPhotos.length > 0) {
-      dispatch(
-        updateStarlinkDetails({
-          areaOfInstallationPhotos: localAreaPhotos,
-        }),
-      );
-    }
-    router.push({
-      pathname: "/(tabs)/quotes/quote/starlink/starlink-router",
-      params: { serviceCallId, serviceType },
-    });
   };
 
   return (
@@ -302,7 +413,7 @@ export default function StarlinkLocation() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
+          contentContainerStyle={{ paddingBottom: verticalScale(122) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -334,21 +445,35 @@ export default function StarlinkLocation() {
           )}
 
           {(localDishLocation === "Roof" || localDishLocation === "Eave") && (
-            <PhotoUploadSection
-              label="Upload photo from ground of area to install user terminal / dish"
-              photos={localAreaPhotos}
-              onPhotosChange={handleAreaPhotosChange}
-              onUploadSingle={handleAreaUploadSingle}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "area"}
+            <Controller
+              control={control}
+              name="areaOfInstallationPhotos"
+              render={({ field: { value }, fieldState: { error } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Upload photo from ground of area to install user terminal / dish"
+                    photos={value || []}
+                    onPhotosChange={handleAreaPhotosChange}
+                    onUploadSingle={handleAreaUploadSingle}
+                    onDeleteSingle={deleteImageHandler}
+                    isUploading={uploadingSection === "area"}
+                  />
+                  {error && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {error.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           )}
-
-          <GradientButton
-            label="Continue"
-            onPress={handleContinue}
-            disabled={isSaving || uploadingSection !== null}
-          />
+          <View className="mt-[3%]">
+            <GradientButton
+              label="Continue"
+              onPress={handleContinue}
+              disabled={!isFormValid()}
+            />
+          </View>
           <SavedEditAction
             onPress={handleSaveForLater}
             title={isSaving ? "Saving..." : "Save for Later"}

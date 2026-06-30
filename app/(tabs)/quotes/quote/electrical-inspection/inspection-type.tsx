@@ -16,10 +16,23 @@ import {
 } from "@/src/redux/api-slices/quote/quote-api";
 import { updateElectricalInspectionDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  ElectricalInspectionPhotosFormData,
+  electricalInspectionPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { ElectricRecord } from "@/src/types/quotes/electric.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
@@ -107,9 +120,26 @@ export default function InspectionType() {
 
   const showPanelSection = inspectionType === "Electrical Service only";
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<ElectricalInspectionPhotosFormData>({
+    resolver: zodResolver(electricalInspectionPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      panelPhotos: panelPhotos || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
+
+    // Prefill inspection type
     if (draft.inspectionType) {
       dispatch(
         updateElectricalInspectionDetails({
@@ -117,22 +147,36 @@ export default function InspectionType() {
         }),
       );
     }
-    // Note: squareFootage might be under a different field name
-    if (draft.panelNeedForInspected) {
-      // This might be the square footage field
+
+    // Prefill square footage (if exists)
+    if (draft.squareFootage) {
       dispatch(
         updateElectricalInspectionDetails({
-          squareFootage: draft.panelNeedForInspected,
+          squareFootage: draft.squareFootage,
         }),
       );
     }
+
+    // Prefill panel count (if exists)
+    if (draft.panelNeedForInspected) {
+      dispatch(
+        updateElectricalInspectionDetails({
+          panelCount: String(draft.panelNeedForInspected),
+        }),
+      );
+    }
+
+    // Prefill panel photos
     if (draft.panelPhotos?.length) {
       dispatch(
         updateElectricalInspectionDetails({
           panelPhotos: draft.panelPhotos,
         }),
       );
+      setValue("panelPhotos", draft.panelPhotos);
     }
+
+    // Prefill additional info
     if (draft.additionalInformation) {
       dispatch(
         updateElectricalInspectionDetails({
@@ -140,7 +184,17 @@ export default function InspectionType() {
         }),
       );
     }
+
+    trigger("panelPhotos");
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -159,6 +213,7 @@ export default function InspectionType() {
       setUploadingSection("panel");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -174,6 +229,10 @@ export default function InspectionType() {
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    // Get values from Redux
+    const squareFootageValue = showSquareFootage ? squareFootage || "" : "";
+    const panelCountValue = showPanelSection ? Number(panelCount || 0) : 0;
+
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -188,12 +247,11 @@ export default function InspectionType() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      inspectionType: inspectionType || "",
-      panelNeedForInspected: showSquareFootage
-        ? squareFootage || ""
-        : panelCount || "",
-      panelPhotos: panelPhotos || [],
-      additionalInformation: "",
+      inspectionType: draft?.inspectionType || inspectionType || "",
+      panelNeedForInspected: draft?.panelNeedForInspected || panelCountValue,
+      panelPhotos: draft?.panelPhotos || panelPhotos || [],
+      additionalInformation: draft?.additionalInformation || "",
+      squareFootage: draft?.squareFootage || squareFootageValue,
       status: "draft" as const,
       completionPercentage,
     };
@@ -214,6 +272,42 @@ export default function InspectionType() {
     }
   };
 
+  // ─── Handle Continue ──────────────────────────────────────────────────────
+  const handleContinue = () => {
+    // For "Electrical Service only", validate photos
+    if (showPanelSection) {
+      // Trigger form validation
+      handleSubmit(
+        (data) => {
+          router.push({
+            pathname:
+              "/(tabs)/quotes/quote/electrical-inspection/additional-info",
+            params: { serviceCallId, serviceType },
+          });
+        },
+        (errors) => {
+          // Validation failed - show toast
+          toast.error("Please upload photos of the electrical panel");
+        },
+      )();
+    } else {
+      // For other inspection types, just navigate
+      router.push({
+        pathname: "/(tabs)/quotes/quote/electrical-inspection/additional-info",
+        params: { serviceCallId, serviceType },
+      });
+    }
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = () => {
+    if (showPanelSection) {
+      return isValid && uploadingSection === null && !isSaving;
+    }
+    // If not showing panel section, no validation needed for photos
+    return uploadingSection === null && !isSaving;
+  };
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -231,7 +325,7 @@ export default function InspectionType() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -287,17 +381,32 @@ export default function InspectionType() {
                     ),
                 }}
               />
-              <PhotoUploadSection
-                label="Please upload clear photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away."
-                photos={panelPhotos}
-                onPhotosChange={(p) =>
-                  dispatch(
-                    updateElectricalInspectionDetails({ panelPhotos: p }),
-                  )
-                }
-                onUploadSingle={handlePanelUploadSingle}
-                onDeleteSingle={deleteImageHandler}
-                isUploading={uploadingSection === "panel"}
+              <Controller
+                control={control}
+                name="panelPhotos"
+                render={({ field: { value }, fieldState: { error } }) => (
+                  <View>
+                    <PhotoUploadSection
+                      label="Please upload clear photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away."
+                      photos={value || []}
+                      onPhotosChange={(p) => {
+                        dispatch(
+                          updateElectricalInspectionDetails({ panelPhotos: p }),
+                        );
+                        setValue("panelPhotos", p);
+                        trigger("panelPhotos");
+                      }}
+                      onUploadSingle={handlePanelUploadSingle}
+                      onDeleteSingle={deleteImageHandler}
+                      isUploading={uploadingSection === "panel"}
+                    />
+                    {error && (
+                      <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                        {error.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
               />
             </>
           )}
@@ -305,14 +414,8 @@ export default function InspectionType() {
           <View className="mt-[3%]">
             <GradientButton
               label="Continue"
-              onPress={() =>
-                router.push({
-                  pathname:
-                    "/(tabs)/quotes/quote/electrical-inspection/additional-info",
-                  params: { serviceCallId, serviceType },
-                })
-              }
-              disabled={isSaving || uploadingSection !== null}
+              onPress={handleContinue}
+              disabled={!isFormValid()}
             />
           </View>
           <SavedEditAction

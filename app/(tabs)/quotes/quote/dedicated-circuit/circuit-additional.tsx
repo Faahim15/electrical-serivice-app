@@ -21,7 +21,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 8;
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
@@ -67,7 +67,48 @@ export default function CircuitAdditional() {
     }
   }, []);
 
-  // ─── Get values from Redux ───────────────────────────────────────────────────
+  // ─── Get all values from Redux ──────────────────────────────────────────────
+  const reduxCircuit =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.whyNeedDedicatedCircuit || ""
+      : "";
+  const reduxPanel =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.electricalPanelLocation || ""
+      : "";
+  const reduxInstallLocation =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.whereWillDedicatedCircuitInstalled || ""
+      : "";
+  const reduxAboveBelow =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.aboveBelowArea || ""
+      : "";
+  const reduxDistance =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)
+          ?.distanceElectricalPanelToInstallationArea || ""
+      : "";
+  const reduxAmps =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.ampsNeeded || ""
+      : "";
+  const reduxVolts =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.voltsNeeded || ""
+      : "";
+  const reduxNema =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.NEMAConfiguration || ""
+      : "";
+  const reduxMeterPhotos =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.photosOfElectricalMeter || []
+      : [];
+  const reduxInstallationPhotos =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.photosOfInstallationLocation || []
+      : [];
   const reduxAdditionalNotes =
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.additionalNotes || ""
@@ -102,20 +143,45 @@ export default function CircuitAdditional() {
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const payload = {
+      // Contact Details
       fullName: draft?.fullName || fullName || "",
-      emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
+      emailAddress: draft?.emailAddress || email || "",
       preferredContactMethod:
         draft?.preferredContactMethod || preferredContact || "Call",
+
+      // Address Details
       streetAddress: draft?.streetAddress || streetAddress || "",
       apartmentUnit: draft?.apartmentUnit || apartment || "",
       city: draft?.city || city || "",
       state: draft?.state || state || "",
       zipCode: draft?.zipCode || zipCode || "",
+
+      // Project Basics
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      additionalInformation: localAdditionalNotes || "",
+
+      // Dedicated Circuit Specific Fields
+      whyNeedDedicatedCircuit:
+        draft?.whyNeedDedicatedCircuit || reduxCircuit || "",
+      electricalPanelLocation:
+        draft?.electricalPanelLocation || reduxPanel || "",
+      whereWillDedicatedCircuitInstalled:
+        draft?.whereWillDedicatedCircuitInstalled || reduxInstallLocation || "",
+      aboveBelowArea: draft?.aboveBelowArea || reduxAboveBelow || "",
+      distanceElectricalPanelToInstallationArea:
+        draft?.distanceElectricalPanelToInstallationArea || reduxDistance || "",
+      ampsNeeded: draft?.ampsNeeded || reduxAmps || "",
+      voltsNeeded: draft?.voltsNeeded || reduxVolts || "",
+      NEMAConfiguration: draft?.NEMAConfiguration || reduxNema || "",
+      photosOfElectricalMeter:
+        draft?.photosOfElectricalMeter || reduxMeterPhotos || [],
+      photosOfInstallationLocation:
+        draft?.photosOfInstallationLocation || reduxInstallationPhotos || [],
+      additionalInformation:
+        localAdditionalNotes || draft?.additionalInformation || "",
+
       status: "draft" as const,
       completionPercentage,
     };

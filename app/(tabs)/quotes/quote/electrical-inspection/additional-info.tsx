@@ -60,6 +60,42 @@ export default function AdditionalInformation() {
     return "";
   });
 
+  // ─── Get other fields from Redux for the payload ──────────────────────────
+  const inspectionType = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "8" && data.details)
+      return data.details.inspectionType;
+    return "";
+  });
+
+  const squareFootage = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "8" && data.details)
+      return data.details.squareFootage;
+    return "";
+  });
+
+  const panelCount = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "8" && data.details)
+      return data.details.panelCount;
+    return "";
+  });
+
+  const panelPhotos = useSelector((state: RootState) => {
+    const data = state.serviceForm.categoryData;
+    if (data?.categoryId === "8" && data.details)
+      return data.details.panelPhotos || [];
+    return [];
+  });
+
+  const showSquareFootage =
+    inspectionType === "Whole House" ||
+    inspectionType === "Accessory Building" ||
+    inspectionType === "Partial House";
+
+  const showPanelSection = inspectionType === "Electrical Service only";
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -74,6 +110,10 @@ export default function AdditionalInformation() {
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    // Calculate values
+    const squareFootageValue = showSquareFootage ? squareFootage || "" : "";
+    const panelCountValue = showPanelSection ? Number(panelCount || 0) : 0;
+
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -88,7 +128,12 @@ export default function AdditionalInformation() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      additionalInformation: additionalInfo || "",
+      inspectionType: draft?.inspectionType || inspectionType || "",
+      panelNeedForInspected: draft?.panelNeedForInspected || panelCountValue,
+      panelPhotos: draft?.panelPhotos || panelPhotos || [],
+      additionalInformation:
+        draft?.additionalInformation || additionalInfo || "",
+      squareFootage: draft?.squareFootage || squareFootageValue,
       status: "draft" as const,
       completionPercentage,
     };

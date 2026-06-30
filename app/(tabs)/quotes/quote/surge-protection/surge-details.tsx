@@ -18,10 +18,23 @@ import {
   updateSurgeProtectionDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  SurgeProtectionPhotosFormData,
+  surgeProtectionPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { HomeSurgeProtectionRecord } from "@/src/types/quotes/home-surge-protection.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
@@ -87,6 +100,21 @@ export default function SurgeDetails() {
       ? (categoryData.details as any)?.additionalNotes || ""
       : "";
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<SurgeProtectionPhotosFormData>({
+    resolver: zodResolver(surgeProtectionPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      panelPhotos: panelPhotos || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -97,6 +125,7 @@ export default function SurgeDetails() {
           panelPhotos: draft.photosOfElectricalPanel,
         }),
       );
+      setValue("panelPhotos", draft.photosOfElectricalPanel);
     }
     if (draft.additionalNotes) {
       dispatch(
@@ -105,7 +134,16 @@ export default function SurgeDetails() {
         }),
       );
     }
+    trigger("panelPhotos");
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -124,6 +162,7 @@ export default function SurgeDetails() {
       setUploadingSection("panel");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -154,8 +193,9 @@ export default function SurgeDetails() {
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
       // API expects photosOfElectricalPanel, not panelPhotos
-      photosOfElectricalPanel: panelPhotos || [],
-      additionalNotes: additionalNotes || "",
+      photosOfElectricalPanel:
+        draft?.photosOfElectricalPanel || panelPhotos || [],
+      additionalNotes: draft?.additionalNotes || additionalNotes || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -179,6 +219,17 @@ export default function SurgeDetails() {
     }
   };
 
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: SurgeProtectionPhotosFormData) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/common/review-request",
+      params: { serviceCallId, serviceType },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -196,7 +247,7 @@ export default function SurgeDetails() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -209,21 +260,36 @@ export default function SurgeDetails() {
             subtitle="Protect your home from power surges"
           />
 
-          <PhotoUploadSection
-            label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
-            photos={panelPhotos}
-            onPhotosChange={(p) =>
-              dispatch(updateSurgeProtectionDetails({ panelPhotos: p }))
-            }
-            onUploadSingle={handlePanelUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panel"}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(updateSurgeProtectionDetails({ panelPhotos: p }));
+                    setValue("panelPhotos", p);
+                    trigger("panelPhotos");
+                  }}
+                  onUploadSingle={handlePanelUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <TextAreaInput
             label="Additional notes (optional)"
             placeholder="Any additional information you'd like to share"
-            value={additionalNotes}
+            value={draft?.additionalNotes || additionalNotes}
             onChangeText={(text) =>
               dispatch(updateSurgeProtectionDetails({ additionalNotes: text }))
             }
@@ -232,13 +298,8 @@ export default function SurgeDetails() {
 
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/common/review-request",
-                params: { serviceCallId, serviceType },
-              })
-            }
-            disabled={isSaving || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

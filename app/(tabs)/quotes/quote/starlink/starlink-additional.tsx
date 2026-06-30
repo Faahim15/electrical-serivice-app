@@ -16,12 +16,12 @@ import { RootState } from "@/src/redux/store";
 import { StarlinkRecord } from "@/src/types/quotes/starlink.api.types";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 7;
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
@@ -61,16 +61,48 @@ export default function StarlinkAdditional() {
 
   // ─── Ensure category is set ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!categoryData || categoryData.categoryId !== "13") {
-      dispatch(selectCategory("13"));
+    if (!categoryData || categoryData.categoryId !== "12") {
+      dispatch(selectCategory("12"));
     }
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
   const additionalNotes =
-    categoryData?.categoryId === "13"
+    categoryData?.categoryId === "12"
       ? (categoryData.details as any)?.additionalNotes || ""
       : "";
+  const haveStarlinkEquipment =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.haveStarlinkEquipment || ""
+      : "";
+  const whenHaveEquipment =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.whenHaveEquipment || ""
+      : "";
+  const dishLocation =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.dishLocation || ""
+      : "";
+  const haveMountingEquipment =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.haveMountingEquipment || ""
+      : "";
+  const roomOfRouterIn =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.roomOfRouterIn || ""
+      : "";
+  const roomCondition =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.roomCondition || ""
+      : "";
+  const areaOfInstallationPhotos =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.areaOfInstallationPhotos || []
+      : [];
+  const photosOfRoomForRouter =
+    categoryData?.categoryId === "12"
+      ? (categoryData.details as any)?.photosOfRoomForRouter || []
+      : [];
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -87,20 +119,44 @@ export default function StarlinkAdditional() {
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const payload = {
+      // Contact Details
       fullName: draft?.fullName || fullName || "",
-      emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
+      emailAddress: draft?.emailAddress || email || "",
       preferredContactMethod:
         draft?.preferredContactMethod || preferredContact || "Call",
+
+      // Address Details
       streetAddress: draft?.streetAddress || streetAddress || "",
       apartmentUnit: draft?.apartmentUnit || apartment || "",
       city: draft?.city || city || "",
       state: draft?.state || state || "",
       zipCode: draft?.zipCode || zipCode || "",
+
+      // Project Basics
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      additionalNotes: additionalNotes || "",
+
+      // Starlink Specific Fields
+      haveStarlinkEquipment:
+        draft?.haveStarlinkEquipment !== undefined
+          ? draft.haveStarlinkEquipment
+          : haveStarlinkEquipment === "Yes",
+      whenHaveEquipment: draft?.whenHaveEquipment || whenHaveEquipment || "",
+      dishLocation: draft?.dishLocation || dishLocation || "",
+      haveMountingEquipment:
+        draft?.haveMountingEquipment !== undefined
+          ? draft.haveMountingEquipment
+          : haveMountingEquipment === "Yes",
+      roomOfRouterIn: draft?.roomOfRouterIn || roomOfRouterIn || "",
+      roomCondition: draft?.roomCondition || roomCondition || "",
+      areaOfInstallationPhotos:
+        draft?.areaOfInstallationPhotos || areaOfInstallationPhotos || [],
+      photosOfRoomForRouter:
+        draft?.photosOfRoomForRouter || photosOfRoomForRouter || [],
+      additionalNotes: draft?.additionalNotes || additionalNotes || "",
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -124,7 +180,16 @@ export default function StarlinkAdditional() {
     }
   };
 
+  // ─── Handle Continue ──────────────────────────────────────────────────────
   const handleContinue = () => {
+    // Save latest values to Redux before navigating
+    if (additionalNotes) {
+      dispatch(
+        updateStarlinkDetails({
+          additionalNotes: additionalNotes,
+        }),
+      );
+    }
     router.push({
       pathname: "/(tabs)/quotes/quote/common/review-request",
       params: { serviceCallId, serviceType },
@@ -158,24 +223,25 @@ export default function StarlinkAdditional() {
 
           <AuthHeading
             title="Additional information"
-            subtitle="Any other details we should know"
+            subtitle="Any other details you'd like to share?"
           />
 
           <TextAreaInput
-            label="Additional notes (optional)"
-            placeholder="Any additional information you'd like to share"
+            label=""
+            placeholder="Type additional information here..."
             value={additionalNotes}
             onChangeText={(text) =>
               dispatch(updateStarlinkDetails({ additionalNotes: text }))
             }
-            minHeight={120}
+            minHeight={160}
           />
-
-          <GradientButton
-            label="Continue"
-            onPress={handleContinue}
-            disabled={isSaving}
-          />
+          <View className="mt-[0%]">
+            <GradientButton
+              label="Continue"
+              onPress={handleContinue}
+              disabled={isSaving}
+            />
+          </View>
           <SavedEditAction
             onPress={handleSaveForLater}
             title={isSaving ? "Saving..." : "Save for Later"}

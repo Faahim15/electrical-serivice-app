@@ -17,11 +17,23 @@ import {
   updateAccessoryBuildingDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  AccessoryBuildingPhotosFormData,
+  accessoryBuildingPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
@@ -123,6 +135,22 @@ export default function GeneratorPhotosNeeded() {
     return [];
   });
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<AccessoryBuildingPhotosFormData>({
+    resolver: zodResolver(accessoryBuildingPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      existingSpacePhotos: existingSpacePhotos || [],
+      panelPhotos: panelPhotos || [],
+    },
+  });
+
   // ✅ Ensure category is selected
   useEffect(() => {
     dispatch(selectCategory("5"));
@@ -137,13 +165,31 @@ export default function GeneratorPhotosNeeded() {
           existingSpacePhotos: (draft as any).existingSpacePhotos,
         }),
       );
+      setValue("existingSpacePhotos", (draft as any).existingSpacePhotos);
     }
     if (draft.panelPhotos?.length) {
       dispatch(
         updateAccessoryBuildingDetails({ panelPhotos: draft.panelPhotos }),
       );
+      setValue("panelPhotos", draft.panelPhotos);
     }
+    trigger(["existingSpacePhotos", "panelPhotos"]);
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (existingSpacePhotos.length > 0) {
+      setValue("existingSpacePhotos", existingSpacePhotos);
+      trigger("existingSpacePhotos");
+    }
+  }, [existingSpacePhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -164,6 +210,7 @@ export default function GeneratorPhotosNeeded() {
       setUploadingSection("existing");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("existingSpacePhotos");
       return url;
     } catch (error) {
       console.error("[AccessoryBuilding] Existing space upload error:", error);
@@ -179,6 +226,7 @@ export default function GeneratorPhotosNeeded() {
       setUploadingSection("panel");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return url;
     } catch (error) {
       console.error("[AccessoryBuilding] Panel upload error:", error);
@@ -278,6 +326,17 @@ export default function GeneratorPhotosNeeded() {
     }
   };
 
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: AccessoryBuildingPhotosFormData) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/accessory-building/additional-info",
+      params: { serviceType, serviceCallId },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -304,39 +363,70 @@ export default function GeneratorPhotosNeeded() {
           <CategoryTag title={serviceType} />
           <AuthHeading title="Photos needed" subtitle="" />
 
-          <PhotoUploadSection
-            label="Upload photos of route"
-            photos={existingSpacePhotos}
-            onPhotosChange={(p) =>
-              dispatch(
-                updateAccessoryBuildingDetails({ existingSpacePhotos: p }),
-              )
-            }
-            onUploadSingle={handleExistingUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "existing"}
+          {/* Existing Space Photos with Controller */}
+          <Controller
+            control={control}
+            name="existingSpacePhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of route"
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(
+                      updateAccessoryBuildingDetails({
+                        existingSpacePhotos: p,
+                      }),
+                    );
+                    setValue("existingSpacePhotos", p);
+                    trigger("existingSpacePhotos");
+                  }}
+                  onUploadSingle={handleExistingUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "existing"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
-          <View className="mt-1">
-            <PhotoUploadSection
-              label="Please upload clear photo of electrical panel up close so we can see the numbers and about 10 ft away."
-              photos={panelPhotos}
-              onPhotosChange={(p) =>
-                dispatch(updateAccessoryBuildingDetails({ panelPhotos: p }))
-              }
-              onUploadSingle={handlePanelUploadSingle}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "panel"}
-            />
-          </View>
+
+          {/* Panel Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View className="mt-1">
+                <PhotoUploadSection
+                  label="Please upload clear photo of electrical panel up close so we can see the numbers and about 10 ft away."
+                  photos={value || []}
+                  onPhotosChange={(p) => {
+                    dispatch(
+                      updateAccessoryBuildingDetails({ panelPhotos: p }),
+                    );
+                    setValue("panelPhotos", p);
+                    trigger("panelPhotos");
+                  }}
+                  onUploadSingle={handlePanelUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
+          />
+
           <GradientButton
             label="Continue"
-            onPress={() =>
-              router.push({
-                pathname:
-                  "/(tabs)/quotes/quote/accessory-building/additional-info",
-                params: { serviceType, serviceCallId },
-              })
-            }
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

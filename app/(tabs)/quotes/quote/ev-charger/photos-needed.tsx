@@ -21,9 +21,22 @@ import { EvChargerInstallationResponse } from "@/src/types/evCharger.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+// Import React Hook Form and Zod
+import {
+  EvChargerUploadFormData,
+  evChargerUploadSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
 
 const CURRENT_STEP = 7;
 const TOTAL_STEPS = 9;
@@ -126,6 +139,22 @@ export default function PhotosNeeded() {
       ? (categoryData.details as any)?.additionalInfo || ""
       : "";
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<EvChargerUploadFormData>({
+    resolver: zodResolver(evChargerUploadSchema),
+    mode: "onChange",
+    defaultValues: {
+      chargerAreaPhotos: chargerAreaPhotos,
+      panelPhotos: panelPhotos,
+    },
+  });
+
   // ─── API hooks ────────────────────────────────────────────────────────────────
   const { createDraft, updateDraft, isSaving } = useDraftSave();
   const { data: draftData } = useDraftDetails(serviceCallId, serviceType);
@@ -137,21 +166,44 @@ export default function PhotosNeeded() {
   useEffect(() => {
     if (!draftData) return;
     if (isEvCharger) {
+      const areaPhotos = draftData.areaPhoto ? [draftData.areaPhoto] : [];
+      const panelPhotos =
+        (draftData?.panelPhotos?.length as any) > 0
+          ? draftData.panelPhotos
+          : [];
+
       dispatch(
         updateEVChargerDetails({
-          chargerAreaPhotos: draftData.areaPhoto ? [draftData.areaPhoto] : [],
+          chargerAreaPhotos: areaPhotos,
         }),
       );
       dispatch(
         updateEVChargerDetails({
-          panelPhotos:
-            (draftData?.panelPhotos?.length as any) > 0
-              ? draftData.panelPhotos
-              : [],
+          panelPhotos: panelPhotos,
         }),
       );
+
+      // Sync with form
+      setValue("chargerAreaPhotos", areaPhotos);
+      setValue("panelPhotos", panelPhotos as any);
+      trigger(["chargerAreaPhotos", "panelPhotos"]);
     }
   }, [draftData]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (chargerAreaPhotos.length > 0) {
+      setValue("chargerAreaPhotos", chargerAreaPhotos);
+      trigger("chargerAreaPhotos");
+    }
+  }, [chargerAreaPhotos, setValue, trigger]);
+
+  useEffect(() => {
+    if (panelPhotos.length > 0) {
+      setValue("panelPhotos", panelPhotos);
+      trigger("panelPhotos");
+    }
+  }, [panelPhotos, setValue, trigger]);
 
   // ─── Upload helpers ───────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -168,6 +220,8 @@ export default function PhotosNeeded() {
   // ─── Area photo handlers ──────────────────────────────────────────────────────
   const handleAreaPhotosChange = (updated: string[]) => {
     dispatch(updateEVChargerDetails({ chargerAreaPhotos: updated }));
+    setValue("chargerAreaPhotos", updated);
+    trigger("chargerAreaPhotos");
   };
 
   const handleAreaUploadSingle = async (localUri: string): Promise<string> => {
@@ -175,6 +229,7 @@ export default function PhotosNeeded() {
       setUploadingSection("area");
       const uploadedUrl = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("chargerAreaPhotos");
       return uploadedUrl;
     } catch (error: any) {
       toast.error(error?.data?.message || "Failed to upload photo.");
@@ -187,6 +242,8 @@ export default function PhotosNeeded() {
   // ─── Panel photo handlers ─────────────────────────────────────────────────────
   const handlePanelPhotosChange = (updated: string[]) => {
     dispatch(updateEVChargerDetails({ panelPhotos: updated }));
+    setValue("panelPhotos", updated);
+    trigger("panelPhotos");
   };
 
   const handlePanelUploadSingle = async (localUri: string): Promise<string> => {
@@ -194,6 +251,7 @@ export default function PhotosNeeded() {
       setUploadingSection("panel");
       const uploadedUrl = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelPhotos");
       return uploadedUrl;
     } catch (error: any) {
       toast.error(error?.data?.message || "Failed to upload photo.");
@@ -281,13 +339,17 @@ export default function PhotosNeeded() {
     }
   };
 
-  // ─── Continue handler ────────────────────────────────────────────────────────
-  const handleContinue = () => {
+  // ─── Continue handler with validation ──────────────────────────────────────
+  const handleContinue = async (data: EvChargerUploadFormData) => {
+    // All validation passed, proceed to next screen
     router.push({
       pathname: "/(tabs)/quotes/quote/ev-charger/additional-info",
       params: { serviceCallId, serviceType },
     });
   };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -319,29 +381,57 @@ export default function PhotosNeeded() {
             subtitle="Upload photos of the installation area and electrical panel"
           />
 
-          <PhotoUploadSection
-            label="Upload photo of area you want EV charger installed"
-            photos={chargerAreaPhotos || []}
-            maxPhotos={1}
-            onPhotosChange={handleAreaPhotosChange}
-            onUploadSingle={handleAreaUploadSingle}
-            onDeleteSingle={handleDeleteSingle}
-            isUploading={uploadingSection === "area"}
+          {/* Area Photo with Controller */}
+          <Controller
+            control={control}
+            name="chargerAreaPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photo of area you want EV charger installed"
+                  photos={value || []}
+                  maxPhotos={1}
+                  onPhotosChange={handleAreaPhotosChange}
+                  onUploadSingle={handleAreaUploadSingle}
+                  onDeleteSingle={handleDeleteSingle}
+                  isUploading={uploadingSection === "area"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
-            photos={panelPhotos || []}
-            onPhotosChange={handlePanelPhotosChange}
-            onUploadSingle={handlePanelUploadSingle}
-            onDeleteSingle={handleDeleteSingle}
-            isUploading={uploadingSection === "panel"}
+          {/* Panel Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelPhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of your electrical panel up close so we can see the breakers/panel label and about 10 ft away"
+                  photos={value || []}
+                  onPhotosChange={handlePanelPhotosChange}
+                  onUploadSingle={handlePanelUploadSingle}
+                  onDeleteSingle={handleDeleteSingle}
+                  isUploading={uploadingSection === "panel"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={handleContinue}
-            disabled={isSaving || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

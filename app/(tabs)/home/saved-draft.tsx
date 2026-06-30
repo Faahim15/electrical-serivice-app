@@ -26,10 +26,23 @@ const SavedDraft = () => {
   const { data, isLoading, isError, refetch } = useGetDraftsQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Flatten grouped draft response into a single list of drafts
+  // Flatten draft response into a single list of drafts.
+  // Handles two possible API shapes:
+  //   1) Grouped: data.data = [{ data: [draft, draft, ...] }, ...]
+  //   2) Flat:    data.data = [draft, draft, ...]
   const drafts: ServiceCallResponse[] = useMemo(() => {
     if (!data?.data) return [];
-    return data.data.flatMap((group) => group.data);
+
+    return data.data
+      .flatMap((entry: any) => {
+        if (entry && Array.isArray(entry.data)) {
+          // Grouped shape — unwrap the group's inner array
+          return entry.data;
+        }
+        // Flat shape — entry is itself a draft
+        return [entry];
+      })
+      .filter(Boolean);
   }, [data]);
 
   // Persist last known count so skeletons match real list on refresh too
@@ -38,9 +51,7 @@ const SavedDraft = () => {
     if (drafts.length) skeletonCountRef.current = drafts.length;
   }, [drafts]);
 
-  const skeletonCount =
-    data?.data?.flatMap((group) => group.data).length ||
-    skeletonCountRef.current;
+  const skeletonCount = drafts.length || skeletonCountRef.current;
 
   const headerSlide = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -67,6 +78,16 @@ const SavedDraft = () => {
     return cardAnimsRef.current[id];
   };
 
+  // Clean up animation refs for drafts that no longer exist (e.g. after delete)
+  useEffect(() => {
+    const currentIds = new Set(drafts.map((d) => d._id));
+    Object.keys(cardAnimsRef.current).forEach((id) => {
+      if (!currentIds.has(id)) {
+        delete cardAnimsRef.current[id];
+      }
+    });
+  }, [drafts]);
+
   const { deleteDraft, isDeleting } = useDeleteDraft(() => {
     refetch();
   });
@@ -87,15 +108,23 @@ const SavedDraft = () => {
     ]).start();
   }, []);
 
-  // Card entrance after data loads
+  // Card entrance after data loads — only animate cards that haven't
+  // already finished their entrance animation (avoids re-flicker on
+  // refetch/delete when most cards are already visible)
   useEffect(() => {
     if (!drafts.length) return;
 
+    const animsToRun = drafts
+      .map((draft) => getCardAnim(draft._id))
+      // @ts-ignore - internal RN Animated value access for current value check
+      .filter((anim) => anim.opacity.__getValue?.() !== 1);
+
+    if (!animsToRun.length) return;
+
     Animated.stagger(
       120,
-      drafts.map((draft) => {
-        const anim = getCardAnim(draft._id);
-        return Animated.parallel([
+      animsToRun.map((anim) =>
+        Animated.parallel([
           Animated.timing(anim.opacity, {
             toValue: 1,
             duration: 350,
@@ -106,8 +135,8 @@ const SavedDraft = () => {
             duration: 350,
             useNativeDriver: true,
           }),
-        ]);
-      }),
+        ]),
+      ),
     ).start();
   }, [drafts]);
 
@@ -196,7 +225,7 @@ const SavedDraft = () => {
         ) : (
           <FlatList
             data={drafts}
-            keyExtractor={(item) => item._id}
+            keyExtractor={(item, index) => item?._id ?? `draft-${index}`}
             contentContainerStyle={{
               paddingHorizontal: 16,
               paddingBottom: verticalScale(120),
@@ -213,6 +242,7 @@ const SavedDraft = () => {
               />
             }
             renderItem={({ item: draft }) => {
+              if (!draft?._id) return null;
               const anim = getCardAnim(draft._id);
               return (
                 <DraftCard

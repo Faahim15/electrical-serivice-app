@@ -21,15 +21,35 @@ import {
 import { RootState } from "@/src/redux/store";
 import { AccessoryBuildingRecord } from "@/src/types/quotes/accessory-building.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+import { z } from "zod";
 
 const SERVICE_TYPE = "Accessory Building / Shed Power";
 const CURRENT_STEP = 9;
 const TOTAL_STEPS = 12;
+
+// ─── Zod Schema ──────────────────────────────────────────────────────────────
+const accessoryBuildingPlanSchema = z.object({
+  planDrawingPhotos: z
+    .array(z.string())
+    .min(1, "Please upload at least one photo of the plans/drawings"),
+});
+
+type AccessoryBuildingPlanFormData = z.infer<
+  typeof accessoryBuildingPlanSchema
+>;
 
 export default function PlansPermit() {
   const dispatch = useDispatch();
@@ -134,6 +154,21 @@ export default function PlansPermit() {
     return "";
   });
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<AccessoryBuildingPlanFormData>({
+    resolver: zodResolver(accessoryBuildingPlanSchema),
+    mode: "onChange",
+    defaultValues: {
+      planDrawingPhotos: planDrawingPhotos || [],
+    },
+  });
+
   // ✅ Ensure category is selected
   useEffect(() => {
     dispatch(selectCategory("5"));
@@ -156,7 +191,24 @@ export default function PlansPermit() {
         }),
       );
     }
+    if (draft.plansDrawings?.length) {
+      dispatch(
+        updateAccessoryBuildingDetails({
+          planDrawingPhotos: draft.plansDrawings,
+        }),
+      );
+      setValue("planDrawingPhotos", draft.plansDrawings);
+    }
+    trigger("planDrawingPhotos");
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (planDrawingPhotos.length > 0) {
+      setValue("planDrawingPhotos", planDrawingPhotos);
+      trigger("planDrawingPhotos");
+    }
+  }, [planDrawingPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -175,6 +227,7 @@ export default function PlansPermit() {
       setUploadingSection("plans");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("planDrawingPhotos");
       return url;
     } catch (error) {
       console.error("[AccessoryBuilding] Plans upload error:", error);
@@ -267,6 +320,23 @@ export default function PlansPermit() {
     }
   };
 
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: AccessoryBuildingPlanFormData) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/accessory-building/photos-needed",
+      params: { serviceType, serviceCallId },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = () => {
+    if (hasPlans === "Yes") {
+      return isValid && uploadingSection === null && !isSaving;
+    }
+    // If hasPlans is "No", no validation needed for photos
+    return uploadingSection === null && !isSaving;
+  };
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -309,17 +379,34 @@ export default function PlansPermit() {
           />
 
           {hasPlans === "Yes" && (
-            <PhotoUploadSection
-              label="Please Upload the plans Drawing"
-              photos={planDrawingPhotos}
-              onPhotosChange={(p) =>
-                dispatch(
-                  updateAccessoryBuildingDetails({ planDrawingPhotos: p }),
-                )
-              }
-              onUploadSingle={handlePlansUploadSingle}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "plans"}
+            <Controller
+              control={control}
+              name="planDrawingPhotos"
+              render={({ field: { value }, fieldState: { error } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Please Upload the plans Drawing"
+                    photos={value || []}
+                    onPhotosChange={(p) => {
+                      dispatch(
+                        updateAccessoryBuildingDetails({
+                          planDrawingPhotos: p,
+                        }),
+                      );
+                      setValue("planDrawingPhotos", p);
+                      trigger("planDrawingPhotos");
+                    }}
+                    onUploadSingle={handlePlansUploadSingle}
+                    onDeleteSingle={deleteImageHandler}
+                    isUploading={uploadingSection === "plans"}
+                  />
+                  {error && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {error.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           )}
 
@@ -355,13 +442,8 @@ export default function PlansPermit() {
           <View className="mt-[3%]">
             <GradientButton
               label="Continue"
-              onPress={() =>
-                router.push({
-                  pathname:
-                    "/(tabs)/quotes/quote/accessory-building/photos-needed",
-                  params: { serviceType, serviceCallId },
-                })
-              }
+              onPress={handleSubmit(handleContinue)}
+              disabled={!isFormValid()}
             />
           </View>
           <SavedEditAction

@@ -20,15 +20,33 @@ import {
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { HotTubRecord } from "@/src/types/quotes/hot-tub.api.types";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+import { z } from "zod";
 
 const SERVICE_TYPE = "Hot tub installation";
 const CURRENT_STEP = 4;
 const TOTAL_STEPS = 9;
+
+// ─── Zod Schema ──────────────────────────────────────────────────────────────
+const hotTubInfoSchema = z.object({
+  userManualPhotos: z
+    .array(z.string())
+    .min(1, "Please upload at least one photo of the user manual"),
+});
+
+type HotTubInfoFormData = z.infer<typeof hotTubInfoSchema>;
 
 export default function HotTubInfo() {
   const dispatch = useDispatch();
@@ -91,6 +109,21 @@ export default function HotTubInfo() {
     return "";
   });
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<HotTubInfoFormData>({
+    resolver: zodResolver(hotTubInfoSchema),
+    mode: "onChange",
+    defaultValues: {
+      userManualPhotos: userManualPhotos || [],
+    },
+  });
+
   // ✅ Ensure category is selected
   useEffect(() => {
     dispatch(selectCategory("6"));
@@ -112,6 +145,7 @@ export default function HotTubInfo() {
     }
     if (draft.manualDocument?.length) {
       dispatch(updateHotTubDetails({ userManualPhotos: draft.manualDocument }));
+      setValue("userManualPhotos", draft.manualDocument);
       hasChanges = true;
     }
     if (draft.hotTubManufacturer) {
@@ -122,7 +156,16 @@ export default function HotTubInfo() {
       dispatch(updateHotTubDetails({ modelNumber: draft.hotTubModelNumber }));
       hasChanges = true;
     }
+    trigger("userManualPhotos");
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (userManualPhotos.length > 0) {
+      setValue("userManualPhotos", userManualPhotos);
+      trigger("userManualPhotos");
+    }
+  }, [userManualPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -143,6 +186,7 @@ export default function HotTubInfo() {
       setUploadingSection("manual");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("userManualPhotos");
       return url;
     } catch (error) {
       console.error("[HotTub] Manual upload error:", error);
@@ -180,10 +224,13 @@ export default function HotTubInfo() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      hasDigitalManual: hasUserManual === "Yes",
-      manualDocument: userManualPhotos || [],
-      hotTubManufacturer: manufacturer || "",
-      hotTubModelNumber: modelNumber || "",
+      hasDigitalManual:
+        draft?.hasDigitalManual !== undefined
+          ? draft.hasDigitalManual
+          : hasUserManual === "Yes",
+      manualDocument: draft?.manualDocument || userManualPhotos || [],
+      hotTubManufacturer: draft?.hotTubManufacturer || manufacturer || "",
+      hotTubModelNumber: draft?.hotTubModelNumber || modelNumber || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -202,6 +249,23 @@ export default function HotTubInfo() {
     } catch {
       toast.error("Failed to save draft. Please try again.");
     }
+  };
+
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: HotTubInfoFormData) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/hot-tub/electrical-requirements",
+      params: { serviceType, serviceCallId },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = () => {
+    if (hasUserManual === "Yes") {
+      return isValid && uploadingSection === null && !isSaving;
+    }
+    // If hasUserManual is "No", no validation needed for photos
+    return uploadingSection === null && !isSaving;
   };
 
   return (
@@ -242,17 +306,31 @@ export default function HotTubInfo() {
           />
 
           {hasUserManual === "Yes" && (
-            <PhotoUploadSection
-              key={`manual-photos-${userManualPhotos.length}`}
-              label="Upload the document."
-              photos={userManualPhotos}
-              maxPhotos={1}
-              onPhotosChange={(p) =>
-                dispatch(updateHotTubDetails({ userManualPhotos: p }))
-              }
-              onUploadSingle={handleManualUploadSingle}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "manual"}
+            <Controller
+              control={control}
+              name="userManualPhotos"
+              render={({ field: { value }, fieldState: { error } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Upload the document"
+                    photos={value || []}
+                    maxPhotos={1}
+                    onPhotosChange={(p) => {
+                      dispatch(updateHotTubDetails({ userManualPhotos: p }));
+                      setValue("userManualPhotos", p);
+                      trigger("userManualPhotos");
+                    }}
+                    onUploadSingle={handleManualUploadSingle}
+                    onDeleteSingle={deleteImageHandler}
+                    isUploading={uploadingSection === "manual"}
+                  />
+                  {error && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {error.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           )}
 
@@ -283,13 +361,8 @@ export default function HotTubInfo() {
           <View className="mt-[3%]">
             <GradientButton
               label="Continue"
-              onPress={() =>
-                router.push({
-                  pathname:
-                    "/(tabs)/quotes/quote/hot-tub/electrical-requirements",
-                  params: { serviceType, serviceCallId },
-                })
-              }
+              onPress={handleSubmit(handleContinue)}
+              disabled={!isFormValid()}
             />
           </View>
           <SavedEditAction

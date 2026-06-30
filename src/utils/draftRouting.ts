@@ -155,7 +155,8 @@ export const getResumeRoute = (
   if (
     serviceType === "Electrical Systems Inspection" ||
     serviceType === "Electrical Systems inspection" ||
-    serviceType === "Electrical Inspection"
+    serviceType === "Electrical Inspection" ||
+    serviceType === "Electrical System"
   ) {
     if (completionPercentage <= 17)
       return "/(tabs)/quotes/quote/common/contact-details";
@@ -182,13 +183,13 @@ export const getResumeRoute = (
       return "/(tabs)/quotes/quote/common/service-address";
     if (completionPercentage <= 43)
       return "/(tabs)/quotes/quote/common/project-basics";
-    if (completionPercentage <= 57)
-      return "/(tabs)/quotes/quote/generator/generator-type";
     if (completionPercentage <= 71)
-      return "/(tabs)/quotes/quote/generator/generator-ownership";
+      return "/(tabs)/quotes/quote/generator/generator-type";
+    // if (completionPercentage <= 71)
+    //   return "/(tabs)/quotes/quote/generator/generator-ownership";
+    // if (completionPercentage <= 86)
+    //   return "/(tabs)/quotes/quote/generator/backup-needs";
     if (completionPercentage <= 86)
-      return "/(tabs)/quotes/quote/generator/backup-needs";
-    if (completionPercentage <= 100)
       return "/(tabs)/quotes/quote/generator/photos-needed";
 
     return "/(tabs)/quotes/quote/generator/photos-needed";
@@ -224,28 +225,42 @@ export const getResumeRoute = (
 
   // ─── Starlink Installation ───────────────────────────────────────────────────
   if (serviceType === "Starlink Installation") {
-    if (completionPercentage <= 20)
+    if (completionPercentage <= 13)
       return "/(tabs)/quotes/quote/common/contact-details";
-    if (completionPercentage <= 40)
+    if (completionPercentage <= 25)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 60)
+    if (completionPercentage <= 38)
       return "/(tabs)/quotes/quote/common/project-basics";
-    if (completionPercentage <= 80)
-      return "/(tabs)/quotes/quote/starlink/starlink-details";
+    if (completionPercentage <= 50)
+      return "/(tabs)/quotes/quote/starlink/starLink-details";
+    if (completionPercentage <= 63)
+      return "/(tabs)/quotes/quote/starlink/starlink-location";
+    if (completionPercentage <= 75)
+      return "/(tabs)/quotes/quote/starlink/starlink-router";
+    if (completionPercentage <= 88)
+      return "/(tabs)/quotes/quote/starlink/starlink-additional";
 
     return "/(tabs)/quotes/quote/starlink/starlink-details";
   }
 
   // ─── Dedicated Circuit Installation ──────────────────────────────────────────
   if (serviceType === "Dedicated Circuit Installation") {
-    if (completionPercentage <= 20)
+    if (completionPercentage <= 11)
       return "/(tabs)/quotes/quote/common/contact-details";
-    if (completionPercentage <= 40)
+    if (completionPercentage <= 22)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 60)
+    if (completionPercentage <= 33)
       return "/(tabs)/quotes/quote/common/project-basics";
-    if (completionPercentage <= 80)
+    if (completionPercentage <= 44)
       return "/(tabs)/quotes/quote/dedicated-circuit/circuit-details";
+    if (completionPercentage <= 56)
+      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-location";
+    if (completionPercentage <= 67)
+      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-specs";
+    if (completionPercentage <= 78)
+      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-photos";
+    if (completionPercentage <= 89)
+      return "/(tabs)/quotes/quote/dedicated-circuit/circuit-additional";
 
     return "/(tabs)/quotes/quote/dedicated-circuit/circuit-details";
   }

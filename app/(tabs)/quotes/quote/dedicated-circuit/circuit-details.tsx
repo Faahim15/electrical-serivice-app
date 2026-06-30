@@ -17,13 +17,13 @@ import { RootState } from "@/src/redux/store";
 import { DedicatedCircuitRecord } from "@/src/types/quotes/dedicated-circuit.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 4;
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 const CIRCUIT_OPTIONS = ["Freezer", "RV", "Tools / Equipment", "Other"];
 const PANEL_LOCATIONS = [
@@ -43,10 +43,6 @@ const createFormData = (payload: Record<string, any>) => {
 
 export default function CircuitDetails() {
   const dispatch = useDispatch();
-  const [localCircuit, setLocalCircuit] = useState("");
-  const [localCircuitOther, setLocalCircuitOther] = useState("");
-  const [localPanel, setLocalPanel] = useState("");
-  const [localPanelOther, setLocalPanelOther] = useState("");
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -86,25 +82,23 @@ export default function CircuitDetails() {
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.whyNeedDedicatedCircuit || ""
       : "";
+  const reduxCircuitOther =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.whyNeedDedicatedCircuitOther || ""
+      : "";
   const reduxPanel =
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.electricalPanelLocation || ""
       : "";
-
-  // ─── Sync local state with Redux ────────────────────────────────────────────
-  useEffect(() => {
-    if (reduxCircuit) setLocalCircuit(reduxCircuit);
-  }, [reduxCircuit]);
-
-  useEffect(() => {
-    if (reduxPanel) setLocalPanel(reduxPanel);
-  }, [reduxPanel]);
+  const reduxPanelOther =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.electricalPanelLocationOther || ""
+      : "";
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.whyNeedDedicatedCircuit) {
-      setLocalCircuit(draft.whyNeedDedicatedCircuit);
       dispatch(
         updateDedicatedCircuitDetails({
           whyNeedDedicatedCircuit: draft.whyNeedDedicatedCircuit,
@@ -112,7 +106,6 @@ export default function CircuitDetails() {
       );
     }
     if (draft.electricalPanelLocation) {
-      setLocalPanel(draft.electricalPanelLocation);
       dispatch(
         updateDedicatedCircuitDetails({
           electricalPanelLocation: draft.electricalPanelLocation,
@@ -123,10 +116,8 @@ export default function CircuitDetails() {
 
   // ─── Handlers ──────────────────────────────────────────────────────────────────
   const handleCircuitSelect = (val: string) => {
-    setLocalCircuit(val);
     dispatch(updateDedicatedCircuitDetails({ whyNeedDedicatedCircuit: val }));
     if (val !== "Other") {
-      setLocalCircuitOther("");
       dispatch(
         updateDedicatedCircuitDetails({ whyNeedDedicatedCircuitOther: "" }),
       );
@@ -134,17 +125,14 @@ export default function CircuitDetails() {
   };
 
   const handleCircuitOtherChange = (text: string) => {
-    setLocalCircuitOther(text);
     dispatch(
       updateDedicatedCircuitDetails({ whyNeedDedicatedCircuitOther: text }),
     );
   };
 
   const handlePanelSelect = (val: string) => {
-    setLocalPanel(val);
     dispatch(updateDedicatedCircuitDetails({ electricalPanelLocation: val }));
     if (val !== "Other (please specify)") {
-      setLocalPanelOther("");
       dispatch(
         updateDedicatedCircuitDetails({ electricalPanelLocationOther: "" }),
       );
@@ -152,7 +140,6 @@ export default function CircuitDetails() {
   };
 
   const handlePanelOtherChange = (text: string) => {
-    setLocalPanelOther(text);
     dispatch(
       updateDedicatedCircuitDetails({ electricalPanelLocationOther: text }),
     );
@@ -161,21 +148,31 @@ export default function CircuitDetails() {
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const payload = {
+      // Contact Details
       fullName: draft?.fullName || fullName || "",
-      emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
+      emailAddress: draft?.emailAddress || email || "",
       preferredContactMethod:
         draft?.preferredContactMethod || preferredContact || "Call",
+
+      // Address Details
       streetAddress: draft?.streetAddress || streetAddress || "",
       apartmentUnit: draft?.apartmentUnit || apartment || "",
       city: draft?.city || city || "",
       state: draft?.state || state || "",
       zipCode: draft?.zipCode || zipCode || "",
+
+      // Project Basics
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      whyNeedDedicatedCircuit: localCircuit || "",
-      electricalPanelLocation: localPanel || "",
+
+      // Dedicated Circuit Specific Fields
+      whyNeedDedicatedCircuit:
+        draft?.whyNeedDedicatedCircuit || reduxCircuit || "",
+      electricalPanelLocation:
+        draft?.electricalPanelLocation || reduxPanel || "",
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -200,19 +197,6 @@ export default function CircuitDetails() {
   };
 
   const handleContinue = () => {
-    // Save final values to Redux
-    if (localCircuit) {
-      dispatch(
-        updateDedicatedCircuitDetails({
-          whyNeedDedicatedCircuit: localCircuit,
-        }),
-      );
-    }
-    if (localPanel) {
-      dispatch(
-        updateDedicatedCircuitDetails({ electricalPanelLocation: localPanel }),
-      );
-    }
     router.push({
       pathname: "/(tabs)/quotes/quote/dedicated-circuit/circuit-location",
       params: { serviceCallId, serviceType },
@@ -252,16 +236,16 @@ export default function CircuitDetails() {
           <OptionGrid
             label="What do you need a dedicated circuit for?"
             options={CIRCUIT_OPTIONS}
-            selected={localCircuit}
+            selected={reduxCircuit}
             onSelect={handleCircuitSelect}
             numColumns={1}
           />
 
-          {localCircuit === "Other" && (
+          {reduxCircuit === "Other" && (
             <TextAreaInput
               label="Please specify"
               placeholder="Describe your intended use..."
-              value={localCircuitOther}
+              value={reduxCircuitOther}
               onChangeText={handleCircuitOtherChange}
               minHeight={80}
             />
@@ -270,16 +254,16 @@ export default function CircuitDetails() {
           <OptionGrid
             label="Where is your electrical panel located?"
             options={PANEL_LOCATIONS}
-            selected={localPanel}
+            selected={reduxPanel}
             onSelect={handlePanelSelect}
             numColumns={1}
           />
 
-          {localPanel === "Other (please specify)" && (
+          {reduxPanel === "Other (please specify)" && (
             <TextAreaInput
               label="Please specify"
               placeholder="Describe your panel location..."
-              value={localPanelOther}
+              value={reduxPanelOther}
               onChangeText={handlePanelOtherChange}
               minHeight={80}
             />

@@ -17,13 +17,13 @@ import { RootState } from "@/src/redux/store";
 import { DedicatedCircuitRecord } from "@/src/types/quotes/dedicated-circuit.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 5;
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 const ABOVE_BELOW_OPTIONS = [
   "Attic above",
@@ -52,10 +52,6 @@ const createFormData = (payload: Record<string, any>) => {
 
 export default function CircuitLocation() {
   const dispatch = useDispatch();
-  const [localInstallLocation, setLocalInstallLocation] = useState("");
-  const [localAboveBelow, setLocalAboveBelow] = useState("");
-  const [localDistance, setLocalDistance] = useState("");
-  const [localDistanceOther, setLocalDistanceOther] = useState("");
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -63,7 +59,7 @@ export default function CircuitLocation() {
       serviceType?: string;
     }>();
 
-  const serviceType = serviceTypeParam || "Dedicated Circuit";
+  const serviceType = serviceTypeParam || "Dedicated Circuit Installation";
   const completionPercentage = Math.round((CURRENT_STEP / TOTAL_STEPS) * 100);
 
   const { createDraft, updateDraft, isSaving } = useDraftSave();
@@ -91,6 +87,14 @@ export default function CircuitLocation() {
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
+  const reduxCircuit =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.whyNeedDedicatedCircuit || ""
+      : "";
+  const reduxPanel =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.electricalPanelLocation || ""
+      : "";
   const reduxInstallLocation =
     categoryData?.categoryId === "13"
       ? (categoryData.details as any)?.whereWillDedicatedCircuitInstalled || ""
@@ -104,25 +108,40 @@ export default function CircuitLocation() {
       ? (categoryData.details as any)
           ?.distanceElectricalPanelToInstallationArea || ""
       : "";
-
-  // ─── Sync local state with Redux ────────────────────────────────────────────
-  useEffect(() => {
-    if (reduxInstallLocation) setLocalInstallLocation(reduxInstallLocation);
-  }, [reduxInstallLocation]);
-
-  useEffect(() => {
-    if (reduxAboveBelow) setLocalAboveBelow(reduxAboveBelow);
-  }, [reduxAboveBelow]);
-
-  useEffect(() => {
-    if (reduxDistance) setLocalDistance(reduxDistance);
-  }, [reduxDistance]);
+  const reduxDistanceOther =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)
+          ?.distanceElectricalPanelToInstallationAreaOther || ""
+      : "";
+  const reduxAmps =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.ampsNeeded || ""
+      : "";
+  const reduxVolts =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.voltsNeeded || ""
+      : "";
+  const reduxNema =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.NEMAConfiguration || ""
+      : "";
+  const reduxMeterPhotos =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.photosOfElectricalMeter || []
+      : [];
+  const reduxInstallationPhotos =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.photosOfInstallationLocation || []
+      : [];
+  const reduxAdditionalNotes =
+    categoryData?.categoryId === "13"
+      ? (categoryData.details as any)?.additionalInformation || ""
+      : "";
 
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.whereWillDedicatedCircuitInstalled) {
-      setLocalInstallLocation(draft.whereWillDedicatedCircuitInstalled);
       dispatch(
         updateDedicatedCircuitDetails({
           whereWillDedicatedCircuitInstalled:
@@ -131,13 +150,11 @@ export default function CircuitLocation() {
       );
     }
     if (draft.aboveBelowArea) {
-      setLocalAboveBelow(draft.aboveBelowArea);
       dispatch(
         updateDedicatedCircuitDetails({ aboveBelowArea: draft.aboveBelowArea }),
       );
     }
     if (draft.distanceElectricalPanelToInstallationArea) {
-      setLocalDistance(draft.distanceElectricalPanelToInstallationArea);
       dispatch(
         updateDedicatedCircuitDetails({
           distanceElectricalPanelToInstallationArea:
@@ -149,14 +166,12 @@ export default function CircuitLocation() {
 
   // ─── Handlers ──────────────────────────────────────────────────────────────────
   const handleDistanceSelect = (val: string) => {
-    setLocalDistance(val);
     dispatch(
       updateDedicatedCircuitDetails({
         distanceElectricalPanelToInstallationArea: val,
       }),
     );
     if (val !== "Other") {
-      setLocalDistanceOther("");
       dispatch(
         updateDedicatedCircuitDetails({
           distanceElectricalPanelToInstallationAreaOther: "",
@@ -166,7 +181,6 @@ export default function CircuitLocation() {
   };
 
   const handleDistanceOtherChange = (text: string) => {
-    setLocalDistanceOther(text);
     dispatch(
       updateDedicatedCircuitDetails({
         distanceElectricalPanelToInstallationAreaOther: text,
@@ -177,22 +191,36 @@ export default function CircuitLocation() {
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const payload = {
+      // Contact Details
       fullName: draft?.fullName || fullName || "",
-      emailAddress: draft?.emailAddress || email || "",
       phoneNumber: draft?.phoneNumber || phone || "",
+      emailAddress: draft?.emailAddress || email || "",
       preferredContactMethod:
         draft?.preferredContactMethod || preferredContact || "Call",
+
+      // Address Details
       streetAddress: draft?.streetAddress || streetAddress || "",
       apartmentUnit: draft?.apartmentUnit || apartment || "",
       city: draft?.city || city || "",
       state: draft?.state || state || "",
       zipCode: draft?.zipCode || zipCode || "",
+
+      // Project Basics
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      whereWillDedicatedCircuitInstalled: localInstallLocation || "",
-      aboveBelowArea: localAboveBelow || "",
-      distanceElectricalPanelToInstallationArea: localDistance || "",
+
+      // Dedicated Circuit Specific Fields
+      whyNeedDedicatedCircuit:
+        draft?.whyNeedDedicatedCircuit || reduxCircuit || "",
+      electricalPanelLocation:
+        draft?.electricalPanelLocation || reduxPanel || "",
+      whereWillDedicatedCircuitInstalled:
+        draft?.whereWillDedicatedCircuitInstalled || reduxInstallLocation || "",
+      aboveBelowArea: draft?.aboveBelowArea || reduxAboveBelow || "",
+      distanceElectricalPanelToInstallationArea:
+        draft?.distanceElectricalPanelToInstallationArea || reduxDistance || "",
+
       status: "draft" as const,
       completionPercentage,
     };
@@ -217,25 +245,6 @@ export default function CircuitLocation() {
   };
 
   const handleContinue = () => {
-    if (localInstallLocation) {
-      dispatch(
-        updateDedicatedCircuitDetails({
-          whereWillDedicatedCircuitInstalled: localInstallLocation,
-        }),
-      );
-    }
-    if (localAboveBelow) {
-      dispatch(
-        updateDedicatedCircuitDetails({ aboveBelowArea: localAboveBelow }),
-      );
-    }
-    if (localDistance) {
-      dispatch(
-        updateDedicatedCircuitDetails({
-          distanceElectricalPanelToInstallationArea: localDistance,
-        }),
-      );
-    }
     router.push({
       pathname: "/(tabs)/quotes/quote/dedicated-circuit/circuit-specs",
       params: { serviceCallId, serviceType },
@@ -273,47 +282,45 @@ export default function CircuitLocation() {
           <TextAreaInput
             label="Where will the dedicated circuit be installed?"
             placeholder="Kitchen, garage, bedroom, etc."
-            value={localInstallLocation}
-            onChangeText={(text) => {
-              setLocalInstallLocation(text);
+            value={reduxInstallLocation}
+            onChangeText={(text) =>
               dispatch(
                 updateDedicatedCircuitDetails({
                   whereWillDedicatedCircuitInstalled: text,
                 }),
-              );
-            }}
+              )
+            }
             minHeight={80}
           />
 
           <OptionGrid
             label="What is above / below the area?"
             options={ABOVE_BELOW_OPTIONS}
-            selected={localAboveBelow}
-            onSelect={(val) => {
-              setLocalAboveBelow(val);
-              dispatch(updateDedicatedCircuitDetails({ aboveBelowArea: val }));
-            }}
+            selected={reduxAboveBelow}
+            onSelect={(val) =>
+              dispatch(updateDedicatedCircuitDetails({ aboveBelowArea: val }))
+            }
             numColumns={1}
           />
 
           <OptionGrid
             label="What is the approximate distance of the electrical panel from dedicated circuit install location?"
             options={DISTANCE_OPTIONS}
-            selected={localDistance}
+            selected={reduxDistance}
             onSelect={handleDistanceSelect}
             numColumns={1}
           />
 
-          {localDistance === "Other" && (
+          {reduxDistance === "Other" && (
             <TextAreaInput
               label="Please specify"
               placeholder="Describe the distance..."
-              value={localDistanceOther}
+              value={reduxDistanceOther}
               onChangeText={handleDistanceOtherChange}
               minHeight={80}
             />
           )}
-          <View className="pt-[30%]">
+          <View className="pt-[3%]">
             <GradientButton
               label="Continue"
               onPress={handleContinue}

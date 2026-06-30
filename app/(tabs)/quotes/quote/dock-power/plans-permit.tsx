@@ -17,14 +17,33 @@ import {
 import { updateDockPowerDetails } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
 import { DockPowerRecord } from "@/src/types/quotes/dock-power.api.types";
+import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
+import { z } from "zod";
 
 const CURRENT_STEP = 7;
 const TOTAL_STEPS = 10;
+
+// ─── Zod Schema ──────────────────────────────────────────────────────────────
+const dockPlansPermitSchema = z.object({
+  planDrawingPhotos: z
+    .array(z.string())
+    .min(1, "Please upload at least one photo of the plans/drawings"),
+});
+
+type DockPlansPermitFormData = z.infer<typeof dockPlansPermitSchema>;
 
 const createFormData = (payload: Record<string, any>) => {
   const formData = new FormData();
@@ -98,6 +117,21 @@ export default function DockPlansPermit() {
   const [hasPermit, setHasPermit] = useState(reduxHasPermit || "");
   const [permitNumber, setPermitNumber] = useState(reduxPermitNumber || "");
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<DockPlansPermitFormData>({
+    resolver: zodResolver(dockPlansPermitSchema),
+    mode: "onChange",
+    defaultValues: {
+      planDrawingPhotos: planDrawingPhotos || [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -113,13 +147,23 @@ export default function DockPlansPermit() {
           planDrawingPhotos: draft.plansDrawingsPhotos,
         }),
       );
+      setValue("planDrawingPhotos", draft.plansDrawingsPhotos);
     }
     if (draft.permitApplied !== undefined) {
       const val = draft.permitApplied ? "Yes" : "No";
       setHasPermit(val);
       dispatch(updateDockPowerDetails({ hasPermit: val as any }));
     }
+    trigger("planDrawingPhotos");
   }, [draft]);
+
+  // ─── Sync Redux state with React Hook Form ──────────────────────────────
+  useEffect(() => {
+    if (planDrawingPhotos.length > 0) {
+      setValue("planDrawingPhotos", planDrawingPhotos);
+      trigger("planDrawingPhotos");
+    }
+  }, [planDrawingPhotos, setValue, trigger]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
@@ -138,6 +182,7 @@ export default function DockPlansPermit() {
       setUploadingSection("plans");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("planDrawingPhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -150,6 +195,8 @@ export default function DockPlansPermit() {
   const handlePhotosChange = (updated: string[]) => {
     setPlanDrawingPhotos(updated);
     dispatch(updateDockPowerDetails({ planDrawingPhotos: updated }));
+    setValue("planDrawingPhotos", updated);
+    trigger("planDrawingPhotos");
   };
 
   const deleteImageHandler = async (imageUrl: string) => {
@@ -209,6 +256,23 @@ export default function DockPlansPermit() {
     }
   };
 
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: DockPlansPermitFormData) => {
+    router.push({
+      pathname: "/(tabs)/quotes/quote/dock-power/photos-needed",
+      params: { serviceCallId, serviceType },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = () => {
+    if (hasPlans === "Yes") {
+      return isValid && uploadingSection === null && !isSaving;
+    }
+    // If hasPlans is "No", no validation needed for photos
+    return uploadingSection === null && !isSaving;
+  };
+
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -226,7 +290,7 @@ export default function DockPlansPermit() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -255,14 +319,27 @@ export default function DockPlansPermit() {
           />
 
           {hasPlans === "Yes" && (
-            <PhotoUploadSection
-              key="plans-photo-section"
-              label="Please Upload the plans Drawing"
-              photos={planDrawingPhotos}
-              onPhotosChange={handlePhotosChange}
-              onUploadSingle={handlePlansUploadSingle}
-              onDeleteSingle={deleteImageHandler}
-              isUploading={uploadingSection === "plans"}
+            <Controller
+              control={control}
+              name="planDrawingPhotos"
+              render={({ field: { value }, fieldState: { error } }) => (
+                <View>
+                  <PhotoUploadSection
+                    key="plans-photo-section"
+                    label="Please Upload the plans Drawing"
+                    photos={value || []}
+                    onPhotosChange={handlePhotosChange}
+                    onUploadSingle={handlePlansUploadSingle}
+                    onDeleteSingle={deleteImageHandler}
+                    isUploading={uploadingSection === "plans"}
+                  />
+                  {error && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {error.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           )}
 
@@ -288,6 +365,7 @@ export default function DockPlansPermit() {
             <CustomInput
               label="What is your permit number?"
               textInputConfig={{
+                keyboardType: "number-pad",
                 placeholder: "Permit number",
                 value: permitNumber,
                 onChangeText: (text) => {
@@ -297,17 +375,13 @@ export default function DockPlansPermit() {
               }}
             />
           )}
-
-          <GradientButton
-            label="Continue"
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/quotes/quote/dock-power/photos-needed",
-                params: { serviceCallId, serviceType },
-              })
-            }
-            disabled={isSaving || uploadingSection !== null}
-          />
+          <View className="mt-[3%]">
+            <GradientButton
+              label="Continue"
+              onPress={handleSubmit(handleContinue)}
+              disabled={!isFormValid()}
+            />
+          </View>
           <SavedEditAction
             onPress={handleSaveForLater}
             title={isSaving ? "Saving..." : "Save for Later"}

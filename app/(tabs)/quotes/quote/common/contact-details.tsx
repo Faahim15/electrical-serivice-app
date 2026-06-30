@@ -1,6 +1,5 @@
 import AuthHeading from "@/src/components/auth/AuthHeading";
 import TermsAndPolicy from "@/src/components/auth/TermsAndPolicy";
-import AddressDropdownSelector from "@/src/components/common/AddressDropdownSelector";
 import SavedEditAction from "@/src/components/common/SavedButton";
 import { GradientButton } from "@/src/components/onboarding/GradientButton";
 import PreferredContactSelector from "@/src/components/quote/PreferredContactSelector";
@@ -185,7 +184,7 @@ export default function ContactDetails() {
       {/* Top row: back button + address dropdown */}
       <View className="flex-row items-center justify-between">
         <BackButton />
-        <AddressDropdownSelector onSelect={handleAddressSelect} />
+        {/* <AddressDropdownSelector onSelect={handleAddressSelect} /> */}
       </View>
 
       <View>
