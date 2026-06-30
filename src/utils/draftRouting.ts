@@ -281,11 +281,11 @@ export const getResumeRoute = (
 
   // ─── Lighting ─────────────────────────────────────────────────────────────────
   if (serviceType === "Lighting" || serviceType === "Lighting Installation") {
-    if (completionPercentage <= 13)
+    if (completionPercentage <= 17)
       return "/(tabs)/quotes/quote/common/contact-details";
-    if (completionPercentage <= 25)
+    if (completionPercentage <= 33)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 38)
+    if (completionPercentage <= 50)
       return "/(tabs)/quotes/quote/common/project-basics";
     if (completionPercentage <= 67)
       return "/(tabs)/quotes/quote/lighting/lighting-type";
@@ -300,17 +300,17 @@ export const getResumeRoute = (
     serviceType === "Exhaust Fan" ||
     serviceType === "Exhaust Fan Installation"
   ) {
-    if (completionPercentage <= 13)
+    if (completionPercentage <= 14)
       return "/(tabs)/quotes/quote/common/contact-details";
-    if (completionPercentage <= 25)
+    if (completionPercentage <= 29)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 38)
+    if (completionPercentage <= 43)
       return "/(tabs)/quotes/quote/common/project-basics";
-    if (completionPercentage <= 67)
+    if (completionPercentage <= 57)
       return "/(tabs)/quotes/quote/exhaust-fan/fan-details";
-    if (completionPercentage <= 83)
+    if (completionPercentage <= 71)
       return "/(tabs)/quotes/quote/exhaust-fan/fan-photos";
-    if (completionPercentage <= 100)
+    if (completionPercentage <= 86)
       return "/(tabs)/quotes/quote/exhaust-fan/fan-additional";
 
     return "/(tabs)/quotes/quote/exhaust-fan/fan-additional";
@@ -342,19 +342,19 @@ export const getResumeRoute = (
 
   // ─── Switches ─────────────────────────────────────────────────────────────────
   if (serviceType === "Switches" || serviceType === "Switches Installation") {
-    if (completionPercentage <= 12)
+    if (completionPercentage <= 13)
       return "/(tabs)/quotes/quote/common/contact-details";
     if (completionPercentage <= 25)
       return "/(tabs)/quotes/quote/common/service-address";
-    if (completionPercentage <= 37)
+    if (completionPercentage <= 38)
       return "/(tabs)/quotes/quote/common/project-basics";
     if (completionPercentage <= 50)
       return "/(tabs)/quotes/quote/switches/switch-details";
-    if (completionPercentage <= 62)
-      return "/(tabs)/quotes/quote/switches/switch-photos";
-    if (completionPercentage <= 75)
+    if (completionPercentage <= 63)
       return "/(tabs)/quotes/quote/switches/switch-type";
-    if (completionPercentage <= 87)
+    if (completionPercentage <= 75)
+      return "/(tabs)/quotes/quote/switches/switch-photos";
+    if (completionPercentage <= 88)
       return "/(tabs)/quotes/quote/switches/additional-info";
 
     return "/(tabs)/quotes/quote/switches/additional-info";

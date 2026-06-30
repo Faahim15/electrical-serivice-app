@@ -19,11 +19,17 @@ import {
   updateOutletsDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  OutletPhotosFormData,
+  outletPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { OutletRecord } from "@/src/types/quotes/outlet.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { Ionicons } from "@expo/vector-icons";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
   Animated,
   KeyboardAvoidingView,
@@ -65,6 +71,7 @@ export default function OutletInstall() {
   const [localNemaConfig, setLocalNemaConfig] = useState("");
   const [isNemaVisible, setIsNemaVisible] = useState(false);
   const isInitialMount = useRef(true);
+  const isUpdatingFromRedux = useRef(false);
   const { width: screenWidth } = useWindowDimensions();
 
   const { serviceCallId, serviceType: serviceTypeParam } =
@@ -147,6 +154,22 @@ export default function OutletInstall() {
       ? (categoryData.details as any)?.NEMAConfiguration || ""
       : "";
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<OutletPhotosFormData>({
+    resolver: zodResolver(outletPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      photosOfWhereOutletsInstall: reduxPhotos || [],
+    },
+  });
+
   // ─── Sync local state with Redux ────────────────────────────────────────────
   useEffect(() => {
     if (reduxInstallType) setLocalInstallType(reduxInstallType);
@@ -164,11 +187,18 @@ export default function OutletInstall() {
     if (reduxNema) setLocalNemaConfig(reduxNema);
   }, [reduxNema]);
 
+  // ─── Sync photos from Redux to form ──────────────────────────────────────
   useEffect(() => {
     const photosChanged =
       JSON.stringify(reduxPhotos) !== JSON.stringify(localPhotos);
     if (photosChanged && !isInitialMount.current) {
+      isUpdatingFromRedux.current = true;
       setLocalPhotos(reduxPhotos);
+      setValue("photosOfWhereOutletsInstall", reduxPhotos);
+      trigger("photosOfWhereOutletsInstall");
+      setTimeout(() => {
+        isUpdatingFromRedux.current = false;
+      }, 0);
     }
   }, [reduxPhotos]);
 
@@ -184,12 +214,16 @@ export default function OutletInstall() {
       );
     }
     if (draft.photosOfWhereOutletsInstall?.length) {
-      setLocalPhotos(draft.photosOfWhereOutletsInstall);
+      const photos = draft.photosOfWhereOutletsInstall;
+      setLocalPhotos(photos);
       dispatch(
         updateOutletsDetails({
-          photosOfWhereOutletsInstall: draft.photosOfWhereOutletsInstall,
+          photosOfWhereOutletsInstall: photos,
         }),
       );
+      reset({
+        photosOfWhereOutletsInstall: photos,
+      });
     }
     if (draft.howManyAmps) {
       setLocalSelectedAmp(draft.howManyAmps);
@@ -227,6 +261,7 @@ export default function OutletInstall() {
       setUploadingSection("install");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("photosOfWhereOutletsInstall");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -242,11 +277,17 @@ export default function OutletInstall() {
 
   // ─── Photo change handlers ──────────────────────────────────────────────────
   const handlePhotosChange = (photos: string[]) => {
-    setLocalPhotos(photos);
+    if (!isUpdatingFromRedux.current) {
+      setLocalPhotos(photos);
+      setValue("photosOfWhereOutletsInstall", photos);
+      trigger("photosOfWhereOutletsInstall");
+    }
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    const currentPhotos = control._formValues.photosOfWhereOutletsInstall || [];
+
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -262,11 +303,13 @@ export default function OutletInstall() {
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
       // ✅ Fix: Use "New Install" with capital 'I'
-      newInstallationOrReplacement: localInstallType || "",
-      photosOfWhereOutletsInstall: localPhotos || [],
-      howManyAmps: localSelectedAmp || "",
-      ampsOrVoltsNeeded: localSelectedVolt || "",
-      NEMAConfiguration: localNemaConfig || "",
+      newInstallationOrReplacement:
+        draft?.newInstallationOrReplacement || localInstallType || "",
+      photosOfWhereOutletsInstall:
+        draft?.photosOfWhereOutletsInstall || currentPhotos || [],
+      howManyAmps: draft?.howManyAmps || localSelectedAmp || "",
+      ampsOrVoltsNeeded: draft?.ampsOrVoltsNeeded || localSelectedVolt || "",
+      NEMAConfiguration: draft?.NEMAConfiguration || localNemaConfig || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -290,13 +333,16 @@ export default function OutletInstall() {
     }
   };
 
-  const handleContinue = () => {
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: OutletPhotosFormData) => {
     if (localInstallType) {
       dispatch(updateOutletsDetails({ installationType: localInstallType }));
     }
-    if (localPhotos.length > 0) {
+    if (data.photosOfWhereOutletsInstall.length > 0) {
       dispatch(
-        updateOutletsDetails({ photosOfWhereOutletsInstall: localPhotos }),
+        updateOutletsDetails({
+          photosOfWhereOutletsInstall: data.photosOfWhereOutletsInstall,
+        }),
       );
     }
     if (localSelectedAmp) {
@@ -313,6 +359,9 @@ export default function OutletInstall() {
       params: { serviceCallId, serviceType },
     });
   };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   // ─── Render installation type options ──────────────────────────────────────
   const renderInstallOptions = () => {
@@ -465,17 +514,30 @@ export default function OutletInstall() {
           </Text>
           {renderInstallOptions()}
 
-          {/* ─── Photo Upload Section ───────────────────────────────────────── */}
+          {/* ─── Photo Upload Section with Controller ───────────────────────── */}
           <Text className="text-base font-Inter_SemiBold text-[#1F2937] mt-5 mb-3">
             Photos
           </Text>
-          <PhotoUploadSection
-            label="Please upload photos of where the outlet(s) will be installed."
-            photos={localPhotos}
-            onPhotosChange={handlePhotosChange}
-            onUploadSingle={handleInstallUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "install"}
+          <Controller
+            control={control}
+            name="photosOfWhereOutletsInstall"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Please upload photos of where the outlet(s) will be installed."
+                  photos={value || []}
+                  onPhotosChange={handlePhotosChange}
+                  onUploadSingle={handleInstallUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "install"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           {/* ─── Amps — only for New Install ────────────────────────────────── */}
@@ -562,8 +624,8 @@ export default function OutletInstall() {
           <View className="mt-6">
             <GradientButton
               label="Continue"
-              onPress={handleContinue}
-              disabled={isSaving || uploadingSection !== null}
+              onPress={handleSubmit(handleContinue)}
+              disabled={!isFormValid}
             />
           </View>
           <SavedEditAction

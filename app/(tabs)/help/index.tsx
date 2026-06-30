@@ -19,14 +19,14 @@ const HELP_ITEMS: HelpItem[] = [
     icon: "zap",
     title: "Troubleshooting",
     description: "Step-by-step guides for common electrical issues",
-    route: "/(tabs)/home/trobleshooting",
+    route: "/(tabs)/help/troubleshooting",
   },
   {
     id: "2",
     icon: "shield",
     title: "Safety & Maintenance",
     description: "Keep your home safe with regular maintenance",
-    route: "/(tabs)/home/safety",
+    route: "/(tabs)/help/safety-maintenance",
   },
   {
     id: "3",

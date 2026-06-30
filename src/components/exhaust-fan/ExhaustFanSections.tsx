@@ -1,4 +1,5 @@
 import PhotoUploadSection from "@/src/components/quote/PhotoUploadSection";
+import { ExhaustFanPhotosFormData } from "@/src/schemas/upload-photos/upload-photos.schema";
 import {
   AreaOption,
   AtticFanType,
@@ -10,6 +11,7 @@ import {
   YesNo,
 } from "@/src/types/serviceForm.types";
 import React from "react";
+import { Control, Controller, FieldErrors } from "react-hook-form";
 import { Text, View } from "react-native";
 import { Divider, Label, SectionCard } from "./ExhaustFanCard";
 import { OtherInput, StyledInput } from "./ExhaustFanInput";
@@ -54,6 +56,9 @@ interface ExhaustFanSectionsProps {
   // Toggle handlers
   toggleKitchenArea: (area: AreaOption) => void;
   toggleBathroomArea: (area: AreaOption) => void;
+  // Form props
+  control: Control<ExhaustFanPhotosFormData>;
+  errors: FieldErrors<ExhaustFanPhotosFormData>;
 }
 
 export const ExhaustFanSections = ({
@@ -93,6 +98,9 @@ export const ExhaustFanSections = ({
   updateField,
   toggleKitchenArea,
   toggleBathroomArea,
+  // Form props
+  control,
+  errors,
 }: ExhaustFanSectionsProps) => {
   const areaOptions: AreaOption[] = [
     "Attic above",
@@ -111,6 +119,7 @@ export const ExhaustFanSections = ({
     "Unsure",
   ];
 
+  // ─── Attic Section ──────────────────────────────────────────────────────────
   if (fanLocation === "Attic") {
     return (
       <SectionCard title="Attic Fan Details">
@@ -141,13 +150,29 @@ export const ExhaustFanSections = ({
         {supplyingAtticFan === "Yes" && (
           <>
             <Label text="Upload photo of new fan" />
-            <PhotoUploadSection
-              label="Upload New Fan Photo"
-              photos={photosNewFan}
-              onPhotosChange={(p) => updateField("photosNewFan", p)}
-              onUploadSingle={onUploadSingle}
-              onDeleteSingle={onDeleteSingle}
-              isUploading={isUploading}
+            <Controller
+              control={control}
+              name="photoOfNewFan"
+              render={({ field: { value, onChange } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Upload New Fan Photo"
+                    photos={value || []}
+                    onPhotosChange={(photos) => {
+                      onChange(photos);
+                      updateField("photosNewFan", photos);
+                    }}
+                    onUploadSingle={onUploadSingle}
+                    onDeleteSingle={onDeleteSingle}
+                    isUploading={isUploading}
+                  />
+                  {errors.photoOfNewFan && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {errors.photoOfNewFan.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           </>
         )}
@@ -165,13 +190,29 @@ export const ExhaustFanSections = ({
         </View>
 
         <Label text="Upload photo from the ground showing where the attic fan will be installed" />
-        <PhotoUploadSection
-          label="Upload Install Location Photo"
-          photos={photosAtticLocation}
-          onPhotosChange={(p) => updateField("photosAtticLocation", p)}
-          onUploadSingle={onUploadSingle}
-          onDeleteSingle={onDeleteSingle}
-          isUploading={isUploading}
+        <Controller
+          control={control}
+          name="photosOfInstallationArea"
+          render={({ field: { value, onChange } }) => (
+            <View>
+              <PhotoUploadSection
+                label="Upload Install Location Photo"
+                photos={value || []}
+                onPhotosChange={(photos) => {
+                  onChange(photos);
+                  updateField("photosAtticLocation", photos);
+                }}
+                onUploadSingle={onUploadSingle}
+                onDeleteSingle={onDeleteSingle}
+                isUploading={isUploading}
+              />
+              {errors.photosOfInstallationArea && (
+                <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                  {errors.photosOfInstallationArea.message}
+                </Text>
+              )}
+            </View>
+          )}
         />
         <Text className="font-Inter_Regular text-[11px] text-[#717182]">
           This photo helps us understand access and installation conditions.
@@ -180,19 +221,36 @@ export const ExhaustFanSections = ({
     );
   }
 
+  // ─── Kitchen Section ───────────────────────────────────────────────────────
   if (fanLocation === "Kitchen") {
     return (
       <SectionCard title="Kitchen Exhaust Fan Details">
         {installType === "New Installation" && (
           <View>
             <Label text="New Kitchen Fan" />
-            <PhotoUploadSection
-              label="Upload photo of installation location"
-              photos={photosKitchenLocation}
-              onPhotosChange={(p) => updateField("photosKitchenLocation", p)}
-              onUploadSingle={onUploadSingle}
-              onDeleteSingle={onDeleteSingle}
-              isUploading={isUploading}
+            <Controller
+              control={control}
+              name="photosOfInstallationArea"
+              render={({ field: { value, onChange } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Upload photo of installation location"
+                    photos={value || []}
+                    onPhotosChange={(photos) => {
+                      onChange(photos);
+                      updateField("photosKitchenLocation", photos);
+                    }}
+                    onUploadSingle={onUploadSingle}
+                    onDeleteSingle={onDeleteSingle}
+                    isUploading={isUploading}
+                  />
+                  {errors.photosOfInstallationArea && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {errors.photosOfInstallationArea.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           </View>
         )}
@@ -234,13 +292,29 @@ export const ExhaustFanSections = ({
         {kitchenYesNo === "Yes" && (
           <>
             <Label text="Upload photo of new fan" />
-            <PhotoUploadSection
-              label="Upload New Fan Photo"
-              photos={photosKitchenNewFan}
-              onPhotosChange={(p) => updateField("photosKitchenNewFan", p)}
-              onUploadSingle={onUploadSingle}
-              onDeleteSingle={onDeleteSingle}
-              isUploading={isUploading}
+            <Controller
+              control={control}
+              name="photoOfNewFan"
+              render={({ field: { value, onChange } }) => (
+                <View>
+                  <PhotoUploadSection
+                    label="Upload New Fan Photo"
+                    photos={value || []}
+                    onPhotosChange={(photos) => {
+                      onChange(photos);
+                      updateField("photosKitchenNewFan", photos);
+                    }}
+                    onUploadSingle={onUploadSingle}
+                    onDeleteSingle={onDeleteSingle}
+                    isUploading={isUploading}
+                  />
+                  {errors.photoOfNewFan && (
+                    <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                      {errors.photoOfNewFan.message}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
           </>
         )}
@@ -302,19 +376,35 @@ export const ExhaustFanSections = ({
     );
   }
 
-  // Bathroom
+  // ─── Bathroom Section ─────────────────────────────────────────────────────
   return (
     <SectionCard title="Bathroom Exhaust Fan Details">
       {installType === "New Installation" && (
         <View>
           <Label text="New Bathroom Fan" />
-          <PhotoUploadSection
-            label="Upload photo of installation location"
-            photos={photosBathromlocation}
-            onPhotosChange={(p) => updateField("photosBathromlocation", p)}
-            onUploadSingle={onUploadSingle}
-            onDeleteSingle={onDeleteSingle}
-            isUploading={isUploading}
+          <Controller
+            control={control}
+            name="photosOfInstallationArea"
+            render={({ field: { value, onChange } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photo of installation location"
+                  photos={value || []}
+                  onPhotosChange={(photos) => {
+                    onChange(photos);
+                    updateField("photosBathromlocation", photos);
+                  }}
+                  onUploadSingle={onUploadSingle}
+                  onDeleteSingle={onDeleteSingle}
+                  isUploading={isUploading}
+                />
+                {errors.photosOfInstallationArea && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {errors.photosOfInstallationArea.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
         </View>
       )}
@@ -356,13 +446,29 @@ export const ExhaustFanSections = ({
       {bathroomYesNo === "Yes" && (
         <>
           <Label text="Upload photo of new fan" />
-          <PhotoUploadSection
-            label="Upload New Fan Photo"
-            photos={photosBathroomNewFan}
-            onPhotosChange={(p) => updateField("photosBathroomNewFan", p)}
-            onUploadSingle={onUploadSingle}
-            onDeleteSingle={onDeleteSingle}
-            isUploading={isUploading}
+          <Controller
+            control={control}
+            name="photoOfNewFan"
+            render={({ field: { value, onChange } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload New Fan Photo"
+                  photos={value || []}
+                  onPhotosChange={(photos) => {
+                    onChange(photos);
+                    updateField("photosBathroomNewFan", photos);
+                  }}
+                  onUploadSingle={onUploadSingle}
+                  onDeleteSingle={onDeleteSingle}
+                  isUploading={isUploading}
+                />
+                {errors.photoOfNewFan && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {errors.photoOfNewFan.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
         </>
       )}

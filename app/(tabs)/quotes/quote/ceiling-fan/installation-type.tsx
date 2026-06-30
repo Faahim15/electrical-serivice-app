@@ -104,7 +104,7 @@ export default function InstallationType() {
       : [];
   const aboveBelowAreaOfCeilingFan =
     categoryData?.categoryId === "18"
-      ? (categoryData.details as any)?.aboveBelowAreaOfCeilingFan || "" // ← Changed from [] to ""
+      ? (categoryData.details as any)?.aboveBelowAreaOfCeilingFan || ""
       : "";
   const isThereCurrentLightFixture =
     categoryData?.categoryId === "18"
@@ -191,7 +191,6 @@ export default function InstallationType() {
 
   // ─── Handle area toggle ──────────────────────────────────────────────────────
   const toggleArea = (area: string) => {
-    // If already selected, deselect it (set to empty string)
     if (aboveBelowAreaOfCeilingFan === area) {
       dispatch(
         updateCeilingFanDetails({
@@ -199,7 +198,6 @@ export default function InstallationType() {
         }),
       );
     } else {
-      // Select this area
       dispatch(
         updateCeilingFanDetails({
           aboveBelowAreaOfCeilingFan: area,
@@ -211,7 +209,6 @@ export default function InstallationType() {
   // ─── Handle Installation Type Selection ─────────────────────────────────────
   const handleInstallationTypeSelect = (value: string) => {
     if (value === "Replacement") {
-      // Clear all New Install related fields
       dispatch(
         updateCeilingFanDetails({
           installationType: "Replacement",
@@ -221,7 +218,6 @@ export default function InstallationType() {
         }),
       );
     } else if (value === "New Install") {
-      // Clear Replacement related fields
       dispatch(
         updateCeilingFanDetails({
           installationType: "New Install",
@@ -229,6 +225,23 @@ export default function InstallationType() {
         }),
       );
     }
+  };
+
+  // ─── Check if Continue button should be disabled ──────────────────────────
+  const isContinueDisabled = () => {
+    // If no installation type selected
+    if (!installationType) return true;
+
+    // If saving or uploading
+    if (isSaving || uploadingSection !== null) return true;
+
+    // For Replacement: photos are required
+    if (installationType === "Replacement") {
+      return photosOfCurrentCeilingFan.length === 0;
+    }
+
+    // For New Install: no photos required at this step
+    return false;
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
@@ -247,11 +260,16 @@ export default function InstallationType() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      installationType: installationType || "",
-      photosOfCurrentCeilingFan: photosOfCurrentCeilingFan || [],
-      aboveBelowAreaOfCeilingFan: aboveBelowAreaOfCeilingFan || "", // ← Changed from [] to ""
-      isThereCurrentLightFixture: isThereCurrentLightFixture === "Yes",
-      wasAreaPrewired: wasAreaPrewired || "",
+      installationType: draft?.installationType || installationType || "",
+      photosOfCurrentCeilingFan:
+        draft?.photosOfCurrentCeilingFan || photosOfCurrentCeilingFan || [],
+      aboveBelowAreaOfCeilingFan:
+        draft?.aboveBelowAreaOfCeilingFan || aboveBelowAreaOfCeilingFan || "",
+      isThereCurrentLightFixture:
+        draft?.isThereCurrentLightFixture !== undefined
+          ? draft.isThereCurrentLightFixture
+          : isThereCurrentLightFixture === "Yes",
+      wasAreaPrewired: draft?.wasAreaPrewired || wasAreaPrewired || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -271,8 +289,6 @@ export default function InstallationType() {
       toast.error("Failed to save draft. Please try again.");
     }
   };
-
-  const isInstallationTypeSelected = installationType !== "";
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -361,6 +377,11 @@ export default function InstallationType() {
                 onDeleteSingle={deleteImageHandler}
                 isUploading={uploadingSection === "replacement"}
               />
+              {photosOfCurrentCeilingFan.length === 0 && (
+                <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                  Please upload at least one photo of your current fan
+                </Text>
+              )}
             </>
           )}
 
@@ -373,7 +394,7 @@ export default function InstallationType() {
               </Text>
               <View className="flex-row flex-wrap gap-2 mb-4">
                 {AREA_OPTIONS.map((area) => {
-                  const isSelected = aboveBelowAreaOfCeilingFan === area; // ← Changed from .includes() to ===
+                  const isSelected = aboveBelowAreaOfCeilingFan === area;
                   return (
                     <Pressable
                       key={area}
@@ -496,11 +517,7 @@ export default function InstallationType() {
                   params: { serviceCallId, serviceType },
                 })
               }
-              disabled={
-                !isInstallationTypeSelected ||
-                isSaving ||
-                uploadingSection !== null
-              }
+              disabled={isContinueDisabled()}
             />
           </View>
           <SavedEditAction

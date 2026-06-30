@@ -17,16 +17,28 @@ import {
   updateExhaustFanDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  ExhaustFanPanelPhotosFormData,
+  exhaustFanPanelPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { ExhaustFanRecord } from "@/src/types/quotes/exhaust-fan.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 5;
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {
@@ -47,6 +59,7 @@ export default function FanPhotos() {
     [],
   );
   const isInitialMount = useRef(true);
+  const isUpdatingFromRedux = useRef(false);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -94,13 +107,36 @@ export default function FanPhotos() {
       ? (categoryData.details as any)?.panelWidePhotos || []
       : [];
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<ExhaustFanPanelPhotosFormData>({
+    resolver: zodResolver(exhaustFanPanelPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      panelClosePhotos: reduxPanelClosePhotos || [],
+      panelWidePhotos: reduxPanelWidePhotos || [],
+    },
+  });
+
   // ─── Sync local state with Redux ────────────────────────────────────────────
   useEffect(() => {
     const photosChanged =
       JSON.stringify(reduxPanelClosePhotos) !==
       JSON.stringify(localPanelClosePhotos);
     if (photosChanged && !isInitialMount.current) {
+      isUpdatingFromRedux.current = true;
       setLocalPanelClosePhotos(reduxPanelClosePhotos);
+      setValue("panelClosePhotos", reduxPanelClosePhotos);
+      trigger("panelClosePhotos");
+      setTimeout(() => {
+        isUpdatingFromRedux.current = false;
+      }, 0);
     }
   }, [reduxPanelClosePhotos]);
 
@@ -109,7 +145,13 @@ export default function FanPhotos() {
       JSON.stringify(reduxPanelWidePhotos) !==
       JSON.stringify(localPanelWidePhotos);
     if (photosChanged && !isInitialMount.current) {
+      isUpdatingFromRedux.current = true;
       setLocalPanelWidePhotos(reduxPanelWidePhotos);
+      setValue("panelWidePhotos", reduxPanelWidePhotos);
+      trigger("panelWidePhotos");
+      setTimeout(() => {
+        isUpdatingFromRedux.current = false;
+      }, 0);
     }
   }, [reduxPanelWidePhotos]);
 
@@ -119,22 +161,32 @@ export default function FanPhotos() {
 
     // Panel close-up photos - matches API field
     if (draft.photosOfPanelCloseUp?.length) {
-      setLocalPanelClosePhotos(draft.photosOfPanelCloseUp);
+      const photos = draft.photosOfPanelCloseUp;
+      setLocalPanelClosePhotos(photos);
       dispatch(
         updateExhaustFanDetails({
-          panelClosePhotos: draft.photosOfPanelCloseUp,
+          panelClosePhotos: photos,
         }),
       );
+      reset({
+        panelClosePhotos: photos,
+        panelWidePhotos: draft.photosOfPanelWideShot || [],
+      });
     }
 
     // Panel wide shot photos - matches API field
     if (draft.photosOfPanelWideShot?.length) {
-      setLocalPanelWidePhotos(draft.photosOfPanelWideShot);
+      const photos = draft.photosOfPanelWideShot;
+      setLocalPanelWidePhotos(photos);
       dispatch(
         updateExhaustFanDetails({
-          panelWidePhotos: draft.photosOfPanelWideShot,
+          panelWidePhotos: photos,
         }),
       );
+      reset({
+        panelClosePhotos: draft.photosOfPanelCloseUp || [],
+        panelWidePhotos: photos,
+      });
     }
     isInitialMount.current = false;
   }, [draft]);
@@ -158,6 +210,7 @@ export default function FanPhotos() {
       setUploadingSection("panelClose");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelClosePhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -174,6 +227,7 @@ export default function FanPhotos() {
       setUploadingSection("panelWide");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("panelWidePhotos");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -189,15 +243,26 @@ export default function FanPhotos() {
 
   // ─── Photo change handlers ──────────────────────────────────────────────────
   const handlePanelClosePhotosChange = (photos: string[]) => {
-    setLocalPanelClosePhotos(photos);
+    if (!isUpdatingFromRedux.current) {
+      setLocalPanelClosePhotos(photos);
+      setValue("panelClosePhotos", photos);
+      trigger("panelClosePhotos");
+    }
   };
 
   const handlePanelWidePhotosChange = (photos: string[]) => {
-    setLocalPanelWidePhotos(photos);
+    if (!isUpdatingFromRedux.current) {
+      setLocalPanelWidePhotos(photos);
+      setValue("panelWidePhotos", photos);
+      trigger("panelWidePhotos");
+    }
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
+    const currentPanelClosePhotos = control._formValues.panelClosePhotos || [];
+    const currentPanelWidePhotos = control._formValues.panelWidePhotos || [];
+
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -214,8 +279,10 @@ export default function FanPhotos() {
       timelineUrgency: draft?.timelineUrgency || timeline || "",
 
       // ─── Panel photos - matches API fields ──────────────────────────────────
-      photosOfPanelCloseUp: localPanelClosePhotos || [],
-      photosOfPanelWideShot: localPanelWidePhotos || [],
+      photosOfPanelCloseUp:
+        draft?.photosOfPanelCloseUp || currentPanelClosePhotos || [],
+      photosOfPanelWideShot:
+        draft?.photosOfPanelWideShot || currentPanelWidePhotos || [],
 
       status: "draft" as const,
       completionPercentage,
@@ -240,19 +307,20 @@ export default function FanPhotos() {
     }
   };
 
-  const handleContinue = () => {
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: ExhaustFanPanelPhotosFormData) => {
     // Save final values to Redux before navigating
-    if (localPanelClosePhotos.length > 0) {
+    if (data.panelClosePhotos.length > 0) {
       dispatch(
         updateExhaustFanDetails({
-          panelClosePhotos: localPanelClosePhotos,
+          panelClosePhotos: data.panelClosePhotos,
         }),
       );
     }
-    if (localPanelWidePhotos.length > 0) {
+    if (data.panelWidePhotos.length > 0) {
       dispatch(
         updateExhaustFanDetails({
-          panelWidePhotos: localPanelWidePhotos,
+          panelWidePhotos: data.panelWidePhotos,
         }),
       );
     }
@@ -261,6 +329,9 @@ export default function FanPhotos() {
       params: { serviceCallId, serviceType },
     });
   };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -292,28 +363,56 @@ export default function FanPhotos() {
             subtitle="Upload photos of your electrical panel"
           />
 
-          <PhotoUploadSection
-            label="Upload photos of your electrical panel up close so we can see the breakers / panel label"
-            photos={localPanelClosePhotos}
-            onPhotosChange={handlePanelClosePhotosChange}
-            onUploadSingle={handlePanelCloseUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panelClose"}
+          {/* Panel Close Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelClosePhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of your electrical panel up close so we can see the breakers / panel label"
+                  photos={value || []}
+                  onPhotosChange={handlePanelClosePhotosChange}
+                  onUploadSingle={handlePanelCloseUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panelClose"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
-          <PhotoUploadSection
-            label="Upload photos of your electrical panel about 10 ft away"
-            photos={localPanelWidePhotos}
-            onPhotosChange={handlePanelWidePhotosChange}
-            onUploadSingle={handlePanelWideUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "panelWide"}
+          {/* Panel Wide Photos with Controller */}
+          <Controller
+            control={control}
+            name="panelWidePhotos"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Upload photos of your electrical panel about 10 ft away"
+                  photos={value || []}
+                  onPhotosChange={handlePanelWidePhotosChange}
+                  onUploadSingle={handlePanelWideUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "panelWide"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <GradientButton
             label="Continue"
-            onPress={handleContinue}
-            disabled={isSaving || uploadingSection !== null}
+            onPress={handleSubmit(handleContinue)}
+            disabled={!isFormValid}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

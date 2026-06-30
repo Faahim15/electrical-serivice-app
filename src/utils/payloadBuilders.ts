@@ -576,8 +576,8 @@ export const buildPayload = (
           det?.isNewInstallationOrReplacement,
         ),
         typeOfSwitchesNeeded: resolveArr(
-          d?.typeOfSwitchesNeeded,
-          det?.typeOfSwitchesNeeded,
+          d?.typeOfSwitchesNeeded[0],
+          det?.typeOfSwitchesNeeded[0],
         ),
         additionalInformation: resolve(
           d?.additionalInformation,

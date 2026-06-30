@@ -17,11 +17,23 @@ import {
   updateSwitchesDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  SwitchesPhotosFormData,
+  switchesPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { SwitchesRecord } from "@/src/types/quotes/switches.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
@@ -40,6 +52,8 @@ export default function SwitchPhotos() {
   const [uploadingSection, setUploadingSection] = useState<"photos" | null>(
     null,
   );
+  const isInitialMount = useRef(true);
+  const isUpdatingFromRedux = useRef(false);
 
   const { serviceCallId, serviceType: serviceTypeParam } =
     useLocalSearchParams<{
@@ -84,17 +98,58 @@ export default function SwitchPhotos() {
           ?.photosOfWhereSwitchesInstallationNeeded || []
       : [];
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<SwitchesPhotosFormData>({
+    resolver: zodResolver(switchesPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      photosOfWhereSwitchesInstallationNeeded:
+        photosOfWhereSwitchesInstallationNeeded || [],
+    },
+  });
+
+  // ─── Sync photos from Redux to form ──────────────────────────────────────
+  useEffect(() => {
+    const photosChanged =
+      JSON.stringify(photosOfWhereSwitchesInstallationNeeded) !==
+      JSON.stringify(
+        control._formValues.photosOfWhereSwitchesInstallationNeeded,
+      );
+    if (photosChanged && !isInitialMount.current) {
+      isUpdatingFromRedux.current = true;
+      setValue(
+        "photosOfWhereSwitchesInstallationNeeded",
+        photosOfWhereSwitchesInstallationNeeded,
+      );
+      trigger("photosOfWhereSwitchesInstallationNeeded");
+      setTimeout(() => {
+        isUpdatingFromRedux.current = false;
+      }, 0);
+    }
+  }, [photosOfWhereSwitchesInstallationNeeded]);
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
     if (draft.photosOfWhereSwitchesInstallationNeeded?.length) {
+      const photos = draft.photosOfWhereSwitchesInstallationNeeded;
       dispatch(
         updateSwitchesDetails({
-          photosOfWhereSwitchesInstallationNeeded:
-            draft.photosOfWhereSwitchesInstallationNeeded,
+          photosOfWhereSwitchesInstallationNeeded: photos,
         }),
       );
+      reset({
+        photosOfWhereSwitchesInstallationNeeded: photos,
+      });
     }
+    isInitialMount.current = false;
   }, [draft]);
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
@@ -116,6 +171,7 @@ export default function SwitchPhotos() {
       setUploadingSection("photos");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      trigger("photosOfWhereSwitchesInstallationNeeded");
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -129,10 +185,20 @@ export default function SwitchPhotos() {
     await deleteImage({ imageUrl }).unwrap();
   };
 
+  // ─── Photo change handler ──────────────────────────────────────────────────
+  const handlePhotosChange = (photos: string[]) => {
+    if (!isUpdatingFromRedux.current) {
+      setValue("photosOfWhereSwitchesInstallationNeeded", photos);
+      trigger("photosOfWhereSwitchesInstallationNeeded");
+    }
+  };
+
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const details =
       categoryData?.categoryId === "16" ? (categoryData.details as any) : {};
+    const currentPhotos =
+      control._formValues.photosOfWhereSwitchesInstallationNeeded || [];
 
     const payload = {
       fullName: draft?.fullName || fullName || "",
@@ -149,13 +215,18 @@ export default function SwitchPhotos() {
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
 
-      howManySwitchesNeeded: details.howManySwitchesNeeded || "",
+      howManySwitchesNeeded:
+        draft?.howManySwitchesNeeded || details.howManySwitchesNeeded || "",
       isNewInstallationOrReplacement:
-        details.isNewInstallationOrReplacement || "",
+        draft?.isNewInstallationOrReplacement ||
+        details.isNewInstallationOrReplacement ||
+        "",
       photosOfWhereSwitchesInstallationNeeded:
-        photosOfWhereSwitchesInstallationNeeded || [],
-      typeOfSwitchesNeeded: details.typeOfSwitchesNeeded || [],
-      additionalInformation: details.additionalInformation || "",
+        draft?.photosOfWhereSwitchesInstallationNeeded || currentPhotos || [],
+      typeOfSwitchesNeeded:
+        draft?.typeOfSwitchesNeeded || details.typeOfSwitchesNeeded || [],
+      additionalInformation:
+        draft?.additionalInformation || details.additionalInformation || "",
 
       status: "draft" as const,
       completionPercentage,
@@ -176,6 +247,26 @@ export default function SwitchPhotos() {
       toast.error("Failed to save draft. Please try again.");
     }
   };
+
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: SwitchesPhotosFormData) => {
+    // Save final values to Redux before navigating
+    if (data.photosOfWhereSwitchesInstallationNeeded.length > 0) {
+      dispatch(
+        updateSwitchesDetails({
+          photosOfWhereSwitchesInstallationNeeded:
+            data.photosOfWhereSwitchesInstallationNeeded,
+        }),
+      );
+    }
+    router.push({
+      pathname: "/(tabs)/quotes/quote/switches/addtional-info",
+      params: { serviceCallId, serviceType },
+    });
+  };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -207,31 +298,33 @@ export default function SwitchPhotos() {
             subtitle="Upload photos of where the switches will be installed"
           />
 
-          <PhotoUploadSection
-            label="Please upload a photo of where the switch(es) will be installed"
-            photos={photosOfWhereSwitchesInstallationNeeded}
-            onPhotosChange={(p) =>
-              dispatch(
-                updateSwitchesDetails({
-                  photosOfWhereSwitchesInstallationNeeded: p,
-                }),
-              )
-            }
-            onUploadSingle={handlePhotosUploadSingle}
-            onDeleteSingle={deleteImageHandler}
-            isUploading={uploadingSection === "photos"}
+          <Controller
+            control={control}
+            name="photosOfWhereSwitchesInstallationNeeded"
+            render={({ field: { value }, fieldState: { error } }) => (
+              <View>
+                <PhotoUploadSection
+                  label="Please upload a photo of where the switch(es) will be installed"
+                  photos={value || []}
+                  onPhotosChange={handlePhotosChange}
+                  onUploadSingle={handlePhotosUploadSingle}
+                  onDeleteSingle={deleteImageHandler}
+                  isUploading={uploadingSection === "photos"}
+                />
+                {error && (
+                  <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                    {error.message}
+                  </Text>
+                )}
+              </View>
+            )}
           />
 
           <View className="mt-[3%]">
             <GradientButton
               label="Continue"
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/quotes/quote/switches/addtional-info",
-                  params: { serviceCallId, serviceType },
-                })
-              }
-              disabled={isSaving || uploadingSection !== null}
+              onPress={handleSubmit(handleContinue)}
+              disabled={!isFormValid}
             />
           </View>
           <SavedEditAction

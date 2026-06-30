@@ -20,7 +20,7 @@ import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
-const CURRENT_STEP = 6;
+const CURRENT_STEP = 5;
 const TOTAL_STEPS = 6;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────

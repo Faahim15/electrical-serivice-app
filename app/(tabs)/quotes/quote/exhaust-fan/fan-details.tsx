@@ -16,9 +16,15 @@ import {
   updateExhaustFanDetails,
 } from "@/src/redux/slices/serviceFormSlice";
 import { RootState } from "@/src/redux/store";
+import {
+  ExhaustFanPhotosFormData,
+  exhaustFanPhotosSchema,
+} from "@/src/schemas/upload-photos/upload-photos.schema";
 import { ExhaustFanRecord } from "@/src/types/quotes/exhaust-fan.api.types";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -41,7 +47,7 @@ import {
 import { verticalScale } from "@/src/utils/Scaling";
 
 const CURRENT_STEP = 4;
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 type InstallType = "New Installation" | "Replacement";
 type FanLocation = "Attic" | "Kitchen" | "Bathroom";
@@ -155,6 +161,22 @@ export default function FanDetails() {
   const panelLocation = getValue("panelLocation");
   const panelLocationOther = getValue("panelLocationOther");
 
+  // ─── React Hook Form ──────────────────────────────────────────────────────
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isValid },
+    trigger,
+  } = useForm<ExhaustFanPhotosFormData>({
+    resolver: zodResolver(exhaustFanPhotosSchema),
+    mode: "onChange",
+    defaultValues: {
+      photosOfInstallationArea: [],
+      photoOfNewFan: [],
+    },
+  });
+
   // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft) return;
@@ -198,6 +220,39 @@ export default function FanDetails() {
     }
   }, [draft]);
 
+  // ─── Sync photos from Redux to form ──────────────────────────────────────
+  useEffect(() => {
+    let installationPhotos: string[] = [];
+    let newFanPhotos: string[] = [];
+
+    if (fanLocation === "Kitchen") {
+      installationPhotos = photosKitchenLocation;
+      newFanPhotos = photosKitchenNewFan;
+    } else if (fanLocation === "Bathroom") {
+      installationPhotos = photosBathromlocation;
+      newFanPhotos = photosBathroomNewFan;
+    } else if (fanLocation === "Attic") {
+      installationPhotos = photosAtticLocation;
+      newFanPhotos = photosNewFan;
+    }
+
+    if (installationPhotos.length > 0) {
+      setValue("photosOfInstallationArea", installationPhotos);
+    }
+    if (newFanPhotos.length > 0) {
+      setValue("photoOfNewFan", newFanPhotos);
+    }
+    trigger(["photosOfInstallationArea", "photoOfNewFan"]);
+  }, [
+    fanLocation,
+    photosKitchenLocation,
+    photosKitchenNewFan,
+    photosBathromlocation,
+    photosBathroomNewFan,
+    photosAtticLocation,
+    photosNewFan,
+  ]);
+
   // ─── Upload helpers ──────────────────────────────────────────────────────────
   const uploadImage = async (localUri: string): Promise<string> => {
     const formData = new FormData();
@@ -215,6 +270,10 @@ export default function FanDetails() {
       setUploadingSection("uploading");
       const url = await uploadImage(localUri);
       toast.success("Photo uploaded!");
+      // Trigger validation after upload
+      setTimeout(() => {
+        trigger(["photosOfInstallationArea", "photoOfNewFan"]);
+      }, 100);
       return url;
     } catch (error) {
       toast.error("Failed to upload photo. Please try again.");
@@ -300,6 +359,13 @@ export default function FanDetails() {
         }),
       );
     }
+    // Reset form values
+    setValue("photosOfInstallationArea", []);
+    setValue("photoOfNewFan", []);
+    // Trigger validation after reset
+    setTimeout(() => {
+      trigger(["photosOfInstallationArea", "photoOfNewFan"]);
+    }, 100);
   };
 
   const toggleKitchenArea = (area: any) => {
@@ -325,9 +391,6 @@ export default function FanDetails() {
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
-    const details =
-      categoryData?.categoryId === "14" ? (categoryData.details as any) : {};
-
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -401,12 +464,40 @@ export default function FanDetails() {
     }
   };
 
-  const handleContinue = () => {
+  // ─── Handle Continue with Validation ──────────────────────────────────────
+  const handleContinue = async (data: ExhaustFanPhotosFormData) => {
+    // Save photos to Redux before navigating
+    if (fanLocation === "Kitchen") {
+      dispatch(
+        updateExhaustFanDetails({
+          photosKitchenLocation: data.photosOfInstallationArea,
+          photosKitchenNewFan: data.photoOfNewFan,
+        }),
+      );
+    } else if (fanLocation === "Bathroom") {
+      dispatch(
+        updateExhaustFanDetails({
+          photosBathromlocation: data.photosOfInstallationArea,
+          photosBathroomNewFan: data.photoOfNewFan,
+        }),
+      );
+    } else if (fanLocation === "Attic") {
+      dispatch(
+        updateExhaustFanDetails({
+          photosAtticLocation: data.photosOfInstallationArea,
+          photosNewFan: data.photoOfNewFan,
+        }),
+      );
+    }
+
     router.push({
       pathname: "/(tabs)/quotes/quote/exhaust-fan/fan-photos" as any,
       params: { serviceCallId, serviceType },
     });
   };
+
+  // ─── Check if form is valid ──────────────────────────────────────────────
+  const isFormValid = isValid && uploadingSection === null && !isSaving;
 
   return (
     <ScreenWrapper paddingHorizontal={20}>
@@ -508,6 +599,9 @@ export default function FanDetails() {
               updateField={updateField}
               toggleKitchenArea={toggleKitchenArea}
               toggleBathroomArea={toggleBathroomArea}
+              // Form props
+              control={control}
+              errors={errors}
             />
           )}
 
@@ -541,8 +635,8 @@ export default function FanDetails() {
           <View className="mt-6">
             <GradientButton
               label="Continue"
-              onPress={handleContinue}
-              disabled={isSaving || uploadingSection !== null}
+              onPress={handleSubmit(handleContinue)}
+              disabled={!isFormValid}
             />
           </View>
           <SavedEditAction

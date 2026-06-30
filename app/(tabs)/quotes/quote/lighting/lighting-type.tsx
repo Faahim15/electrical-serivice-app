@@ -15,7 +15,7 @@ import { RootState } from "@/src/redux/store";
 import { LightingRecord } from "@/src/types/quotes/lighting.api.types";
 import { verticalScale } from "@/src/utils/Scaling";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Animated,
   KeyboardAvoidingView,
@@ -84,18 +84,9 @@ const normalizeSwitchConnection = (value: string) => {
   return value;
 };
 
-const normalizeYesNo = (value: string) => {
-  if (!value) return "";
-  const lowerValue = value.toLowerCase();
-  if (lowerValue === "yes" || lowerValue === "y") return "Yes";
-  if (lowerValue === "no" || lowerValue === "n") return "No";
-  return value;
-};
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function LightingType() {
   const dispatch = useDispatch();
-  const [localLightingType, setLocalLightingType] = useState("");
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const { serviceCallId, serviceType: serviceTypeParam } =
@@ -135,68 +126,97 @@ export default function LightingType() {
       ? (categoryData.details as any)?.lightingType || ""
       : "";
 
-  // ─── Sync local state with Redux ────────────────────────────────────────────
-  useEffect(() => {
-    if (reduxLightingType) setLocalLightingType(reduxLightingType);
-  }, [reduxLightingType]);
+  // ─── Get lighting details ────────────────────────────────────────────────────
+  const getLightingDetails = () => {
+    if (categoryData?.categoryId === "17" && categoryData.details) {
+      return categoryData.details as any;
+    }
+    return {};
+  };
 
-  // ─── Ensure category is set + Prefill from draft ─────────────────────────────
+  const details = getLightingDetails();
+
+  // ─── Ensure category is set ──────────────────────────────────────────────────
   useEffect(() => {
     if (!categoryData || categoryData.categoryId !== "17") {
       dispatch(selectCategory("17"));
     }
   }, []);
 
+  // ─── Prefill from draft ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!draft || categoryData?.categoryId !== "17") return;
 
+    const updates: any = {};
+
     if (draft.lightingType) {
-      setLocalLightingType(draft.lightingType);
+      updates.lightingType = draft.lightingType as any;
+    }
+    if (draft.typeOfInteriorLightingFixture) {
+      updates.fixtureKind = draft.typeOfInteriorLightingFixture;
+    }
+    if (draft.kindOfLightingFixture) {
+      updates.fixtureWeight = draft.kindOfLightingFixture;
+    }
+    if (draft.isFixtureHaveComplexAssembly !== undefined) {
+      updates.complexAssembly = draft.isFixtureHaveComplexAssembly
+        ? "Yes"
+        : "No";
+    }
+    if (draft.isNewOrReplacement) {
+      updates.interiorInstallType = normalizeInstallType(
+        draft.isNewOrReplacement,
+      );
+    }
+    if (draft.tallOfCeiling) {
+      updates.ceilingHeight = draft.tallOfCeiling;
+    }
+    if (draft.detailsOnTypeOfFixture) {
+      updates.fixtureDetails = draft.detailsOnTypeOfFixture;
+    }
+    if (draft.willProvideNewLight !== undefined) {
+      updates.providingFixture = draft.willProvideNewLight ? "Yes" : "No";
+    }
+    if (draft.fixtureConnectedToNewOrExistingSwitch) {
+      updates.switchNewExisting = normalizeSwitchConnection(
+        draft.fixtureConnectedToNewOrExistingSwitch,
+      );
+    }
+    if (draft.kindOfSwitchWant) {
+      updates.switchKind = draft.kindOfSwitchWant;
+    }
+    if (draft.wantToUpgradeSwitch !== undefined) {
+      updates.upgradeSwitch = draft.wantToUpgradeSwitch ? "Yes" : "No";
+    }
+    if (draft.moreThanOneSwitchLocation !== undefined) {
+      updates.multiSwitch = draft.moreThanOneSwitchLocation ? "Yes" : "No";
+    }
+    if (draft.photosOfWhereWantToInstall) {
+      updates.photosOfWhereWantToInstall = draft.photosOfWhereWantToInstall;
+    }
+    if (draft.photosOfCurrentLightFixture) {
+      updates.photosOfCurrentLightFixture = draft.photosOfCurrentLightFixture;
+    }
+    if (draft.photosOfNewLightFixture) {
+      updates.photosOfNewLightFixture = draft.photosOfNewLightFixture;
+    }
+    if (draft.photosOfInstallationAreaFloodLight) {
+      updates.photosOfInstallationAreaFloodLight =
+        draft.photosOfInstallationAreaFloodLight;
+    }
+    if (draft.photosOfCurrentFloodLight) {
+      updates.photosOfCurrentFloodLight = draft.photosOfCurrentFloodLight;
+    }
+    if (draft.photosOfNewFloodLight) {
+      updates.photosOfNewFloodLight = draft.photosOfNewFloodLight;
+    }
+    if (draft.additionalInformation) {
+      updates.additionalInformation = draft.additionalInformation;
     }
 
-    dispatch(
-      updateLightingDetails({
-        lightingType: draft.lightingType as any,
-        interiorInstallType: normalizeInstallType(
-          draft.isNewOrReplacement || "",
-        ),
-        switchNewExisting: normalizeSwitchConnection(
-          draft.fixtureConnectedToNewOrExistingSwitch || "",
-        ),
-        fixtureWeight: draft.kindOfLightingFixture || "",
-        fixtureKind: draft.typeOfInteriorLightingFixture || "",
-        complexAssembly:
-          draft.isFixtureHaveComplexAssembly === true
-            ? "Yes"
-            : draft.isFixtureHaveComplexAssembly === false
-              ? "No"
-              : "",
-        ceilingHeight: draft.tallOfCeiling || "",
-        providingFixture:
-          draft.willProvideNewLight === true
-            ? "Yes"
-            : draft.willProvideNewLight === false
-              ? "No"
-              : "",
-        fixtureDetails: draft.detailsOnTypeOfFixture || "",
-        upgradeSwitch:
-          draft.wantToUpgradeSwitch === true
-            ? "Yes"
-            : draft.wantToUpgradeSwitch === false
-              ? "No"
-              : "",
-        switchKind: draft.kindOfSwitchWant || "",
-        multiSwitch:
-          draft.moreThanOneSwitchLocation === true
-            ? "Yes"
-            : draft.moreThanOneSwitchLocation === false
-              ? "No"
-              : "",
-        photosOfWhereWantToInstall: draft.photosOfWhereWantToInstall || [],
-        photosOfCurrentLightFixture: draft.photosOfCurrentLightFixture || [],
-        photosOfNewLightFixture: draft.photosOfNewLightFixture || [],
-      }),
-    );
+    if (Object.keys(updates).length > 0) {
+      dispatch(updateLightingDetails(updates));
+    }
   }, [draft, categoryData?.categoryId]);
 
   // ─── Animate on type change ──────────────────────────────────────────────────
@@ -206,12 +226,11 @@ export default function LightingType() {
       duration: 400,
       useNativeDriver: true,
     }).start();
-  }, [localLightingType]);
+  }, [reduxLightingType]);
 
   // ─── Handle type select ──────────────────────────────────────────────────────
   const handleTypeSelect = (val: string) => {
     fadeAnim.setValue(0);
-    setLocalLightingType(val);
     dispatch(updateLightingDetails({ lightingType: val as any }));
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -220,28 +239,84 @@ export default function LightingType() {
     }).start();
   };
 
-  // ─── Get all lighting details from Redux ────────────────────────────────────
-  const getLightingDetails = () => {
-    if (categoryData?.categoryId === "17" && categoryData.details) {
-      return categoryData.details as any;
+  // ─── Check if photos are required and valid for current lighting type ──────
+  const checkPhotoValidation = () => {
+    const installType =
+      details.interiorInstallType ||
+      details.floodInstallType ||
+      details.wallInstallType ||
+      details.drivewayInstallType ||
+      details.poleInstallType;
+
+    // If no install type selected, no photo validation needed
+    if (!installType) return true;
+
+    // ─── Interior Lighting ──────────────────────────────────────────────────
+    if (reduxLightingType === "Interior Lighting") {
+      if (installType === "New Installation") {
+        const photos = details.photosOfWhereWantToInstall || [];
+        return photos.length > 0;
+      } else if (installType === "Replacement") {
+        const photos = details.photosOfCurrentLightFixture || [];
+        return photos.length > 0;
+      }
+      return true;
     }
-    return {};
+
+    // ─── Flood Lights ──────────────────────────────────────────────────────
+    if (reduxLightingType === "Flood Lights") {
+      if (installType === "New Installation") {
+        const photos = details.photosOfInstallationAreaFloodLight || [];
+        return photos.length > 0;
+      } else if (installType === "Replacement") {
+        const photos = details.photosOfCurrentFloodLight || [];
+        return photos.length > 0;
+      }
+      return true;
+    }
+
+    // ─── Wall / Coach Lights ──────────────────────────────────────────────
+    if (reduxLightingType === "Wall / Coach Lights") {
+      if (installType === "New Installation") {
+        const photos = details.wallPhotosNew || [];
+        return photos.length > 0;
+      } else if (installType === "Replacement") {
+        const photos = details.wallPhotosCurrent || [];
+        return photos.length > 0;
+      }
+      return true;
+    }
+
+    // ─── Driveway Lighting ──────────────────────────────────────────────────
+    if (reduxLightingType === "Driveway Lighting") {
+      if (installType === "New Installation") {
+        const photos = details.drivewayPhotosNew || [];
+        return photos.length > 0;
+      } else if (installType === "Replacement") {
+        const photos = details.drivewayPhotosCurrent || [];
+        return photos.length > 0;
+      }
+      return true;
+    }
+
+    // ─── Pole / Area Lighting ──────────────────────────────────────────────
+    if (reduxLightingType === "Pole / Area Lighting") {
+      if (installType === "New Installation") {
+        const photos = details.polePhotosNew || [];
+        return photos.length > 0;
+      } else if (installType === "Replacement") {
+        const photos = details.polePhotosCurrent || [];
+        return photos.length > 0;
+      }
+      return true;
+    }
+
+    // Landscape doesn't require photos
+    return true;
   };
 
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
-    const details = getLightingDetails();
-
-    // Debug log to see what's in Redux
-    console.log("🔍 Redux Lighting Details:", {
-      interiorInstallType: details.interiorInstallType,
-      switchNewExisting: details.switchNewExisting,
-      floodSwitchNewExisting: details.floodSwitchNewExisting,
-      wallSwitchNewExisting: details.wallSwitchNewExisting,
-      drivewaySwitchNewExisting: details.drivewaySwitchNewExisting,
-      poleSwitchNewExisting: details.poleSwitchNewExisting,
-    });
-
     const payload = {
       fullName: draft?.fullName || fullName || "",
       emailAddress: draft?.emailAddress || email || "",
@@ -257,125 +332,70 @@ export default function LightingType() {
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
 
-      // ─── Lighting specific fields ──────────────────────────────────────────────
-      lightingType: localLightingType || "",
+      lightingType: draft?.lightingType || reduxLightingType || "",
 
-      // Interior Lighting fields
-      typeOfInteriorLightingFixture: details.fixtureKind || "",
-      kindOfLightingFixture: details.fixtureWeight || "",
-      isFixtureHaveComplexAssembly: details.complexAssembly === "Yes",
-      tallOfCeiling: details.ceilingHeight || "",
-      detailsOnTypeOfFixture: details.fixtureDetails || "",
-      willProvideNewLight: details.providingFixture === "Yes",
-      kindOfSwitchWant: details.switchKind || "",
-      wantToUpgradeSwitch: details.upgradeSwitch === "Yes",
-      moreThanOneSwitchLocation: details.multiSwitch === "Yes",
+      // Interior Lighting Fields
+      typeOfInteriorLightingFixture:
+        draft?.typeOfInteriorLightingFixture || details.fixtureKind || "",
+      kindOfLightingFixture:
+        draft?.kindOfLightingFixture || details.fixtureWeight || "",
+      isFixtureHaveComplexAssembly:
+        draft?.isFixtureHaveComplexAssembly !== undefined
+          ? draft.isFixtureHaveComplexAssembly
+          : details.complexAssembly === "Yes",
+      isNewOrReplacement:
+        draft?.isNewOrReplacement ||
+        normalizeInstallType(details.interiorInstallType || ""),
+      tallOfCeiling: draft?.tallOfCeiling || details.ceilingHeight || "",
+      detailsOnTypeOfFixture:
+        draft?.detailsOnTypeOfFixture || details.fixtureDetails || "",
+      willProvideNewLight:
+        draft?.willProvideNewLight !== undefined
+          ? draft.willProvideNewLight
+          : details.providingFixture === "Yes",
+      fixtureConnectedToNewOrExistingSwitch:
+        draft?.fixtureConnectedToNewOrExistingSwitch ||
+        normalizeSwitchConnection(details.switchNewExisting || ""),
+      kindOfSwitchWant: draft?.kindOfSwitchWant || details.switchKind || "",
+      wantToUpgradeSwitch:
+        draft?.wantToUpgradeSwitch !== undefined
+          ? draft.wantToUpgradeSwitch
+          : details.upgradeSwitch === "Yes",
+      moreThanOneSwitchLocation:
+        draft?.moreThanOneSwitchLocation !== undefined
+          ? draft.moreThanOneSwitchLocation
+          : details.multiSwitch === "Yes",
 
-      // Flood Lights fields
-      floodInstallHeight: details.floodInstallHeight || "",
-      floodProviding: details.floodProviding || "",
-      floodDetails: details.floodDetails || "",
-      floodPowerControl: details.floodPowerControl || "",
-      floodUpgradeSwitch: details.floodUpgradeSwitch || "",
-      floodSwitchKind: details.floodSwitchKind || "",
-      floodSwitchOtherText: details.floodSwitchOtherText || "",
-      floodMultiSwitch: details.floodMultiSwitch || "",
-
-      // Wall Coach fields
-      wallSurface: details.wallSurface || "",
-      wallProviding: details.wallProviding || "",
-      wallNewLightDetails: details.wallNewLightDetails || "",
-      wallUpgradeSwitch: details.wallUpgradeSwitch || "",
-      wallSwitchKind: details.wallSwitchKind || "",
-      wallMultiSwitch: details.wallMultiSwitch || "",
-
-      // Driveway fields
-      drivewayProviding: details.drivewayProviding || "",
-      drivewayNewLightDetails: details.drivewayNewLightDetails || "",
-      drivewayDistance: details.drivewayDistance || "",
-      drivewayPowerControl: details.drivewayPowerControl || "",
-      drivewayUpgradeSwitch: details.drivewayUpgradeSwitch || "",
-      drivewaySwitchKind: details.drivewaySwitchKind || "",
-      drivewaySwitchOtherText: details.drivewaySwitchOtherText || "",
-      drivewayMultiSwitch: details.drivewayMultiSwitch || "",
-
-      // Pole Area fields
-      poleProviding: details.poleProviding || "",
-      poleLightDetails: details.poleLightDetails || "",
-      poleDistance: details.poleDistance || "",
-      polePowerControl: details.polePowerControl || "",
-      poleUpgradeSwitch: details.poleUpgradeSwitch || "",
-      poleSwitchKind: details.poleSwitchKind || "",
-      poleSwitchOtherText: details.poleSwitchOtherText || "",
-      poleMultiSwitch: details.poleMultiSwitch || "",
-
-      // Landscape fields
-      landscapeVoltage: details.landscapeVoltage || "",
-
-      // Photos
-      photosOfWhereWantToInstall: details.photosOfWhereWantToInstall || [],
-      photosOfCurrentLightFixture: details.photosOfCurrentLightFixture || [],
-      photosOfNewLightFixture: details.photosOfNewLightFixture || [],
+      // Flood Lights Photos
       photosOfInstallationAreaFloodLight:
-        details.photosOfInstallationAreaFloodLight || [],
-      photosOfCurrentFloodLight: details.photosOfCurrentFloodLight || [],
-      photosOfNewFloodLight: details.photosOfNewFloodLight || [],
+        draft?.photosOfInstallationAreaFloodLight ||
+        details.photosOfInstallationAreaFloodLight ||
+        [],
+      photosOfCurrentFloodLight:
+        draft?.photosOfCurrentFloodLight ||
+        details.photosOfCurrentFloodLight ||
+        [],
+      photosOfNewFloodLight:
+        draft?.photosOfNewFloodLight || details.photosOfNewFloodLight || [],
 
-      // Additional Info
-      additionalInformation: details.additionalInformation || "",
+      // Interior Photos
+      photosOfWhereWantToInstall:
+        draft?.photosOfWhereWantToInstall ||
+        details.photosOfWhereWantToInstall ||
+        [],
+      photosOfCurrentLightFixture:
+        draft?.photosOfCurrentLightFixture ||
+        details.photosOfCurrentLightFixture ||
+        [],
+      photosOfNewLightFixture:
+        draft?.photosOfNewLightFixture || details.photosOfNewLightFixture || [],
 
-      // ─── Conditional enum fields (omitted if empty to avoid API rejection) ─────
-      ...(normalizeInstallType(details.interiorInstallType || "") && {
-        isNewOrReplacement: normalizeInstallType(details.interiorInstallType),
-      }),
-      ...(normalizeSwitchConnection(details.switchNewExisting || "") && {
-        fixtureConnectedToNewOrExistingSwitch: normalizeSwitchConnection(
-          details.switchNewExisting,
-        ),
-      }),
-      ...(normalizeInstallType(details.floodInstallType || "") && {
-        floodInstallType: normalizeInstallType(details.floodInstallType),
-      }),
-      ...(normalizeSwitchConnection(details.floodSwitchNewExisting || "") && {
-        floodSwitchNewExisting: normalizeSwitchConnection(
-          details.floodSwitchNewExisting,
-        ),
-      }),
-      ...(normalizeInstallType(details.wallInstallType || "") && {
-        wallInstallType: normalizeInstallType(details.wallInstallType),
-      }),
-      ...(normalizeSwitchConnection(details.wallSwitchNewExisting || "") && {
-        wallSwitchNewExisting: normalizeSwitchConnection(
-          details.wallSwitchNewExisting,
-        ),
-      }),
-      ...(normalizeInstallType(details.drivewayInstallType || "") && {
-        drivewayInstallType: normalizeInstallType(details.drivewayInstallType),
-      }),
-      ...(normalizeSwitchConnection(
-        details.drivewaySwitchNewExisting || "",
-      ) && {
-        drivewaySwitchNewExisting: normalizeSwitchConnection(
-          details.drivewaySwitchNewExisting,
-        ),
-      }),
-      ...(normalizeInstallType(details.poleInstallType || "") && {
-        poleInstallType: normalizeInstallType(details.poleInstallType),
-      }),
-      ...(normalizeSwitchConnection(details.poleSwitchNewExisting || "") && {
-        poleSwitchNewExisting: normalizeSwitchConnection(
-          details.poleSwitchNewExisting,
-        ),
-      }),
+      additionalInformation:
+        draft?.additionalInformation || details.additionalInformation || "",
 
       status: "draft" as const,
       completionPercentage,
     };
-
-    console.log(
-      "📤 Saving Lighting draft payload:",
-      JSON.stringify(payload, null, 2),
-    );
 
     try {
       if (serviceCallId) {
@@ -398,9 +418,31 @@ export default function LightingType() {
 
   // ─── Continue ────────────────────────────────────────────────────────────────
   const handleContinue = () => {
-    if (localLightingType) {
+    const isValid = checkPhotoValidation();
+
+    if (!isValid) {
+      const installType =
+        details.interiorInstallType ||
+        details.floodInstallType ||
+        details.wallInstallType ||
+        details.drivewayInstallType ||
+        details.poleInstallType;
+
+      if (installType === "New Installation") {
+        toast.error(
+          "Please upload photos of where you want to install the lighting",
+        );
+      } else if (installType === "Replacement") {
+        toast.error("Please upload photos of the current light fixture(s)");
+      } else {
+        toast.error("Please upload the required photos");
+      }
+      return;
+    }
+
+    if (reduxLightingType) {
       dispatch(
-        updateLightingDetails({ lightingType: localLightingType as any }),
+        updateLightingDetails({ lightingType: reduxLightingType as any }),
       );
     }
 
@@ -410,9 +452,21 @@ export default function LightingType() {
     });
   };
 
+  // ─── Check if continue button should be disabled ───────────────────────────
+  const isContinueDisabled = () => {
+    if (!reduxLightingType) return true;
+    if (isSaving || uploadingSection) return true;
+
+    // Landscape doesn't require photos
+    if (reduxLightingType === "Landscape") return false;
+
+    // Check if photos are required based on the current selections
+    return !checkPhotoValidation();
+  };
+
   // ─── Render details section ─────────────────────────────────────────────────
   const renderDetailsSection = () => {
-    if (!localLightingType) return null;
+    if (!reduxLightingType) return null;
 
     const sectionProps = {
       onUploadSingle: uploadSingleImage,
@@ -422,22 +476,22 @@ export default function LightingType() {
 
     return (
       <Animated.View style={{ opacity: fadeAnim }}>
-        {localLightingType === "Interior Lighting" && (
+        {reduxLightingType === "Interior Lighting" && (
           <InteriorSection {...sectionProps} />
         )}
-        {localLightingType === "Flood Lights" && (
+        {reduxLightingType === "Flood Lights" && (
           <FloodLightsSection {...sectionProps} />
         )}
-        {localLightingType === "Wall / Coach Lights" && (
+        {reduxLightingType === "Wall / Coach Lights" && (
           <WallCoachSection {...sectionProps} />
         )}
-        {localLightingType === "Driveway Lighting" && (
+        {reduxLightingType === "Driveway Lighting" && (
           <DrivewaySection {...sectionProps} />
         )}
-        {localLightingType === "Pole / Area Lighting" && (
+        {reduxLightingType === "Pole / Area Lighting" && (
           <PoleAreaSection {...sectionProps} />
         )}
-        {localLightingType === "Landscape" && <LandscapeSection />}
+        {reduxLightingType === "Landscape" && <LandscapeSection />}
       </Animated.View>
     );
   };
@@ -475,7 +529,7 @@ export default function LightingType() {
           <View className="mb-4">
             <TwoColGrid
               items={LIGHTING_TYPES}
-              selected={localLightingType}
+              selected={reduxLightingType}
               onSelect={handleTypeSelect}
             />
           </View>
@@ -485,7 +539,7 @@ export default function LightingType() {
           <GradientButton
             label="Continue"
             onPress={handleContinue}
-            disabled={!localLightingType || isSaving || !!uploadingSection}
+            disabled={isContinueDisabled()}
           />
           <SavedEditAction
             onPress={handleSaveForLater}

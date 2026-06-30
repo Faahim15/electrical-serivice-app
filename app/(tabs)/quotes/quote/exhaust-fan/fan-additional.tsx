@@ -21,7 +21,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner-native";
 
 const CURRENT_STEP = 6;
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 // ─── Helper to convert payload to FormData ──────────────────────────────────
 const createFormData = (payload: Record<string, any>) => {

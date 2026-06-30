@@ -208,7 +208,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     id: "18",
     title: "Ceiling Fan Installation",
     description: "Interior and exterior ceiling fan",
-    iconName: "refresh-outline",
+    iconName: "sync-outline",
     iconBg: "#E8F3FD",
     iconColor: "#4A90D9",
   },

@@ -85,7 +85,6 @@ export default function FanDetails() {
   }, []);
 
   // ─── Get values from Redux ───────────────────────────────────────────────────
-  // Get values from Redux with correct field names
   const willProvideNewCeilingFan =
     categoryData?.categoryId === "18"
       ? (categoryData.details as any)?.willProvideNewCeilingFan || ""
@@ -93,7 +92,7 @@ export default function FanDetails() {
   const photosOfNewCeilingFan =
     categoryData?.categoryId === "18"
       ? (categoryData.details as any)?.photosOfNewCeilingFan || []
-      : [];
+      : "";
   const describeFanWantInstalled =
     categoryData?.categoryId === "18"
       ? (categoryData.details as any)?.describeFanWantInstalled || ""
@@ -168,6 +167,23 @@ export default function FanDetails() {
     await deleteImage({ imageUrl }).unwrap();
   };
 
+  // ─── Check if Continue button should be disabled ──────────────────────────
+  const isContinueDisabled = () => {
+    // If no option selected
+    if (!willProvideNewCeilingFan) return true;
+
+    // If saving or uploading
+    if (isSaving || uploadingSection !== null) return true;
+
+    // If "Yes" selected: photos are required
+    if (willProvideNewCeilingFan === "Yes") {
+      return photosOfNewCeilingFan.length === 0;
+    }
+
+    // If "No" selected: no photos required
+    return false;
+  };
+
   // ─── Save for Later ──────────────────────────────────────────────────────────
   const handleSaveForLater = async () => {
     const payload = {
@@ -184,10 +200,16 @@ export default function FanDetails() {
       propertyType: draft?.propertyType || propertyType || "",
       ownershipStatus: draft?.ownershipStatus || ownershipStatus || "",
       timelineUrgency: draft?.timelineUrgency || timeline || "",
-      willProvideNewCeilingFan: willProvideNewCeilingFan === "Yes",
-      photosOfNewCeilingFan: photosOfNewCeilingFan || [],
-      describeFanWantInstalled: describeFanWantInstalled || "",
-      tallOfCeilingFanFromFloor: tallOfCeilingFanFromFloor || "",
+      willProvideNewCeilingFan:
+        draft?.willProvideNewCeilingFan !== undefined
+          ? draft.willProvideNewCeilingFan
+          : willProvideNewCeilingFan === "Yes",
+      photosOfNewCeilingFan:
+        draft?.photosOfNewCeilingFan || photosOfNewCeilingFan || [],
+      describeFanWantInstalled:
+        draft?.describeFanWantInstalled || describeFanWantInstalled || "",
+      tallOfCeilingFanFromFloor:
+        draft?.tallOfCeilingFanFromFloor || tallOfCeilingFanFromFloor || "",
       status: "draft" as const,
       completionPercentage,
     };
@@ -208,8 +230,6 @@ export default function FanDetails() {
     }
   };
 
-  const isFanDetailsSelected = willProvideNewCeilingFan !== "";
-
   return (
     <ScreenWrapper paddingHorizontal={20}>
       <KeyboardAvoidingView
@@ -227,7 +247,7 @@ export default function FanDetails() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: verticalScale(32) }}
+          contentContainerStyle={{ paddingBottom: verticalScale(132) }}
         >
           <StepProgressBar
             currentStep={CURRENT_STEP}
@@ -275,6 +295,11 @@ export default function FanDetails() {
                 onDeleteSingle={deleteImageHandler}
                 isUploading={uploadingSection === "fan"}
               />
+              {photosOfNewCeilingFan.length === 0 && (
+                <Text className="text-red-500 text-xs mt-1 ml-2 font-Inter_Regular">
+                  Please upload at least one photo of your new ceiling fan
+                </Text>
+              )}
             </>
           )}
 
@@ -319,9 +344,7 @@ export default function FanDetails() {
                   params: { serviceCallId, serviceType },
                 })
               }
-              disabled={
-                !isFanDetailsSelected || isSaving || uploadingSection !== null
-              }
+              disabled={isContinueDisabled()}
             />
           </View>
           <SavedEditAction

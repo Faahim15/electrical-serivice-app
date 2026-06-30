@@ -1,4 +1,5 @@
 // src/schemas/upload-photos/upload-photos.schema.ts
+
 import { z } from "zod";
 
 // ─── Service Call (Electrical) Schema ──────────────────────────────────────
@@ -176,8 +177,6 @@ export const starlinkPhotosSchema = z.object({
 });
 
 export type StarlinkPhotosFormData = z.infer<typeof starlinkPhotosSchema>;
-// src/schemas/upload-photos/upload-photos.schema.ts
-// Add this to your existing schema file
 
 // ─── Starlink Router Schema ──────────────────────────────────────────────
 export const starlinkRouterSchema = z.object({
@@ -201,3 +200,94 @@ export const dedicatedCircuitPhotosSchema = z.object({
 export type DedicatedCircuitPhotosFormData = z.infer<
   typeof dedicatedCircuitPhotosSchema
 >;
+
+// ─── Exhaust Fan Schema ──────────────────────────────────────────────────────
+export const exhaustFanPhotosSchema = z.object({
+  photosOfInstallationArea: z
+    .array(z.string())
+    .min(1, "Please upload at least one photo of the installation area"),
+  photoOfNewFan: z
+    .array(z.string())
+    .min(1, "Please upload at least one photo of the new fan"),
+});
+
+export type ExhaustFanPhotosFormData = z.infer<typeof exhaustFanPhotosSchema>;
+
+// ─── Exhaust Fan Panel Photos Schema ──────────────────────────────────────
+export const exhaustFanPanelPhotosSchema = z.object({
+  panelClosePhotos: z
+    .array(z.string())
+    .min(
+      1,
+      "Please upload at least one close-up photo of the electrical panel",
+    ),
+  panelWidePhotos: z
+    .array(z.string())
+    .min(
+      1,
+      "Please upload at least one wide shot photo of the electrical panel",
+    ),
+});
+
+export type ExhaustFanPanelPhotosFormData = z.infer<
+  typeof exhaustFanPanelPhotosSchema
+>;
+
+// src/schemas/upload-photos/upload-photos.schema.ts
+// Add this to your existing schema file
+
+// ─── Outlet Schema ──────────────────────────────────────────────────────────
+export const outletPhotosSchema = z.object({
+  photosOfWhereOutletsInstall: z
+    .array(z.string())
+    .min(
+      1,
+      "Please upload at least one photo of where the outlet(s) will be installed",
+    ),
+});
+
+export type OutletPhotosFormData = z.infer<typeof outletPhotosSchema>;
+// src/schemas/upload-photos/upload-photos.schema.ts
+// Add this to your existing schema file
+
+// ─── Switches Schema ──────────────────────────────────────────────────────────
+export const switchesPhotosSchema = z.object({
+  photosOfWhereSwitchesInstallationNeeded: z
+    .array(z.string())
+    .min(
+      1,
+      "Please upload at least one photo of where the switch(es) will be installed",
+    ),
+});
+
+export type SwitchesPhotosFormData = z.infer<typeof switchesPhotosSchema>;
+
+// src/schemas/upload-photos/upload-photos.schema.ts
+// Add this to your existing schema file
+
+// ─── Lighting Schema ──────────────────────────────────────────────────────────
+// src/schemas/upload-photos/upload-photos.schema.ts
+// Add these schemas to your existing file
+
+// ─── Interior Lighting Schema ──────────────────────────────────────────────
+export const interiorLightingPhotosSchema = z.object({
+  photosOfWhereWantToInstall: z
+    .array(z.string())
+    .min(
+      1,
+      "Please upload at least one photo of where you want to install the lighting",
+    ),
+});
+
+export type InteriorLightingPhotosFormData = z.infer<
+  typeof interiorLightingPhotosSchema
+>;
+
+// ─── Flood Lights Schema ──────────────────────────────────────────────────
+export const floodLightPhotosSchema = z.object({
+  photosOfInstallationAreaFloodLight: z
+    .array(z.string())
+    .min(1, "Please upload at least one photo of the installation area"),
+});
+
+export type FloodLightPhotosFormData = z.infer<typeof floodLightPhotosSchema>;
